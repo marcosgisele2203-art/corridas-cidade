@@ -44,6 +44,7 @@ function atualizar() {
   if (aba === 'motoristas') carregarMotoristas();
   if (aba === 'relatorio') carregarRelatorio();
   if (aba === 'config') carregarConfig();
+  if (aba === 'divulgar') carregarDivulgar();
 }
 
 // ---------------------------------------------------------------- corridas
@@ -290,9 +291,69 @@ $('#enviarTodos').onclick = () => {
 };
 $('#imprimirGeral').onclick = () => window.print();
 
+// ---------------------------------------------------------------- divulgar
+
+const foneBR = (n) => { const d = String(n).replace(/^55/, ''); return d.length >= 10 ? `(${d.slice(0, 2)}) ${d.slice(2, -4)}-${d.slice(-4)}` : n; };
+async function carregarDivulgar() {
+  const d = await api('GET', '/api/divulgar');
+  const caixa = $('#divulgar');
+  if (!d.numero) {
+    caixa.innerHTML = `<p class="vazio">Não consegui descobrir o número da central pela Evolution.<br>
+      Preencha <b>WhatsApp da central</b> em Configurações e volte aqui.</p>`;
+    return;
+  }
+  const textoPassageiro = `🚗 *${d.nome}*\nPrecisa de uma corrida? Peça pelo WhatsApp, rapidinho!\n🏍️ Moto · 🚗 Carro · 🚐 Van · 🚚 Frete\n\n👉 ${d.passageiro}\n📞 ${foneBR(d.numero)}`;
+  const textoMotorista = `🚘 *${d.nome}* está cadastrando motoristas!\nMoto, carro, van ou caminhão. Cadastro pelo WhatsApp em 1 minuto.\n\n👉 ${d.motorista}`;
+  caixa.innerHTML = `
+    <div class="cartao divulga nao-imprimir">
+      <h3>👥 Para passageiros</h3>
+      <div class="divulga-grade">
+        <div class="qr">${d.qr_passageiro}</div>
+        <div>
+          <label>Link (abre o WhatsApp com "Oi! Quero uma corrida")</label>
+          <div class="copiar"><input readonly value="${esc(d.passageiro)}"><button class="mini" data-copiar="${esc(d.passageiro)}">Copiar link</button></div>
+          <label>Texto pronto para grupos, status, Instagram e Facebook</label>
+          <textarea readonly rows="7">${esc(textoPassageiro)}</textarea>
+          <div class="linha"><button class="mini" data-copiar="${esc(textoPassageiro)}">Copiar texto</button>
+            <button class="mini sec" id="imprimirCartaz">🖨️ Imprimir cartaz com QR Code</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="cartao divulga nao-imprimir">
+      <h3>🚘 Para motoristas</h3>
+      <div class="divulga-grade">
+        <div class="qr">${d.qr_motorista}</div>
+        <div>
+          <label>Link (abre o WhatsApp já com "CADASTRO")</label>
+          <div class="copiar"><input readonly value="${esc(d.motorista)}"><button class="mini" data-copiar="${esc(d.motorista)}">Copiar link</button></div>
+          <label>Texto pronto</label>
+          <textarea readonly rows="5">${esc(textoMotorista)}</textarea>
+          <div class="linha"><button class="mini" data-copiar="${esc(textoMotorista)}">Copiar texto</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="cartaz">
+      <h1>🚗 ${esc(d.nome)}</h1>
+      <p class="cartaz-sub">Peça sua corrida pelo WhatsApp</p>
+      <p class="cartaz-tipos">🏍️ Moto · 🚗 Carro · 🚐 Van · 🚚 Frete</p>
+      <div class="qr">${d.qr_passageiro}</div>
+      <p class="cartaz-passo">Aponte a câmera do celular aqui 👆</p>
+      <p class="cartaz-fone">ou chame no WhatsApp<br><b>${foneBR(d.numero)}</b></p>
+    </div>`;
+  $('#imprimirCartaz').onclick = () => { document.body.classList.add('imprimindo-cartaz'); window.print(); document.body.classList.remove('imprimindo-cartaz'); };
+}
+$('#divulgar').onclick = async (e) => {
+  const t = e.target.dataset.copiar;
+  if (!t) return;
+  try { await navigator.clipboard.writeText(t); } catch {
+    const a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); document.execCommand('copy'); a.remove();
+  }
+  const antes = e.target.textContent; e.target.textContent = '✅ Copiado!'; setTimeout(() => e.target.textContent = antes, 1500);
+};
+
 // ---------------------------------------------------------------- configurações
 
-const CAMPOS = ['nome', 'cidade', 'numero_admin', 'comissao_pct', 'oferta_segundos', 'fator_rota',
+const CAMPOS = ['nome', 'cidade', 'numero_admin', 'numero_central', 'comissao_pct', 'oferta_segundos', 'fator_rota',
   'valor_viagem', 'creditos_boas_vindas', 'pix_chave', 'pix_nome'];
 const reaisCurto = (v) => 'R$ ' + (Math.ceil(v * 2) / 2).toFixed(2).replace('.', ',');
 async function carregarConfig() {

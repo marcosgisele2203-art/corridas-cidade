@@ -19,6 +19,7 @@ const whats = require('./lib/whats');
 const { TIPOS, ORDEM, rotulo, veiculo, coresDo } = require('./lib/tipos');
 const MP = require('./lib/mercadopago');
 const relatorio = require('./lib/relatorio');
+const QRCode = require('qrcode');
 
 const PORT = Number(process.env.PORT) || 3000;
 // tira espaços e aspas que às vezes vêm junto quando a variável é colada no Easypanel
@@ -192,6 +193,7 @@ rota('PUT', '/api/config', true, async ({ req }) => {
     else novo[k] = texto(b[k], 120);
   }
   if (novo.numero_admin) novo.numero_admin = telefoneBR(novo.numero_admin);
+  if (novo.numero_central) novo.numero_central = telefoneBR(novo.numero_central);
   if (b.pacotes !== undefined) {
     // "10, 20, 50" → [10, 20, 50]
     novo.pacotes = [...new Set(String(b.pacotes).split(/[^\d]+/).map(Number).filter((n) => n > 0 && n <= 1000))].sort((x, y) => x - y).slice(0, 6);
@@ -397,6 +399,22 @@ rota('POST', '/api/relatorios/enviar', true, async ({ req, url }) => {
     }
   })();
   return { enviados: ids.length, segundos: (ids.length - 1) * 3 };
+});
+
+// divulgação: links e QR codes que abrem o WhatsApp da central já com a mensagem escrita
+rota('GET', '/api/divulgar', true, async () => {
+  const cfg = await lerConfig();
+  let numero = cfg.numero_central;
+  if (!numero) {
+    numero = await whats.numeroDaInstancia();
+    if (numero) await salvarConfig({ ...cfg, numero_central: numero });
+  }
+  if (!numero) return { numero: '', nome: cfg.nome };
+  const link = (txt) => `https://wa.me/${numero}?text=${encodeURIComponent(txt)}`;
+  const qr = (url) => QRCode.toString(url, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' });
+  const passageiro = link('Oi! Quero uma corrida');
+  const motorista = link('CADASTRO');
+  return { numero, nome: cfg.nome, passageiro, motorista, qr_passageiro: await qr(passageiro), qr_motorista: await qr(motorista) };
 });
 
 rota('GET', '/api/mensagens', true, async () => whats.enviados.slice(-50).reverse());

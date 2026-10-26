@@ -84,3 +84,23 @@ td button.mini { margin: 3px 4px 3px 0; }
   .kpi b { font-size: 20px; }
   th, td { padding: 6px 8px; }
 }
+
+/* divulgar */
+.divulga-grade { display: grid; grid-template-columns: 220px 1fr; gap: 24px; align-items: start; }
+@media (max-width: 700px) { .divulga-grade { grid-template-columns: 1fr; } .divulga-grade .qr { max-width: 240px; } }
+.qr svg { width: 100%; height: auto; display: block; background: #fff; border-radius: 10px; }
+.copiar { display: flex; gap: 8px; margin: 4px 0 16px; } .copiar input { margin: 0; }
+textarea { font: inherit; font-size: 16px; width: 100%; padding: 12px; border: 1px solid var(--borda); border-radius: 10px;
+  background: var(--fundo); color: var(--texto); margin: 4px 0 10px; resize: vertical; }
+.cartaz { display: none; }
+@media print {
+  body.imprimindo-cartaz main > section:not(#aba-divulgar), body.imprimindo-cartaz #aba-divulgar > h2,
+  body.imprimindo-cartaz #aba-divulgar > .dica { display: none !important; }
+  body.imprimindo-cartaz .cartaz { display: block; text-align: center; padding: 30px 20px; }
+  .cartaz h1 { font-size: 46px; margin: 0 0 6px; }
+  .cartaz-sub { font-size: 30px; margin: 0 0 6px; font-weight: 700; }
+  .cartaz-tipos { font-size: 22px; margin: 0 0 24px; }
+  .cartaz .qr { width: 330px; margin: 0 auto; }
+  .cartaz-passo { font-size: 22px; margin: 16px 0; }
+  .cartaz-fone { font-size: 24px; } .cartaz-fone b { font-size: 36px; }
+}

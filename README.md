@@ -117,6 +117,7 @@ Também existe uma **comissão %** por corrida (padrão 0%), só para controle n
 | **Corridas** | corridas do dia ao vivo (atualiza sozinho), botão de cancelar, link do WhatsApp do passageiro |
 | **Motoristas** | **aprovar/recusar** quem se cadastrou pelo WhatsApp, cadastro manual (tipo de veículo, modelo, placa), ativar/desativar, pôr online/tirar do ar, nota média |
 | **Relatório** | **geral da central** (corridas, faturamento, venda de viagens) e **individual de cada motorista** (corridas, ganhos, nota, viagens compradas/usadas, saldo): ver, imprimir/PDF e **mandar no WhatsApp** dele, um por um ou para todos |
+| **📣 Divulgar** | link do WhatsApp da central (já com "Oi! Quero uma corrida"), **QR Code**, texto pronto para grupos/status/redes, **cartaz para imprimir**, e o link de cadastro para motoristas |
 | **Configurações** | nome da central, cidade, **preços por veículo**, comissão, tempo para aceitar, WhatsApp do administrador, aprovação automática, abrir/fechar a central |
 
 ## Instalação no Easypanel
