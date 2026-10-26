@@ -174,6 +174,9 @@ O Mercado Pago cobra uma taxa por Pix recebido (veja no painel deles).
 A Evolution usa conexão não oficial; o WhatsApp pode bloquear números que parecem robô de propaganda.
 - Use um **número só para a central**, nunca o pessoal.
 - O sistema só responde quem mandou mensagem. Não use o número para disparos em massa.
+- **Proteção contra loop:** se outro robô (ex.: o atendimento automático de uma loja) ficar respondendo a central,
+  depois de 6 mensagens em 30 segundos o número fica 30 minutos sem resposta e o administrador recebe um aviso.
+  Mesmo assim, **não teste usando um número que tenha robô** (como o do Naturally Mania).
 - Tenha um chip reserva. A Evolution também aceita a API oficial da Meta (Cloud API): dá para migrar sem mudar este código.
 
 ## Rodar no computador (opcional)
