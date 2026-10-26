@@ -18,8 +18,10 @@ const bot = require('./lib/bot');
 const whats = require('./lib/whats');
 
 const PORT = Number(process.env.PORT) || 3000;
-const WEBHOOK_TOKEN = process.env.WEBHOOK_TOKEN || '';
-const ADMIN_SENHA = process.env.ADMIN_SENHA || '';
+// tira espaços e aspas que às vezes vêm junto quando a variável é colada no Easypanel
+const limparVar = (v) => String(v || '').trim().replace(/^(['"])(.*)\1$/, '$2').trim();
+const WEBHOOK_TOKEN = limparVar(process.env.WEBHOOK_TOKEN);
+const ADMIN_SENHA = limparVar(process.env.ADMIN_SENHA);
 const PUBLIC = path.join(__dirname, 'public');
 
 // ---------------------------------------------------------------- utilidades
@@ -137,7 +139,7 @@ rota('POST', '/api/login', false, async ({ req, res }) => {
   limitar('login:' + ipDe(req), 10, 15 * 60_000);
   if (!ADMIN_SENHA) throw new Erro(503, 'Defina a variável ADMIN_SENHA no Easypanel para usar o painel.');
   const b = await lerCorpo(req);
-  const a = crypto.createHash('sha256').update(String(b.senha || '')).digest();
+  const a = crypto.createHash('sha256').update(String(b.senha || '').trim()).digest();
   const e = crypto.createHash('sha256').update(ADMIN_SENHA).digest();
   if (!crypto.timingSafeEqual(a, e)) throw new Erro(401, 'Senha errada.');
   const exp = String(Date.now() + DURACAO);
@@ -288,6 +290,7 @@ const server = http.createServer(async (req, res) => {
     if (!whats.EVO.url) console.log('Aviso: EVOLUTION_URL não definida, as mensagens só aparecem no log.');
     if (!WEBHOOK_TOKEN) console.log('Aviso: WEBHOOK_TOKEN não definido, qualquer um pode chamar o webhook.');
     if (!ADMIN_SENHA) console.log('Aviso: ADMIN_SENHA não definida, o painel fica bloqueado.');
+    else console.log(`Senha do painel configurada (${ADMIN_SENHA.length} caracteres, começa com "${ADMIN_SENHA[0]}")`);
   });
 })().catch((e) => { console.error('Falha ao iniciar:', e); process.exit(1); });
 
