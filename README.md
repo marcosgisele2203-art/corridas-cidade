@@ -16,9 +16,10 @@ Central:    Olá Maria! 🚗 Envie sua localização 📍 ou digite o endereço
 Passageiro: [localização]                         (ou "Rua X, 123")
 Central:    Para onde você vai?
 Passageiro: [localização] / Rodoviária
-Central:    Saída / Destino / 2,9 km · Escolha o veículo:
-            1 🏍️ Moto R$ 8,50 · 2 🚗 Carro R$ 11,00 · 3 🚐 Van R$ 17,00 · 4 🚚 Caminhão R$ 60,00
+Central:    Saída / Destino / 2,9 km · Qual veículo? 1 🏍️ Moto · 2 🚗 Carro · 3 🚐 Van · 4 🚚 Caminhão
 Passageiro: 2
+Central:    🚗 Carro · R$ 11,00 · Confirma? 1 Sim 2 Não
+Passageiro: 1
 Central:    🔎 Procurando motorista...
 Central:    ✅ Pedro Lima · Onix branco XYZ9K87 · chega em ~9 min
 Central:    📍 Pedro chegou!
