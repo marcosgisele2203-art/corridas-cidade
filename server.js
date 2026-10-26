@@ -16,6 +16,7 @@ const crypto = require('crypto');
 const { pool, migrar, lerConfig, salvarConfig, CONFIG_PADRAO } = require('./lib/db');
 const bot = require('./lib/bot');
 const whats = require('./lib/whats');
+const { TIPOS, ORDEM, rotulo } = require('./lib/tipos');
 
 const PORT = Number(process.env.PORT) || 3000;
 // tira espaços e aspas que às vezes vêm junto quando a variável é colada no Easypanel
@@ -158,12 +159,25 @@ rota('PUT', '/api/config', true, async ({ req }) => {
   const b = await lerCorpo(req), atual = await lerConfig();
   const novo = { ...atual };
   for (const k of Object.keys(CONFIG_PADRAO)) {
-    if (b[k] === undefined) continue;
+    if (b[k] === undefined || k === 'precos') continue;
     if (typeof CONFIG_PADRAO[k] === 'number') novo[k] = Math.max(0, numero(b[k], atual[k]));
     else if (typeof CONFIG_PADRAO[k] === 'boolean') novo[k] = !!b[k];
     else novo[k] = texto(b[k], 120);
   }
   if (novo.numero_admin) novo.numero_admin = telefoneBR(novo.numero_admin);
+  if (b.precos) {
+    novo.precos = {};
+    for (const t of ORDEM) {
+      const v = b.precos[t] || {}, a = atual.precos[t];
+      novo.precos[t] = {
+        ativo: v.ativo === undefined ? a.ativo : !!v.ativo,
+        taxa_base: Math.max(0, numero(v.taxa_base, a.taxa_base)),
+        por_km: Math.max(0, numero(v.por_km, a.por_km)),
+        minimo: Math.max(0, numero(v.minimo, a.minimo)),
+      };
+    }
+    if (!ORDEM.some((t) => novo.precos[t].ativo)) throw new Erro(400, 'Deixe pelo menos um tipo de veículo ligado.');
+  }
   await salvarConfig(novo);
   return novo;
 });
@@ -174,28 +188,46 @@ rota('GET', '/api/motoristas', true, async () => {
       (SELECT count(*)::int FROM corridas c WHERE c.motorista_id = m.id AND c.status = 'finalizada') AS corridas,
       (SELECT round(avg(avaliacao), 1) FROM corridas c WHERE c.motorista_id = m.id AND avaliacao IS NOT NULL) AS nota,
       (SELECT c.id FROM corridas c WHERE c.motorista_id = m.id AND c.status IN ('aceita', 'chegou', 'em_andamento') LIMIT 1) AS corrida_atual
-    FROM motoristas m ORDER BY m.ativo DESC, m.nome`);
+    FROM motoristas m ORDER BY m.aprovado, m.ativo DESC, m.nome`);
   return rows;
 });
 
 function dadosMotorista(b) {
   const nome = texto(b.nome, 80);
   if (!nome) throw new Erro(400, 'Informe o nome do motorista.');
-  return [nome, telefoneBR(b.telefone), texto(b.carro, 60), texto(b.placa, 10).toUpperCase(), b.ativo !== false];
+  const tipo = TIPOS[b.tipo] ? b.tipo : 'carro';
+  return [nome, telefoneBR(b.telefone), texto(b.carro, 60), texto(b.placa, 10).toUpperCase(), b.ativo !== false, tipo];
 }
 async function gravarMotorista(sql, params) {
   try { return (await pool.query(sql, params)).rows[0]; }
   catch (e) { if (e.code === '23505') throw new Erro(400, 'Já existe um motorista com esse WhatsApp.'); throw e; }
 }
 rota('POST', '/api/motoristas', true, async ({ req }) => gravarMotorista(
-  'INSERT INTO motoristas (nome, telefone, carro, placa, ativo) VALUES ($1, $2, $3, $4, $5) RETURNING *', dadosMotorista(await lerCorpo(req))));
+  'INSERT INTO motoristas (nome, telefone, carro, placa, ativo, tipo) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *', dadosMotorista(await lerCorpo(req))));
 rota('PUT', '/api/motoristas/:id', true, async ({ req, p }) => {
   const d = dadosMotorista(await lerCorpo(req));
   const m = await gravarMotorista(
-    `UPDATE motoristas SET nome = $2, telefone = $3, carro = $4, placa = $5, ativo = $6,
+    `UPDATE motoristas SET nome = $2, telefone = $3, carro = $4, placa = $5, ativo = $6, tipo = $7,
             online = online AND $6, contato = CASE WHEN telefone = $3 THEN contato ELSE '' END WHERE id = $1 RETURNING *`, [Number(p.id), ...d]);
   if (!m) throw new Erro(404, 'Motorista não encontrado.');
   return m;
+});
+// cadastro feito pelo próprio motorista no WhatsApp: aprovar ou recusar
+rota('POST', '/api/motoristas/:id/aprovar', true, async ({ p }) => {
+  const { rows: [m] } = await pool.query('UPDATE motoristas SET aprovado = true, ativo = true WHERE id = $1 RETURNING *', [Number(p.id)]);
+  if (!m) throw new Erro(404, 'Motorista não encontrado.');
+  const cfg = await lerConfig();
+  whats.texto(m.contato || m.telefone, `🎉 *Cadastro aprovado!* Bem-vindo à ${cfg.nome}, ${m.nome.split(' ')[0]}!\n` +
+    `${rotulo(m.tipo)} · ${m.carro} · ${m.placa}\n\n` + bot.AJUDA_MOTORISTA);
+  return m;
+});
+rota('POST', '/api/motoristas/:id/recusar', true, async ({ p }) => {
+  const { rows: [m] } = await pool.query('SELECT * FROM motoristas WHERE id = $1 AND NOT aprovado', [Number(p.id)]);
+  if (!m) throw new Erro(400, 'Só dá para recusar cadastro que ainda está aguardando aprovação.');
+  await pool.query('DELETE FROM motoristas WHERE id = $1', [m.id]);
+  const cfg = await lerConfig();
+  whats.texto(m.contato || m.telefone, `Olá ${m.nome.split(' ')[0]}. Seu cadastro de motorista na ${cfg.nome} não foi aprovado. Para saber mais, fale com a central.`);
+  return { ok: true };
 });
 rota('POST', '/api/motoristas/:id/online', true, async ({ req, p }) => {
   const b = await lerCorpo(req);
@@ -238,10 +270,10 @@ rota('GET', '/api/resumo', true, async ({ url }) => {
            coalesce(sum(comissao), 0)::float AS comissao
       FROM corridas c WHERE ${filtro}`, [de, ate]);
   const { rows: motoristas } = await pool.query(`
-    SELECT m.nome, count(*)::int AS corridas, sum(c.valor_final)::float AS faturamento, sum(c.comissao)::float AS comissao,
+    SELECT m.nome, m.tipo, count(*)::int AS corridas, sum(c.valor_final)::float AS faturamento, sum(c.comissao)::float AS comissao,
            round(avg(c.avaliacao), 1)::float AS nota
       FROM corridas c JOIN motoristas m ON m.id = c.motorista_id
-     WHERE c.status = 'finalizada' AND ${filtro} GROUP BY m.nome ORDER BY sum(c.valor_final) DESC`, [de, ate]);
+     WHERE c.status = 'finalizada' AND ${filtro} GROUP BY m.nome, m.tipo ORDER BY sum(c.valor_final) DESC`, [de, ate]);
   return { total, motoristas };
 });
 
@@ -249,13 +281,13 @@ rota('GET', '/api/mensagens', true, async () => whats.enviados.slice(-50).revers
 
 // ---------------------------------------------------------------- arquivos do painel
 
-const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml' };
 function arquivo(res, nome) {
   const caminho = path.join(PUBLIC, nome);
   if (!caminho.startsWith(PUBLIC + path.sep)) return false;
   try {
     const conteudo = fs.readFileSync(caminho);
-    res.writeHead(200, { 'Content-Type': TIPOS[path.extname(caminho)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(caminho)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
     res.end(conteudo);
     return true;
   } catch { return false; }

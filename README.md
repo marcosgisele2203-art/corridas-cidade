@@ -16,8 +16,9 @@ Central:    Olá Maria! 🚗 Envie sua localização 📍 ou digite o endereço
 Passageiro: [localização]                         (ou "Rua X, 123")
 Central:    Para onde você vai?
 Passageiro: [localização] / Rodoviária
-Central:    Saída / Destino / 2,9 km / R$ 11,00 · Confirma? 1 Sim 2 Não
-Passageiro: 1
+Central:    Saída / Destino / 2,9 km · Escolha o veículo:
+            1 🏍️ Moto R$ 8,50 · 2 🚗 Carro R$ 11,00 · 3 🚐 Van R$ 17,00 · 4 🚚 Caminhão R$ 60,00
+Passageiro: 2
 Central:    🔎 Procurando motorista...
 Central:    ✅ Pedro Lima · Onix branco XYZ9K87 · chega em ~9 min
 Central:    📍 Pedro chegou!
@@ -26,7 +27,20 @@ Central:    🏁 Corrida finalizada: R$ 11,00 · avalie de 1 a 5
 
 A qualquer momento o passageiro pode mandar **CANCELAR** (até a corrida começar).
 
-**Motorista** (o número dele é cadastrado no painel; ele conversa com o mesmo WhatsApp da central)
+**Cadastro do motorista** (ele mesmo faz, pelo WhatsApp da central)
+
+```
+Motorista: CADASTRO
+Central:   1/4 Nome completo? · 2/4 Veículo? (1 Moto, 2 Carro, 3 Van, 4 Caminhão)
+           3/4 Modelo e cor? · 4/4 Placa?
+Central:   ✅ Cadastro enviado! Você recebe uma mensagem quando for aprovado.
+```
+
+O administrador recebe um aviso no WhatsApp e aprova (ou recusa) em **Painel › Motoristas**. Na aprovação o
+motorista recebe a lista de comandos. Em Configurações dá para ligar *Aprovar sozinho* (sem conferir).
+O administrador também pode cadastrar motoristas direto no painel.
+
+**Motorista** (depois de aprovado, conversa com o mesmo WhatsApp da central)
 
 | Mensagem | O que faz |
 |---|---|
@@ -41,7 +55,7 @@ A qualquer momento o passageiro pode mandar **CANCELAR** (até a corrida começa
 
 ### Distribuição das chamadas
 
-1. A corrida vai para o motorista **online, livre e mais perto** da saída (pela última localização dele).
+1. A corrida vai para o motorista **do tipo de veículo escolhido**, **online, livre e mais perto** da saída (pela última localização dele).
 2. Ele tem **40 segundos** (configurável) para aceitar. Se recusar ou não responder, vai para o próximo.
 3. Se todos estiverem ocupados, o sistema continua tentando por até 5 minutos.
 4. Sem ninguém disponível, o passageiro é avisado e o **WhatsApp do administrador** recebe um alerta.
@@ -50,8 +64,17 @@ Só um motorista recebe a chamada por vez; dois motoristas nunca ficam com a mes
 
 ### Preço
 
-`taxa base + km × valor por km`, nunca abaixo do mínimo, arredondado para cima de 50 em 50 centavos.
-Padrão: R$ 5,00 + R$ 2,00/km, mínimo R$ 8,00. A distância é a linha reta × 1,3 (aproxima o caminho pelas ruas).
+Cada tipo de veículo tem sua tabela: `taxa base + km × valor por km`, nunca abaixo do mínimo, arredondado para cima
+de 50 em 50 centavos. A distância é a linha reta × 1,3 (aproxima o caminho pelas ruas).
+
+| Veículo | Taxa base | Por km | Mínimo |
+|---|---|---|---|
+| 🏍️ Moto | R$ 4,00 | R$ 1,50 | R$ 6,00 |
+| 🚗 Carro | R$ 5,00 | R$ 2,00 | R$ 8,00 |
+| 🚐 Van | R$ 8,00 | R$ 3,00 | R$ 15,00 |
+| 🚚 Caminhão (frete) | R$ 30,00 | R$ 5,00 | R$ 60,00 |
+
+Tudo muda em Painel › Configurações, onde também dá para **desligar** um tipo (ele some do menu do passageiro).
 
 - Quando o passageiro manda **localização**, o preço sai na hora.
 - Quando **digita o endereço**, o sistema procura no OpenStreetMap dentro da cidade configurada. Se não achar, a corrida
@@ -65,9 +88,9 @@ O pagamento é feito direto ao motorista (dinheiro ou Pix).
 | Aba | O que tem |
 |---|---|
 | **Corridas** | corridas do dia ao vivo (atualiza sozinho), botão de cancelar, link do WhatsApp do passageiro |
-| **Motoristas** | cadastro (nome, WhatsApp, carro, placa), ativar/desativar, pôr online/tirar do ar, nota média |
+| **Motoristas** | **aprovar/recusar** quem se cadastrou pelo WhatsApp, cadastro manual (tipo de veículo, modelo, placa), ativar/desativar, pôr online/tirar do ar, nota média |
 | **Relatório** | corridas, faturamento e **comissão a receber de cada motorista** no período |
-| **Configurações** | nome da central, cidade, preços, comissão, tempo para aceitar, WhatsApp do administrador, abrir/fechar a central |
+| **Configurações** | nome da central, cidade, **preços por veículo**, comissão, tempo para aceitar, WhatsApp do administrador, aprovação automática, abrir/fechar a central |
 
 ## Instalação no Easypanel
 
@@ -102,8 +125,8 @@ Nos logs deve aparecer `Central de corridas no ar na porta 3000`.
 ### 4. Primeiro uso
 1. Abra `https://corridas.seudominio.com/painel` e entre com a `ADMIN_SENHA`.
 2. **Configurações**: nome da central, cidade (ex.: `Bonito, MS`), preços, comissão e seu WhatsApp para alertas.
-3. **Motoristas**: cadastre cada motorista com o WhatsApp dele.
-4. Cada motorista salva o número da central e manda **ONLINE** e a **localização em tempo real** (8 horas).
+3. **Motoristas**: divulgue o número da central; cada motorista manda **CADASTRO** e você aprova no painel.
+4. Depois de aprovado, o motorista manda **ONLINE** e a **localização em tempo real** (8 horas).
 5. Teste: de outro celular, mande **oi** para a central.
 
 ## Cuidados com o WhatsApp

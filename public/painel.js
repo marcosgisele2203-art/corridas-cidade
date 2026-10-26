@@ -4,6 +4,7 @@ const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const reais = (v) => (v == null ? '—' : 'R$ ' + Number(v).toFixed(2).replace('.', ','));
 const hora = (d) => (d ? new Date(d).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '');
 const hoje = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+const TIPOS = { moto: '🏍️ Moto', carro: '🚗 Carro', van: '🚐 Van', caminhao: '🚚 Caminhão' };
 const STATUS = {
   procurando: 'Procurando motorista', aceita: 'Motorista a caminho', chegou: 'Motorista chegou', em_andamento: 'Em andamento',
   finalizada: 'Finalizada', cancelada: 'Cancelada', sem_motorista: 'Sem motorista',
@@ -61,7 +62,7 @@ async function carregarCorridas() {
   $('#listaCorridas').innerHTML = lista.length ? lista.map((c) => `
     <div class="cartao corrida">
       <div class="topo">
-        <b>#${c.id} · ${esc(c.passageiro_nome || 'Passageiro')} <small>${hora(c.criado_em)}</small></b>
+        <b>#${c.id} · ${esc(c.passageiro_nome || 'Passageiro')} <small>${TIPOS[c.tipo] || ''} · ${hora(c.criado_em)}</small></b>
         <span class="etiqueta st-${c.status}">${STATUS[c.status] || c.status}</span>
       </div>
       <div>📍 ${esc(c.origem_texto)}</div>
@@ -86,12 +87,22 @@ $('#listaCorridas').onclick = async (e) => {
 
 let motoristas = [];
 async function carregarMotoristas() {
-  motoristas = await api('GET', '/api/motoristas');
+  const todos = await api('GET', '/api/motoristas');
+  const pendentes = todos.filter((m) => !m.aprovado);
+  motoristas = todos.filter((m) => m.aprovado);
+  $('#pendentes').innerHTML = pendentes.map((m) => `
+    <div class="cartao pendente">
+      <b>🆕 ${esc(m.nome)}</b> quer ser motorista<br>
+      ${TIPOS[m.tipo] || ''} · ${esc(m.carro)} · <b>${esc(m.placa)}</b> ·
+      <a href="https://wa.me/${esc(m.telefone)}" target="_blank" rel="noopener">${esc(m.telefone)}</a>
+      <div class="linha"><button class="mini" data-aprovar="${m.id}">✅ Aprovar</button>
+        <button class="mini perigo" data-recusar="${m.id}">Recusar</button></div>
+    </div>`).join('');
   $('#listaMotoristas').innerHTML = motoristas.length ? `<div class="tabela"><table>
-    <tr><th>Motorista</th><th>Carro</th><th>Situação</th><th class="num">Corridas</th><th class="num">Nota</th><th></th></tr>
+    <tr><th>Motorista</th><th>Veículo</th><th>Situação</th><th class="num">Corridas</th><th class="num">Nota</th><th></th></tr>
     ${motoristas.map((m) => `<tr>
       <td><b>${esc(m.nome)}</b><br><small><a href="https://wa.me/${esc(m.telefone)}" target="_blank" rel="noopener">${esc(m.telefone)}</a></small></td>
-      <td>${esc(m.carro)}<br><small>${esc(m.placa)}</small></td>
+      <td>${TIPOS[m.tipo] || ''}<br><small>${esc(m.carro)} · ${esc(m.placa)}</small></td>
       <td>${!m.ativo ? '<span class="offline">Desativado</span>'
         : m.corrida_atual ? `<span class="online">Em corrida #${m.corrida_atual}</span>`
         : m.online ? '<span class="online">🟢 Online</span>' : '<span class="offline">🔴 Offline</span>'}</td>
@@ -100,14 +111,22 @@ async function carregarMotoristas() {
       <td><button class="mini sec" data-editar="${m.id}">Editar</button>
         ${m.ativo ? `<button class="mini sec" data-online="${m.id}" data-valor="${!m.online}">${m.online ? 'Tirar do ar' : 'Pôr online'}</button>` : ''}</td>
     </tr>`).join('')}</table></div>`
-    : '<p class="vazio">Cadastre o primeiro motorista. Depois ele manda <b>ONLINE</b> para o WhatsApp da central.</p>';
+    : '<p class="vazio">Nenhum motorista ainda. Peça para eles mandarem <b>CADASTRO</b> no WhatsApp da central, ou cadastre aqui.</p>';
 }
+$('#pendentes').onclick = async (e) => {
+  const { aprovar, recusar } = e.target.dataset;
+  try {
+    if (aprovar) await api('POST', `/api/motoristas/${aprovar}/aprovar`);
+    if (recusar && confirm('Recusar esse cadastro? O motorista recebe um aviso no WhatsApp.')) await api('POST', `/api/motoristas/${recusar}/recusar`);
+    carregarMotoristas();
+  } catch (err) { alert(err.message); }
+};
 
 function abrirFormMotorista(m = {}) {
   const f = $('#formMotorista');
   f.hidden = false;
   f.id.value = m.id || ''; f.nome.value = m.nome || ''; f.telefone.value = m.telefone || '';
-  f.carro.value = m.carro || ''; f.placa.value = m.placa || ''; f.ativo.checked = m.ativo !== false;
+  f.carro.value = m.carro || ''; f.placa.value = m.placa || ''; f.ativo.checked = m.ativo !== false; f.tipo.value = m.tipo || 'carro';
   $('#erroMotorista').textContent = '';
   f.nome.focus();
 }
@@ -121,7 +140,7 @@ $('#listaMotoristas').onclick = async (e) => {
 $('#formMotorista').onsubmit = async (e) => {
   e.preventDefault();
   const f = e.target;
-  const corpo = { nome: f.nome.value, telefone: f.telefone.value, carro: f.carro.value, placa: f.placa.value, ativo: f.ativo.checked };
+  const corpo = { nome: f.nome.value, telefone: f.telefone.value, tipo: f.tipo.value, carro: f.carro.value, placa: f.placa.value, ativo: f.ativo.checked };
   try {
     await api(f.id.value ? 'PUT' : 'POST', '/api/motoristas' + (f.id.value ? '/' + f.id.value : ''), corpo);
     f.hidden = true;
@@ -140,35 +159,57 @@ async function carregarRelatorio() {
     ['Faturamento', reais(r.total.faturamento)], ['Comissão da central', reais(r.total.comissao)],
   ].map(([t, v]) => `<div class="kpi"><span>${t}</span><b>${v}</b></div>`).join('');
   $('#tabelaRel').innerHTML = r.motoristas.length ? `<div class="tabela"><table>
-    <tr><th>Motorista</th><th class="num">Corridas</th><th class="num">Faturamento</th><th class="num">Comissão a receber</th><th class="num">Nota</th></tr>
-    ${r.motoristas.map((m) => `<tr><td>${esc(m.nome)}</td><td class="num">${m.corridas}</td><td class="num">${reais(m.faturamento)}</td>
+    <tr><th>Motorista</th><th>Veículo</th><th class="num">Corridas</th><th class="num">Faturamento</th><th class="num">Comissão a receber</th><th class="num">Nota</th></tr>
+    ${r.motoristas.map((m) => `<tr><td>${esc(m.nome)}</td><td>${TIPOS[m.tipo] || ''}</td><td class="num">${m.corridas}</td><td class="num">${reais(m.faturamento)}</td>
       <td class="num"><b>${reais(m.comissao)}</b></td><td class="num">${m.nota ?? '—'}</td></tr>`).join('')}
   </table></div>` : '<p class="vazio">Nenhuma corrida finalizada no período.</p>';
 }
 
 // ---------------------------------------------------------------- configurações
 
-const CAMPOS = ['nome', 'cidade', 'numero_admin', 'taxa_base', 'por_km', 'minimo', 'comissao_pct', 'oferta_segundos', 'fator_rota'];
+const CAMPOS = ['nome', 'cidade', 'numero_admin', 'comissao_pct', 'oferta_segundos', 'fator_rota'];
+const reaisCurto = (v) => 'R$ ' + (Math.ceil(v * 2) / 2).toFixed(2).replace('.', ',');
 async function carregarConfig() {
   const c = await api('GET', '/api/config');
   const f = $('#formConfig');
   CAMPOS.forEach((k) => f[k].value = c[k] ?? '');
   f.aceitando.checked = !!c.aceitando;
+  f.aprovar_automatico.checked = !!c.aprovar_automatico;
+  $('#tabelaPrecos').innerHTML = `<tr><th>Oferecer</th><th>Veículo</th><th>Taxa base</th><th>Por km</th><th>Mínimo</th><th>3 km</th><th>10 km</th></tr>` +
+    Object.keys(TIPOS).map((t) => `<tr data-tipo="${t}">
+      <td><input type="checkbox" data-c="ativo" ${c.precos[t].ativo ? 'checked' : ''}></td>
+      <td>${TIPOS[t]}</td>
+      <td><input type="number" step="0.5" min="0" data-c="taxa_base" value="${c.precos[t].taxa_base}"></td>
+      <td><input type="number" step="0.1" min="0" data-c="por_km" value="${c.precos[t].por_km}"></td>
+      <td><input type="number" step="0.5" min="0" data-c="minimo" value="${c.precos[t].minimo}"></td>
+      <td class="ex3"></td><td class="ex10"></td></tr>`).join('');
   simular();
 }
+function lerPrecos() {
+  const precos = {};
+  document.querySelectorAll('#tabelaPrecos tr[data-tipo]').forEach((tr) => {
+    const v = (c) => tr.querySelector(`[data-c=${c}]`);
+    precos[tr.dataset.tipo] = { ativo: v('ativo').checked, taxa_base: v('taxa_base').value, por_km: v('por_km').value, minimo: v('minimo').value };
+  });
+  return precos;
+}
 function simular() {
-  const f = $('#formConfig');
-  const v = (km) => Math.ceil(Math.max(Number(f.minimo.value), Number(f.taxa_base.value) + km * Number(f.por_km.value)) * 2) / 2;
-  $('#simulacao').textContent = `Exemplos: 1 km = ${reais(v(1))} · 3 km = ${reais(v(3))} · 5 km = ${reais(v(5))} · 10 km = ${reais(v(10))}`;
+  const precos = lerPrecos();
+  document.querySelectorAll('#tabelaPrecos tr[data-tipo]').forEach((tr) => {
+    const p = precos[tr.dataset.tipo];
+    const v = (km) => reaisCurto(Math.max(Number(p.minimo), Number(p.taxa_base) + km * Number(p.por_km)));
+    tr.querySelector('.ex3').textContent = v(3);
+    tr.querySelector('.ex10').textContent = v(10);
+  });
 }
 $('#formConfig').oninput = simular;
 $('#formConfig').onsubmit = async (e) => {
   e.preventDefault();
-  const f = e.target, corpo = { aceitando: f.aceitando.checked };
+  const f = e.target, corpo = { aceitando: f.aceitando.checked, aprovar_automatico: f.aprovar_automatico.checked, precos: lerPrecos() };
   CAMPOS.forEach((k) => corpo[k] = f[k].value);
   try {
     const c = await api('PUT', '/api/config', corpo);
-    $('#nomeCentral').textContent = c.nome;
+    $('#nomeCentral').textContent = '🚗 ' + c.nome;
     $('#okConfig').textContent = '✅ Salvo!';
     setTimeout(() => $('#okConfig').textContent = '', 3000);
   } catch (err) { alert(err.message); }

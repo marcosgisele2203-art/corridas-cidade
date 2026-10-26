@@ -14,7 +14,13 @@ button.sec { background: transparent; color: var(--texto); border: 1px solid var
 button.perigo { background: var(--vermelho); }
 button.mini { padding: 4px 10px; font-size: 13px; }
 input { font: inherit; width: 100%; padding: 9px 10px; border: 1px solid var(--borda); border-radius: 8px; background: var(--cartao); color: var(--texto); margin-top: 4px; }
+select { font: inherit; width: 100%; padding: 9px 10px; border: 1px solid var(--borda); border-radius: 8px; background: var(--cartao); color: var(--texto); margin-top: 4px; }
 input[type=checkbox] { width: auto; margin: 0 6px 0 0; }
+h3 { margin: 18px 0 4px; font-size: 16px; }
+#formConfig label.inline { display: flex; margin-bottom: 8px; }
+#tabelaPrecos input[type=number] { width: 90px; margin: 0; padding: 6px 8px; }
+.pendente { border-color: #f0b429; }
+.pendente .linha { margin: 8px 0 0; justify-content: flex-start; }
 label { display: block; color: var(--suave); font-size: 13px; }
 label.inline { display: inline-flex; align-items: center; gap: 6px; }
 label.inline input[type=date] { width: auto; margin: 0; }
