@@ -16,7 +16,7 @@ const crypto = require('crypto');
 const { pool, migrar, lerConfig, salvarConfig, moverCreditos, CONFIG_PADRAO } = require('./lib/db');
 const bot = require('./lib/bot');
 const whats = require('./lib/whats');
-const { TIPOS, ORDEM, rotulo } = require('./lib/tipos');
+const { TIPOS, ORDEM, rotulo, veiculo } = require('./lib/tipos');
 const MP = require('./lib/mercadopago');
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -213,7 +213,7 @@ function dadosMotorista(b) {
   const nome = texto(b.nome, 80);
   if (!nome) throw new Erro(400, 'Informe o nome do motorista.');
   const tipo = TIPOS[b.tipo] ? b.tipo : 'carro';
-  return [nome, telefoneBR(b.telefone), texto(b.carro, 60), texto(b.placa, 10).toUpperCase(), b.ativo !== false, tipo];
+  return [nome, telefoneBR(b.telefone), texto(b.carro, 60), texto(b.placa, 10).toUpperCase(), b.ativo !== false, tipo, texto(b.cor, 30).toLowerCase()];
 }
 async function gravarMotorista(sql, params) {
   try { return (await pool.query(sql, params)).rows[0]; }
@@ -221,14 +221,14 @@ async function gravarMotorista(sql, params) {
 }
 rota('POST', '/api/motoristas', true, async ({ req }) => {
   const m = await gravarMotorista(
-    'INSERT INTO motoristas (nome, telefone, carro, placa, ativo, tipo) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *', dadosMotorista(await lerCorpo(req)));
+    'INSERT INTO motoristas (nome, telefone, carro, placa, ativo, tipo, cor) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *', dadosMotorista(await lerCorpo(req)));
   await darBoasVindas(m, await lerConfig());
   return m;
 });
 rota('PUT', '/api/motoristas/:id', true, async ({ req, p }) => {
   const d = dadosMotorista(await lerCorpo(req));
   const m = await gravarMotorista(
-    `UPDATE motoristas SET nome = $2, telefone = $3, carro = $4, placa = $5, ativo = $6, tipo = $7,
+    `UPDATE motoristas SET nome = $2, telefone = $3, carro = $4, placa = $5, ativo = $6, tipo = $7, cor = $8,
             online = online AND $6, contato = CASE WHEN telefone = $3 THEN contato ELSE '' END WHERE id = $1 RETURNING *`, [Number(p.id), ...d]);
   if (!m) throw new Erro(404, 'Motorista não encontrado.');
   return m;
@@ -250,7 +250,7 @@ rota('POST', '/api/motoristas/:id/aprovar', true, async ({ p }) => {
   const cfg = await lerConfig();
   const bonus = await darBoasVindas(m, cfg);
   whats.texto(m.contato || m.telefone, `🎉 *Cadastro aprovado!* Bem-vindo à ${cfg.nome}, ${m.nome.split(' ')[0]}!\n` +
-    `${rotulo(m.tipo)} · ${m.carro} · ${m.placa}\n` + (bonus ? `\n🎁 Você ganhou *${bonus} viagens grátis* para começar!\n` : '') + '\n' + bot.AJUDA_MOTORISTA);
+    `${rotulo(m.tipo)} · ${veiculo(m)} · ${m.placa}\n` + (bonus ? `\n🎁 Você ganhou *${bonus} viagens grátis* para começar!\n` : '') + '\n' + bot.AJUDA_MOTORISTA);
   return m;
 });
 rota('POST', '/api/motoristas/:id/recusar', true, async ({ p }) => {

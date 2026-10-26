@@ -6,50 +6,50 @@
   :root { --fundo: #111418; --cartao: #1b1f24; --texto: #e6e8eb; --suave: #9aa4b2; --borda: #2d333b; --cor: #4c8dff; }
 }
 * { box-sizing: border-box; }
-body { margin: 0; font: 15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: var(--fundo); color: var(--texto); }
+body { margin: 0; font: 18px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: var(--fundo); color: var(--texto); }
 [hidden] { display: none !important; }
-h1, h2 { margin: 0 0 12px; } h2 { font-size: 20px; }
-button { font: inherit; border: 0; border-radius: 8px; padding: 9px 14px; background: var(--cor); color: #fff; cursor: pointer; }
+h1, h2 { margin: 0 0 14px; } h2 { font-size: 26px; }
+button { font: inherit; font-weight: 600; border: 0; border-radius: 10px; padding: 12px 20px; background: var(--cor); color: #fff; cursor: pointer; }
 button.sec { background: transparent; color: var(--texto); border: 1px solid var(--borda); }
 button.perigo { background: var(--vermelho); }
-button.mini { padding: 4px 10px; font-size: 13px; }
-input { font: inherit; width: 100%; padding: 9px 10px; border: 1px solid var(--borda); border-radius: 8px; background: var(--cartao); color: var(--texto); margin-top: 4px; }
-select { font: inherit; width: 100%; padding: 9px 10px; border: 1px solid var(--borda); border-radius: 8px; background: var(--cartao); color: var(--texto); margin-top: 4px; }
-input[type=checkbox] { width: auto; margin: 0 6px 0 0; }
-h3 { margin: 18px 0 4px; font-size: 16px; }
+button.mini { padding: 8px 14px; font-size: 16px; }
+input { font: inherit; width: 100%; padding: 13px 14px; border: 1px solid var(--borda); border-radius: 10px; background: var(--cartao); color: var(--texto); margin-top: 4px; }
+select { font: inherit; width: 100%; padding: 13px 14px; border: 1px solid var(--borda); border-radius: 10px; background: var(--cartao); color: var(--texto); margin-top: 4px; }
+input[type=checkbox] { width: 22px; height: 22px; margin: 0 10px 0 0; flex: none; }
+h3 { margin: 26px 0 6px; font-size: 21px; }
 #formConfig label.inline { display: flex; margin-bottom: 8px; }
-#tabelaPrecos input[type=number] { width: 90px; margin: 0; padding: 6px 8px; }
+#tabelaPrecos input[type=number] { width: 100px; margin: 0; padding: 10px; }
 .pendente { border-color: #f0b429; }
 .pendente .linha { margin: 8px 0 0; justify-content: flex-start; }
-label { display: block; color: var(--suave); font-size: 13px; }
+label { display: block; color: var(--suave); font-size: 16px; font-weight: 500; }
 label.inline { display: inline-flex; align-items: center; gap: 6px; }
 label.inline input[type=date] { width: auto; margin: 0; }
-.cartao { background: var(--cartao); border: 1px solid var(--borda); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-.grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.cartao { background: var(--cartao); border: 1px solid var(--borda); border-radius: 14px; padding: 22px; margin-bottom: 14px; }
+.grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-bottom: 18px; }
 .linha { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between; margin-bottom: 12px; }
 .linha h2 { margin: 0; }
 .erro { color: var(--vermelho); min-height: 1em; margin: 8px 0 0; }
 .ok { color: var(--verde); min-height: 1em; margin: 8px 0 0; }
-.dica { color: var(--suave); font-size: 13px; }
+.dica { color: var(--suave); font-size: 16px; }
 
 .login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
-.login form { width: 100%; max-width: 340px; display: grid; gap: 12px; }
+.login form { width: 100%; max-width: 420px; display: grid; gap: 16px; }
 
-header { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 16px; background: var(--cartao); border-bottom: 1px solid var(--borda); }
+header { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 20px; background: var(--cartao); border-bottom: 1px solid var(--borda); }
 header nav { display: flex; gap: 4px; flex: 1; overflow-x: auto; }
 header nav button { background: transparent; color: var(--suave); white-space: nowrap; }
 header nav button.ativa { background: var(--fundo); color: var(--texto); font-weight: 600; }
-main { max-width: 1000px; margin: 0 auto; padding: 16px; }
+main { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
 
-.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
-.kpi { background: var(--cartao); border: 1px solid var(--borda); border-radius: 12px; padding: 12px; }
-.kpi span { display: block; color: var(--suave); font-size: 12px; }
-.kpi b { font-size: 22px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 18px; }
+.kpi { background: var(--cartao); border: 1px solid var(--borda); border-radius: 14px; padding: 16px 18px; }
+.kpi span { display: block; color: var(--suave); font-size: 15px; }
+.kpi b { font-size: 30px; }
 
-.corrida { display: grid; gap: 4px; }
+.corrida { display: grid; gap: 6px; }
 .corrida .topo { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .corrida small { color: var(--suave); }
-.etiqueta { display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600; background: var(--fundo); }
+.etiqueta { display: inline-block; border-radius: 999px; padding: 4px 14px; font-size: 15px; font-weight: 600; background: var(--fundo); }
 .st-procurando { background: #fff3cd; color: #7a5300; }
 .st-aceita, .st-chegou { background: #dbeafe; color: #1e40af; }
 .st-em_andamento { background: #e0e7ff; color: #3730a3; }
@@ -58,10 +58,13 @@ main { max-width: 1000px; margin: 0 auto; padding: 16px; }
 .online { color: var(--verde); font-weight: 600; } .offline { color: var(--suave); }
 
 table { width: 100%; border-collapse: collapse; background: var(--cartao); border: 1px solid var(--borda); border-radius: 12px; overflow: hidden; }
-th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--borda); }
-th { color: var(--suave); font-size: 12px; font-weight: 600; }
+th, td { text-align: left; padding: 14px 14px; border-bottom: 1px solid var(--borda); vertical-align: middle; }
+th { color: var(--suave); font-size: 15px; font-weight: 600; }
 td.num, th.num { text-align: right; }
 .tabela { overflow-x: auto; }
 .vazio { color: var(--suave); text-align: center; padding: 30px 0; }
 @media (max-width: 600px) { header nav { order: 3; flex-basis: 100%; } header strong { flex: 1; } }
 .sem-saldo { color: var(--vermelho); }
+small { font-size: 15px; }
+td button.mini { margin: 3px 4px 3px 0; }
+#formConfig > button, #formMotorista button { min-width: 140px; }

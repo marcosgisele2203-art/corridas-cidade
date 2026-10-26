@@ -5,6 +5,7 @@ const reais = (v) => (v == null ? '—' : 'R$ ' + Number(v).toFixed(2).replace('
 const hora = (d) => (d ? new Date(d).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '');
 const hoje = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const TIPOS = { moto: '🏍️ Moto', carro: '🚗 Carro', van: '🚐 Van', caminhao: '🚚 Caminhão' };
+const veiculo = (m) => esc([m.carro, m.cor].filter(Boolean).join(' '));
 const STATUS = {
   procurando: 'Procurando motorista', aceita: 'Motorista a caminho', chegou: 'Motorista chegou', em_andamento: 'Em andamento',
   finalizada: 'Finalizada', cancelada: 'Cancelada', sem_motorista: 'Sem motorista',
@@ -101,7 +102,7 @@ async function carregarMotoristas() {
   $('#pendentes').innerHTML = pendentes.map((m) => `
     <div class="cartao pendente">
       <b>🆕 ${esc(m.nome)}</b> quer ser motorista<br>
-      ${TIPOS[m.tipo] || ''} · ${esc(m.carro)} · <b>${esc(m.placa)}</b> ·
+      ${TIPOS[m.tipo] || ''} · ${veiculo(m)} · <b>${esc(m.placa)}</b> ·
       <a href="https://wa.me/${esc(m.telefone)}" target="_blank" rel="noopener">${esc(m.telefone)}</a>
       <div class="linha"><button class="mini" data-aprovar="${m.id}">✅ Aprovar</button>
         <button class="mini perigo" data-recusar="${m.id}">Recusar</button></div>
@@ -110,7 +111,7 @@ async function carregarMotoristas() {
     <tr><th>Motorista</th><th>Veículo</th><th>Situação</th><th class="num">Viagens</th><th class="num">Corridas</th><th class="num">Nota</th><th></th></tr>
     ${motoristas.map((m) => `<tr>
       <td><b>${esc(m.nome)}</b><br><small><a href="https://wa.me/${esc(m.telefone)}" target="_blank" rel="noopener">${esc(m.telefone)}</a></small></td>
-      <td>${TIPOS[m.tipo] || ''}<br><small>${esc(m.carro)} · ${esc(m.placa)}</small></td>
+      <td>${TIPOS[m.tipo] || ''}<br><small>${veiculo(m)} · ${esc(m.placa)}</small></td>
       <td>${!m.ativo ? '<span class="offline">Desativado</span>'
         : m.corrida_atual ? `<span class="online">Em corrida #${m.corrida_atual}</span>`
         : m.online ? '<span class="online">🟢 Online</span>' : '<span class="offline">🔴 Offline</span>'}</td>
@@ -144,7 +145,7 @@ function abrirFormMotorista(m = {}) {
   const f = $('#formMotorista');
   f.hidden = false;
   f.id.value = m.id || ''; f.nome.value = m.nome || ''; f.telefone.value = m.telefone || '';
-  f.carro.value = m.carro || ''; f.placa.value = m.placa || ''; f.ativo.checked = m.ativo !== false; f.tipo.value = m.tipo || 'carro';
+  f.carro.value = m.carro || ''; f.cor.value = m.cor || ''; f.placa.value = m.placa || ''; f.ativo.checked = m.ativo !== false; f.tipo.value = m.tipo || 'carro';
   $('#erroMotorista').textContent = '';
   f.nome.focus();
 }
@@ -164,7 +165,7 @@ $('#listaMotoristas').onclick = async (e) => {
 $('#formMotorista').onsubmit = async (e) => {
   e.preventDefault();
   const f = e.target;
-  const corpo = { nome: f.nome.value, telefone: f.telefone.value, tipo: f.tipo.value, carro: f.carro.value, placa: f.placa.value, ativo: f.ativo.checked };
+  const corpo = { nome: f.nome.value, telefone: f.telefone.value, tipo: f.tipo.value, carro: f.carro.value, cor: f.cor.value, placa: f.placa.value, ativo: f.ativo.checked };
   try {
     await api(f.id.value ? 'PUT' : 'POST', '/api/motoristas' + (f.id.value ? '/' + f.id.value : ''), corpo);
     f.hidden = true;

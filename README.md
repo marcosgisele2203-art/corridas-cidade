@@ -31,8 +31,8 @@ A qualquer momento o passageiro pode mandar **CANCELAR** (até a corrida começa
 
 ```
 Motorista: CADASTRO
-Central:   1/4 Nome completo? · 2/4 Veículo? (1 Moto, 2 Carro, 3 Van, 4 Caminhão)
-           3/4 Modelo e cor? · 4/4 Placa?
+Central:   1/5 Nome completo? · 2/5 Veículo? (1 Moto, 2 Carro, 3 Van, 4 Caminhão)
+           3/5 Modelo? · 4/5 Cor? · 5/5 Placa?
 Central:   ✅ Cadastro enviado! Você recebe uma mensagem quando for aprovado.
 ```
 
