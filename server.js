@@ -1,0 +1,294 @@
+// Central de corridas · servidor do webhook do WhatsApp e do painel do administrador.
+//
+// Variáveis de ambiente:
+//   PORT                porta HTTP (padrão 3000)
+//   DATABASE_URL        postgres://usuario:senha@host:5432/banco
+//   EVOLUTION_URL       endereço da Evolution API, ex.: https://api.seudominio.com
+//   EVOLUTION_INSTANCE  nome da instância conectada ao número da central
+//   EVOLUTION_APIKEY    API key da Evolution
+//   WEBHOOK_TOKEN       senha que vai no final do endereço do webhook (?token=...)
+//   ADMIN_SENHA         senha do painel /painel
+
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const { pool, migrar, lerConfig, salvarConfig, CONFIG_PADRAO } = require('./lib/db');
+const bot = require('./lib/bot');
+const whats = require('./lib/whats');
+
+const PORT = Number(process.env.PORT) || 3000;
+const WEBHOOK_TOKEN = process.env.WEBHOOK_TOKEN || '';
+const ADMIN_SENHA = process.env.ADMIN_SENHA || '';
+const PUBLIC = path.join(__dirname, 'public');
+
+// ---------------------------------------------------------------- utilidades
+
+class Erro extends Error { constructor(status, msg) { super(msg); this.status = status; } }
+
+function json(res, status, body, headers = {}) {
+  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...headers });
+  res.end(JSON.stringify(body));
+}
+
+function lerCorpo(req, limite = 2_000_000) {
+  return new Promise((resolve, reject) => {
+    const partes = []; let tamanho = 0;
+    req.on('data', (c) => {
+      tamanho += c.length;
+      if (tamanho > limite) { reject(new Erro(413, 'Dados grandes demais')); req.destroy(); return; }
+      partes.push(c);
+    });
+    req.on('end', () => {
+      const data = Buffer.concat(partes).toString('utf8');
+      try { resolve(data ? JSON.parse(data) : {}); } catch { reject(new Erro(400, 'JSON inválido')); }
+    });
+    req.on('error', reject);
+  });
+}
+
+const texto = (v, max) => String(v == null ? '' : v).trim().slice(0, max);
+const soDigitos = (v) => String(v || '').replace(/\D/g, '');
+const numero = (v, padrao) => (Number.isFinite(Number(v)) && String(v).trim() !== '' ? Number(v) : padrao);
+
+function telefoneBR(v) {
+  let t = soDigitos(v);
+  if (t.length < 10 || t.length > 13) throw new Erro(400, 'WhatsApp inválido. Use DDD + número.');
+  if (!t.startsWith('55')) t = '55' + t;
+  return t;
+}
+
+// ---------------------------------------------------------------- login do painel (cookie assinado)
+
+const segredo = crypto.createHash('sha256').update('corridas:' + ADMIN_SENHA).digest();
+const assinar = (txt) => crypto.createHmac('sha256', segredo).update(txt).digest('base64url');
+const DURACAO = 30 * 24 * 3600 * 1000;
+
+function logado(req) {
+  const m = /(?:^|;\s*)cc_sessao=(\d+)\.([\w-]+)/.exec(req.headers.cookie || '');
+  if (!m || !ADMIN_SENHA || Number(m[1]) < Date.now()) return false;
+  const esperado = assinar(m[1]);
+  return m[2].length === esperado.length && crypto.timingSafeEqual(Buffer.from(m[2]), Buffer.from(esperado));
+}
+
+const tentativas = new Map();
+function limitar(chave, max, janelaMs) {
+  const agora = Date.now();
+  const lista = (tentativas.get(chave) || []).filter((t) => agora - t < janelaMs);
+  lista.push(agora);
+  tentativas.set(chave, lista);
+  if (lista.length > max) throw new Erro(429, 'Muitas tentativas seguidas. Espere alguns minutos.');
+}
+const ipDe = (req) => (String(req.headers['x-forwarded-for'] || '').split(',').pop().trim() || req.socket.remoteAddress || '');
+
+// ---------------------------------------------------------------- webhook da Evolution
+
+const jaVistas = new Set(); // a Evolution às vezes repete a mesma mensagem
+
+// transforma o aviso da Evolution em { telefone, contato, nome, texto, local }
+function lerMensagem(b) {
+  if (String(b.event || '').toLowerCase().replace('_', '.') !== 'messages.upsert') return null;
+  const d = Array.isArray(b.data) ? b.data[0] : b.data || {};
+  const key = d.key || {};
+  if (key.fromMe) return null;
+  if (key.id) {
+    if (jaVistas.has(key.id)) return null;
+    jaVistas.add(key.id);
+    if (jaVistas.size > 2000) jaVistas.delete(jaVistas.values().next().value);
+  }
+  // número de verdade: o WhatsApp às vezes manda um "@lid" e o número vem em outro campo
+  const jids = [key.remoteJid, key.remoteJidAlt, key.senderPn, d.senderPn].filter(Boolean);
+  if (jids.some((j) => j.endsWith('@g.us') || j.endsWith('@broadcast') || j.endsWith('@newsletter'))) return null;
+  const pessoal = jids.find((j) => j.endsWith('@s.whatsapp.net'));
+  const contato = pessoal || key.remoteJid;
+  if (!contato) return null;
+  const telefone = (pessoal || contato).split('@')[0].split(':')[0];
+
+  const m = d.message || {};
+  const loc = m.locationMessage || m.liveLocationMessage;
+  const local = loc && Number.isFinite(Number(loc.degreesLatitude)) ? {
+    lat: Number(loc.degreesLatitude), lng: Number(loc.degreesLongitude),
+    nome: loc.name || '', endereco: loc.address || '', aoVivo: !!m.liveLocationMessage,
+  } : null;
+  const txt = m.conversation || (m.extendedTextMessage && m.extendedTextMessage.text) || '';
+  if (!txt && !local) return null;
+  return { telefone, contato: pessoal ? telefone : contato, nome: d.pushName || '', texto: txt, local };
+}
+
+// ---------------------------------------------------------------- rotas
+
+const rotas = [];
+const rota = (metodo, caminho, protegida, fn) => rotas.push({ metodo, re: new RegExp('^' + caminho.replace(/:(\w+)/g, '(?<$1>[^/]+)') + '$'), protegida, fn });
+
+rota('POST', '/webhook/evolution', false, async ({ req, url }) => {
+  if (WEBHOOK_TOKEN && url.searchParams.get('token') !== WEBHOOK_TOKEN) throw new Erro(401, 'Token inválido');
+  const b = await lerCorpo(req);
+  const msg = lerMensagem(b);
+  if (msg) bot.receber(msg).catch((e) => console.error('Erro ao tratar mensagem:', e));
+  return { ok: true };
+});
+
+rota('GET', '/api/saude', false, async () => {
+  await pool.query('SELECT 1');
+  return { ok: true, whatsapp: !!whats.EVO.url, painel: !!ADMIN_SENHA };
+});
+
+rota('POST', '/api/login', false, async ({ req, res }) => {
+  limitar('login:' + ipDe(req), 10, 15 * 60_000);
+  if (!ADMIN_SENHA) throw new Erro(503, 'Defina a variável ADMIN_SENHA no Easypanel para usar o painel.');
+  const b = await lerCorpo(req);
+  const a = crypto.createHash('sha256').update(String(b.senha || '')).digest();
+  const e = crypto.createHash('sha256').update(ADMIN_SENHA).digest();
+  if (!crypto.timingSafeEqual(a, e)) throw new Erro(401, 'Senha errada.');
+  const exp = String(Date.now() + DURACAO);
+  const seguro = String(req.headers['x-forwarded-proto'] || '').includes('https') ? '; Secure' : '';
+  res.setHeader('Set-Cookie', `cc_sessao=${exp}.${assinar(exp)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${DURACAO / 1000}${seguro}`);
+  return { ok: true };
+});
+
+rota('POST', '/api/sair', false, async ({ res }) => {
+  res.setHeader('Set-Cookie', 'cc_sessao=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+  return { ok: true };
+});
+
+rota('GET', '/api/config', true, async () => lerConfig());
+rota('PUT', '/api/config', true, async ({ req }) => {
+  const b = await lerCorpo(req), atual = await lerConfig();
+  const novo = { ...atual };
+  for (const k of Object.keys(CONFIG_PADRAO)) {
+    if (b[k] === undefined) continue;
+    if (typeof CONFIG_PADRAO[k] === 'number') novo[k] = Math.max(0, numero(b[k], atual[k]));
+    else if (typeof CONFIG_PADRAO[k] === 'boolean') novo[k] = !!b[k];
+    else novo[k] = texto(b[k], 120);
+  }
+  if (novo.numero_admin) novo.numero_admin = telefoneBR(novo.numero_admin);
+  await salvarConfig(novo);
+  return novo;
+});
+
+rota('GET', '/api/motoristas', true, async () => {
+  const { rows } = await pool.query(`
+    SELECT m.*,
+      (SELECT count(*)::int FROM corridas c WHERE c.motorista_id = m.id AND c.status = 'finalizada') AS corridas,
+      (SELECT round(avg(avaliacao), 1) FROM corridas c WHERE c.motorista_id = m.id AND avaliacao IS NOT NULL) AS nota,
+      (SELECT c.id FROM corridas c WHERE c.motorista_id = m.id AND c.status IN ('aceita', 'chegou', 'em_andamento') LIMIT 1) AS corrida_atual
+    FROM motoristas m ORDER BY m.ativo DESC, m.nome`);
+  return rows;
+});
+
+function dadosMotorista(b) {
+  const nome = texto(b.nome, 80);
+  if (!nome) throw new Erro(400, 'Informe o nome do motorista.');
+  return [nome, telefoneBR(b.telefone), texto(b.carro, 60), texto(b.placa, 10).toUpperCase(), b.ativo !== false];
+}
+async function gravarMotorista(sql, params) {
+  try { return (await pool.query(sql, params)).rows[0]; }
+  catch (e) { if (e.code === '23505') throw new Erro(400, 'Já existe um motorista com esse WhatsApp.'); throw e; }
+}
+rota('POST', '/api/motoristas', true, async ({ req }) => gravarMotorista(
+  'INSERT INTO motoristas (nome, telefone, carro, placa, ativo) VALUES ($1, $2, $3, $4, $5) RETURNING *', dadosMotorista(await lerCorpo(req))));
+rota('PUT', '/api/motoristas/:id', true, async ({ req, p }) => {
+  const d = dadosMotorista(await lerCorpo(req));
+  const m = await gravarMotorista(
+    `UPDATE motoristas SET nome = $2, telefone = $3, carro = $4, placa = $5, ativo = $6,
+            online = online AND $6, contato = CASE WHEN telefone = $3 THEN contato ELSE '' END WHERE id = $1 RETURNING *`, [Number(p.id), ...d]);
+  if (!m) throw new Erro(404, 'Motorista não encontrado.');
+  return m;
+});
+rota('POST', '/api/motoristas/:id/online', true, async ({ req, p }) => {
+  const b = await lerCorpo(req);
+  await pool.query('UPDATE motoristas SET online = $2 WHERE id = $1 AND ativo', [Number(p.id), !!b.online]);
+  return { ok: true };
+});
+
+rota('GET', '/api/corridas', true, async ({ url }) => {
+  const dia = /^\d{4}-\d{2}-\d{2}$/.test(url.searchParams.get('dia') || '') ? url.searchParams.get('dia') : null;
+  const { rows } = await pool.query(`
+    SELECT c.*, m.nome AS motorista_nome FROM corridas c LEFT JOIN motoristas m ON m.id = c.motorista_id
+     WHERE ($1::date IS NULL AND (c.criado_em > now() - interval '24 hours' OR c.status IN ('procurando', 'aceita', 'chegou', 'em_andamento')))
+        OR (c.criado_em AT TIME ZONE 'America/Campo_Grande')::date = $1::date
+     ORDER BY c.id DESC LIMIT 300`, [dia]);
+  return rows;
+});
+rota('POST', '/api/corridas/:id/cancelar', true, async ({ p }) => bot.rodar(async () => {
+  const { rows: [c] } = await pool.query(
+    "SELECT * FROM corridas WHERE id = $1 AND status IN ('procurando', 'aceita', 'chegou', 'em_andamento')", [Number(p.id)]);
+  if (!c) throw new Erro(400, 'Essa corrida já terminou.');
+  await pool.query("UPDATE corridas SET status = 'cancelada', cancelado_por = 'central', oferta_motorista = NULL WHERE id = $1", [c.id]);
+  whats.texto(c.passageiro_contato, `❌ Sua corrida #${c.id} foi cancelada pela central. Se precisar, mande *oi* para pedir outra.`);
+  const avisar = c.motorista_id || c.oferta_motorista;
+  if (avisar) {
+    const { rows: [m] } = await pool.query('SELECT telefone, contato FROM motoristas WHERE id = $1', [avisar]);
+    if (m) whats.texto(m.contato || m.telefone, `❌ A corrida #${c.id} foi cancelada pela central. Você continua disponível.`);
+  }
+  return { ok: true };
+}));
+
+rota('GET', '/api/resumo', true, async ({ url }) => {
+  const de = url.searchParams.get('de'), ate = url.searchParams.get('ate');
+  if (![de, ate].every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d || ''))) throw new Erro(400, 'Período inválido.');
+  const filtro = "(c.criado_em AT TIME ZONE 'America/Campo_Grande')::date BETWEEN $1 AND $2";
+  const { rows: [total] } = await pool.query(`
+    SELECT count(*) FILTER (WHERE status = 'finalizada')::int AS finalizadas,
+           count(*) FILTER (WHERE status = 'cancelada')::int AS canceladas,
+           count(*) FILTER (WHERE status = 'sem_motorista')::int AS sem_motorista,
+           coalesce(sum(valor_final), 0)::float AS faturamento,
+           coalesce(sum(comissao), 0)::float AS comissao
+      FROM corridas c WHERE ${filtro}`, [de, ate]);
+  const { rows: motoristas } = await pool.query(`
+    SELECT m.nome, count(*)::int AS corridas, sum(c.valor_final)::float AS faturamento, sum(c.comissao)::float AS comissao,
+           round(avg(c.avaliacao), 1)::float AS nota
+      FROM corridas c JOIN motoristas m ON m.id = c.motorista_id
+     WHERE c.status = 'finalizada' AND ${filtro} GROUP BY m.nome ORDER BY sum(c.valor_final) DESC`, [de, ate]);
+  return { total, motoristas };
+});
+
+rota('GET', '/api/mensagens', true, async () => whats.enviados.slice(-50).reverse());
+
+// ---------------------------------------------------------------- arquivos do painel
+
+const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml' };
+function arquivo(res, nome) {
+  const caminho = path.join(PUBLIC, nome);
+  if (!caminho.startsWith(PUBLIC + path.sep)) return false;
+  try {
+    const conteudo = fs.readFileSync(caminho);
+    res.writeHead(200, { 'Content-Type': TIPOS[path.extname(caminho)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
+    res.end(conteudo);
+    return true;
+  } catch { return false; }
+}
+
+const server = http.createServer(async (req, res) => {
+  const url = new URL(req.url, 'http://x');
+  try {
+    for (const r of rotas) {
+      const m = r.metodo === req.method && r.re.exec(url.pathname);
+      if (!m) continue;
+      if (r.protegida && !logado(req)) throw new Erro(401, 'Entre com a senha do painel.');
+      const resultado = await r.fn({ req, res, url, p: m.groups || {} });
+      return json(res, 200, resultado);
+    }
+    if (req.method === 'GET') {
+      if (url.pathname === '/' || url.pathname === '/painel') return arquivo(res, 'index.html') || json(res, 404, { erro: 'Não encontrado' });
+      if (arquivo(res, url.pathname.slice(1))) return;
+    }
+    json(res, 404, { erro: 'Não encontrado' });
+  } catch (e) {
+    if (!(e instanceof Erro)) console.error(e);
+    json(res, e.status || 500, { erro: e instanceof Erro ? e.message : 'Erro no servidor' });
+  }
+});
+
+(async () => {
+  await migrar();
+  setInterval(() => bot.varrer().catch((e) => console.error('Erro ao varrer chamadas:', e)), 3000).unref();
+  server.listen(PORT, () => {
+    console.log(`Central de corridas no ar na porta ${PORT}`);
+    if (!whats.EVO.url) console.log('Aviso: EVOLUTION_URL não definida, as mensagens só aparecem no log.');
+    if (!WEBHOOK_TOKEN) console.log('Aviso: WEBHOOK_TOKEN não definido, qualquer um pode chamar o webhook.');
+    if (!ADMIN_SENHA) console.log('Aviso: ADMIN_SENHA não definida, o painel fica bloqueado.');
+  });
+})().catch((e) => { console.error('Falha ao iniciar:', e); process.exit(1); });
+
+module.exports = { lerMensagem };

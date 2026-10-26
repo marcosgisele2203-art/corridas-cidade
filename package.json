@@ -1,0 +1,16 @@
+{
+  "name": "corridas-cidade",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Corridas tipo Uber pelo WhatsApp (Evolution API) para cidade pequena",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  }
+}
