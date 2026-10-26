@@ -126,13 +126,26 @@ function lerMensagem(b) {
 const rotas = [];
 const rota = (metodo, caminho, protegida, fn) => rotas.push({ metodo, re: new RegExp('^' + caminho.replace(/:(\w+)/g, '(?<$1>[^/]+)') + '$'), protegida, fn });
 
-rota('POST', '/webhook/evolution', false, async ({ req, url }) => {
-  if (WEBHOOK_TOKEN && url.searchParams.get('token') !== WEBHOOK_TOKEN) throw new Erro(401, 'Token inválido');
+// com "Webhook by Events" ligado na Evolution o endereço ganha o evento no fim (/webhook/evolution/messages-upsert)
+let avisouSemMensagem = false;
+async function webhookEvolution({ req, url }) {
+  if (WEBHOOK_TOKEN && url.searchParams.get('token') !== WEBHOOK_TOKEN) {
+    console.log('Webhook da Evolution recusado: o token no endereço não é igual ao WEBHOOK_TOKEN.');
+    throw new Erro(401, 'Token inválido');
+  }
   const b = await lerCorpo(req);
   const msg = lerMensagem(b);
-  if (msg) bot.receber(msg).catch((e) => console.error('Erro ao tratar mensagem:', e));
+  if (msg) {
+    console.log(`Mensagem recebida de ${msg.telefone}: ${msg.local ? '[localização]' : msg.midia ? '[arquivo]' : JSON.stringify(msg.texto.slice(0, 60))}`);
+    bot.receber(msg).catch((e) => console.error('Erro ao tratar mensagem:', e));
+  } else if (!avisouSemMensagem && b.event && !/messages[._]upsert/i.test(b.event)) {
+    avisouSemMensagem = true;
+    console.log(`Webhook recebeu o evento "${b.event}". Só o MESSAGES_UPSERT é usado; os outros podem ser desmarcados na Evolution.`);
+  }
   return { ok: true };
-});
+}
+rota('POST', '/webhook/evolution', false, webhookEvolution);
+rota('POST', '/webhook/evolution/:evento', false, webhookEvolution);
 
 // aviso do Mercado Pago: só traz o número do pagamento; a situação é sempre conferida na API deles
 rota('POST', '/api/mp/webhook', false, async ({ req, url }) => {
@@ -430,6 +443,7 @@ const server = http.createServer(async (req, res) => {
   server.listen(PORT, () => {
     console.log(`Central de corridas no ar na porta ${PORT}`);
     if (!whats.EVO.url) console.log('Aviso: EVOLUTION_URL não definida, as mensagens só aparecem no log.');
+    else whats.conferir().then((r) => console.log(r)).catch(() => {});
     if (!WEBHOOK_TOKEN) console.log('Aviso: WEBHOOK_TOKEN não definido, qualquer um pode chamar o webhook.');
     console.log(MP.configurado() ? 'Mercado Pago ligado: Pix automático na compra de viagens.' : 'Mercado Pago desligado (sem MP_ACCESS_TOKEN): compra de viagens com Pix manual.');
     if (!ADMIN_SENHA) console.log('Aviso: ADMIN_SENHA não definida, o painel fica bloqueado.');
