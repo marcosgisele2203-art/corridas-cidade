@@ -141,12 +141,45 @@ $('#pendentes').onclick = async (e) => {
   } catch (err) { alert(err.message); }
 };
 
+// paleta de cores: muda conforme o tipo de veículo escolhido
+let CORES = null;
+const EXEMPLO_MODELO = { moto: 'Honda Titan 160', carro: 'VW Gol', van: 'Sprinter', caminhao: 'Mercedes 710 baú' };
+async function desenharPaleta() {
+  const f = $('#formMotorista');
+  f.carro.placeholder = EXEMPLO_MODELO[f.tipo.value] || '';
+  if (!CORES) CORES = await api('GET', '/api/cores');
+  const atual = f.cor.value.trim().toLowerCase();
+  $('#paleta').innerHTML = (CORES[f.tipo.value] || []).map((c) => `
+    <button type="button" class="cor${c.nome === atual ? ' escolhida' : ''}" data-cor="${esc(c.nome)}" title="${esc(c.nome)}">
+      <span style="background:${c.hex}"></span>${esc(c.nome)}</button>`).join('');
+}
+$('#paleta').onclick = (e) => {
+  const b = e.target.closest('[data-cor]');
+  if (!b) return;
+  $('#formMotorista').cor.value = b.dataset.cor;
+  desenharPaleta();
+};
+$('#formMotorista').tipo.onchange = () => {
+  // trocou carro ↔ moto: "branco" vira "branca" se for da paleta
+  const f = $('#formMotorista'), atual = f.cor.value.trim().toLowerCase();
+  if (CORES && atual) {
+    for (const t of Object.keys(CORES)) {
+      const i = CORES[t].findIndex((c) => c.nome === atual);
+      const nova = i >= 0 && CORES[f.tipo.value].find((c) => c.hex === CORES[t][i].hex);
+      if (nova) { f.cor.value = nova.nome; break; }
+    }
+  }
+  desenharPaleta();
+};
+$('#formMotorista').cor.oninput = desenharPaleta;
+
 function abrirFormMotorista(m = {}) {
   const f = $('#formMotorista');
   f.hidden = false;
   f.id.value = m.id || ''; f.nome.value = m.nome || ''; f.telefone.value = m.telefone || '';
   f.carro.value = m.carro || ''; f.cor.value = m.cor || ''; f.placa.value = m.placa || ''; f.ativo.checked = m.ativo !== false; f.tipo.value = m.tipo || 'carro';
   $('#erroMotorista').textContent = '';
+  desenharPaleta();
   f.nome.focus();
 }
 $('#novoMotorista').onclick = () => abrirFormMotorista();

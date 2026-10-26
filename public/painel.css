@@ -68,3 +68,8 @@ td.num, th.num { text-align: right; }
 small { font-size: 15px; }
 td button.mini { margin: 3px 4px 3px 0; }
 #formConfig > button, #formMotorista button { min-width: 140px; }
+.paleta { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 18px; }
+.paleta .cor { display: inline-flex; align-items: center; gap: 8px; background: var(--cartao); color: var(--texto);
+  border: 2px solid var(--borda); padding: 8px 14px 8px 8px; font-weight: 500; font-size: 16px; text-transform: capitalize; }
+.paleta .cor span { width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, .25); flex: none; }
+.paleta .cor.escolhida { border-color: var(--cor); box-shadow: 0 0 0 2px var(--cor); }

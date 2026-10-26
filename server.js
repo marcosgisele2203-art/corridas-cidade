@@ -16,7 +16,7 @@ const crypto = require('crypto');
 const { pool, migrar, lerConfig, salvarConfig, moverCreditos, CONFIG_PADRAO } = require('./lib/db');
 const bot = require('./lib/bot');
 const whats = require('./lib/whats');
-const { TIPOS, ORDEM, rotulo, veiculo } = require('./lib/tipos');
+const { TIPOS, ORDEM, rotulo, veiculo, coresDo } = require('./lib/tipos');
 const MP = require('./lib/mercadopago');
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -166,6 +166,7 @@ rota('POST', '/api/sair', false, async ({ res }) => {
   return { ok: true };
 });
 
+rota('GET', '/api/cores', true, async () => Object.fromEntries(ORDEM.map((t) => [t, coresDo(t)])));
 rota('GET', '/api/config', true, async () => ({ ...(await lerConfig()), mp_configurado: MP.configurado() }));
 rota('PUT', '/api/config', true, async ({ req }) => {
   const b = await lerCorpo(req), atual = await lerConfig();
