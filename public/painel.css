@@ -64,3 +64,4 @@ td.num, th.num { text-align: right; }
 .tabela { overflow-x: auto; }
 .vazio { color: var(--suave); text-align: center; padding: 30px 0; }
 @media (max-width: 600px) { header nav { order: 3; flex-basis: 100%; } header strong { flex: 1; } }
+.sem-saldo { color: var(--vermelho); }

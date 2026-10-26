@@ -59,6 +59,7 @@
         <div class="linha"><button>Salvar</button><button type="button" class="sec" id="cancelarMotorista">Cancelar</button></div>
         <p class="erro" id="erroMotorista"></p>
       </form>
+      <div id="compras"></div>
       <div id="pendentes"></div>
       <div id="listaMotoristas"></div>
     </section>
@@ -86,6 +87,19 @@
         </div>
         <label class="inline"><input type="checkbox" name="aceitando"> Central aberta (aceitando pedidos)</label>
         <label class="inline"><input type="checkbox" name="aprovar_automatico"> Aprovar sozinho o motorista que se cadastra pelo WhatsApp</label>
+
+        <h3>Cobrança dos motoristas (viagens pré-pagas)</h3>
+        <p class="dica">O motorista compra viagens antes. Cada corrida aceita usa 1. Sem saldo ele não recebe chamadas.
+          Se o passageiro ou a central cancelar antes de começar, a viagem volta.</p>
+        <label class="inline"><input type="checkbox" name="cobranca_ativa"> Cobrar por viagem</label>
+        <label class="inline"><input type="checkbox" name="mp_ativo"> Pix automático pelo Mercado Pago (libera as viagens na hora) <span id="mpSituacao" class="dica"></span></label>
+        <div class="grade">
+          <label>Valor de cada viagem (R$)<input name="valor_viagem" type="number" step="0.05" min="0"></label>
+          <label>Pacotes à venda (quantidade de viagens)<input name="pacotes" placeholder="10, 20, 50"></label>
+          <label>Viagens grátis ao aprovar motorista<input name="creditos_boas_vindas" type="number" min="0" step="1"></label>
+          <label>Chave Pix manual (usada sem Mercado Pago)<input name="pix_chave" placeholder="CPF, celular, e-mail ou chave aleatória"></label>
+          <label>Nome de quem recebe o Pix<input name="pix_nome"></label>
+        </div>
 
         <h3>Preços por veículo</h3>
         <p class="dica">Valor = taxa base + km × valor por km, nunca abaixo do mínimo. Desmarque um tipo para não oferecê-lo ao passageiro.</p>

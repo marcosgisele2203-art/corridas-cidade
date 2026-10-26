@@ -87,7 +87,15 @@ $('#listaCorridas').onclick = async (e) => {
 
 let motoristas = [];
 async function carregarMotoristas() {
-  const todos = await api('GET', '/api/motoristas');
+  const [todos, compras] = await Promise.all([api('GET', '/api/motoristas'), api('GET', '/api/compras')]);
+  $('#compras').innerHTML = compras.map((c) => `
+    <div class="cartao pendente">
+      <b>💰 ${esc(c.motorista_nome)}</b> quer comprar <b>${c.quantidade} viagens</b> · <b>${reais(c.valor)}</b>
+      <small>· pedido #${c.id} às ${hora(c.criado_em)} ${c.comprovante ? '· 📎 mandou comprovante' : '· sem comprovante ainda'}</small><br>
+      <a href="https://wa.me/${esc(c.motorista_tel)}" target="_blank" rel="noopener">Ver no WhatsApp</a>
+      <div class="linha"><button class="mini" data-confirmar="${c.id}">✅ Pix recebido, liberar viagens</button>
+        <button class="mini sec" data-cancelarcompra="${c.id}">Cancelar pedido</button></div>
+    </div>`).join('');
   const pendentes = todos.filter((m) => !m.aprovado);
   motoristas = todos.filter((m) => m.aprovado);
   $('#pendentes').innerHTML = pendentes.map((m) => `
@@ -99,20 +107,30 @@ async function carregarMotoristas() {
         <button class="mini perigo" data-recusar="${m.id}">Recusar</button></div>
     </div>`).join('');
   $('#listaMotoristas').innerHTML = motoristas.length ? `<div class="tabela"><table>
-    <tr><th>Motorista</th><th>Veículo</th><th>Situação</th><th class="num">Corridas</th><th class="num">Nota</th><th></th></tr>
+    <tr><th>Motorista</th><th>Veículo</th><th>Situação</th><th class="num">Viagens</th><th class="num">Corridas</th><th class="num">Nota</th><th></th></tr>
     ${motoristas.map((m) => `<tr>
       <td><b>${esc(m.nome)}</b><br><small><a href="https://wa.me/${esc(m.telefone)}" target="_blank" rel="noopener">${esc(m.telefone)}</a></small></td>
       <td>${TIPOS[m.tipo] || ''}<br><small>${esc(m.carro)} · ${esc(m.placa)}</small></td>
       <td>${!m.ativo ? '<span class="offline">Desativado</span>'
         : m.corrida_atual ? `<span class="online">Em corrida #${m.corrida_atual}</span>`
         : m.online ? '<span class="online">🟢 Online</span>' : '<span class="offline">🔴 Offline</span>'}</td>
+      <td class="num"><b class="${m.creditos > 0 ? '' : 'sem-saldo'}">${m.creditos}</b></td>
       <td class="num">${m.corridas}</td>
       <td class="num">${m.nota ?? '—'}</td>
-      <td><button class="mini sec" data-editar="${m.id}">Editar</button>
+      <td><button class="mini sec" data-creditos="${m.id}">🎟️ Viagens</button>
+        <button class="mini sec" data-editar="${m.id}">Editar</button>
         ${m.ativo ? `<button class="mini sec" data-online="${m.id}" data-valor="${!m.online}">${m.online ? 'Tirar do ar' : 'Pôr online'}</button>` : ''}</td>
     </tr>`).join('')}</table></div>`
     : '<p class="vazio">Nenhum motorista ainda. Peça para eles mandarem <b>CADASTRO</b> no WhatsApp da central, ou cadastre aqui.</p>';
 }
+$('#compras').onclick = async (e) => {
+  const { confirmar, cancelarcompra } = e.target.dataset;
+  try {
+    if (confirmar && confirm('Confirma que o Pix caiu na sua conta? As viagens entram na hora para o motorista.')) await api('POST', `/api/compras/${confirmar}/confirmar`);
+    if (cancelarcompra && confirm('Cancelar esse pedido de compra?')) await api('POST', `/api/compras/${cancelarcompra}/cancelar`);
+    carregarMotoristas();
+  } catch (err) { alert(err.message); }
+};
 $('#pendentes').onclick = async (e) => {
   const { aprovar, recusar } = e.target.dataset;
   try {
@@ -133,8 +151,14 @@ function abrirFormMotorista(m = {}) {
 $('#novoMotorista').onclick = () => abrirFormMotorista();
 $('#cancelarMotorista').onclick = () => { $('#formMotorista').hidden = true; };
 $('#listaMotoristas').onclick = async (e) => {
-  const { editar, online, valor } = e.target.dataset;
+  const { editar, online, valor, creditos } = e.target.dataset;
   if (editar) abrirFormMotorista(motoristas.find((m) => m.id === Number(editar)));
+  if (creditos) {
+    const m = motoristas.find((x) => x.id === Number(creditos));
+    const qtd = prompt(`${m.nome} tem ${m.creditos} viagens.\nQuantas viagens dar? (use número negativo para tirar, ex.: -2)`);
+    if (!qtd) return;
+    try { await api('POST', `/api/motoristas/${m.id}/creditos`, { quantidade: qtd }); carregarMotoristas(); } catch (err) { alert(err.message); }
+  }
   if (online) { await api('POST', `/api/motoristas/${online}/online`, { online: valor === 'true' }); carregarMotoristas(); }
 };
 $('#formMotorista').onsubmit = async (e) => {
@@ -156,7 +180,8 @@ async function carregarRelatorio() {
   const r = await api('GET', `/api/resumo?de=${$('#relDe').value}&ate=${$('#relAte').value}`);
   $('#kpisRel').innerHTML = [
     ['Corridas finalizadas', r.total.finalizadas], ['Canceladas', r.total.canceladas], ['Sem motorista', r.total.sem_motorista],
-    ['Faturamento', reais(r.total.faturamento)], ['Comissão da central', reais(r.total.comissao)],
+    ['Faturamento das corridas', reais(r.total.faturamento)], ['Comissão da central', reais(r.total.comissao)],
+    ['Venda de viagens', reais(r.vendas.valor)], ['Viagens vendidas', r.vendas.viagens],
   ].map(([t, v]) => `<div class="kpi"><span>${t}</span><b>${v}</b></div>`).join('');
   $('#tabelaRel').innerHTML = r.motoristas.length ? `<div class="tabela"><table>
     <tr><th>Motorista</th><th>Veículo</th><th class="num">Corridas</th><th class="num">Faturamento</th><th class="num">Comissão a receber</th><th class="num">Nota</th></tr>
@@ -167,7 +192,8 @@ async function carregarRelatorio() {
 
 // ---------------------------------------------------------------- configurações
 
-const CAMPOS = ['nome', 'cidade', 'numero_admin', 'comissao_pct', 'oferta_segundos', 'fator_rota'];
+const CAMPOS = ['nome', 'cidade', 'numero_admin', 'comissao_pct', 'oferta_segundos', 'fator_rota',
+  'valor_viagem', 'creditos_boas_vindas', 'pix_chave', 'pix_nome'];
 const reaisCurto = (v) => 'R$ ' + (Math.ceil(v * 2) / 2).toFixed(2).replace('.', ',');
 async function carregarConfig() {
   const c = await api('GET', '/api/config');
@@ -175,6 +201,10 @@ async function carregarConfig() {
   CAMPOS.forEach((k) => f[k].value = c[k] ?? '');
   f.aceitando.checked = !!c.aceitando;
   f.aprovar_automatico.checked = !!c.aprovar_automatico;
+  f.cobranca_ativa.checked = !!c.cobranca_ativa;
+  f.mp_ativo.checked = c.mp_ativo !== false;
+  $('#mpSituacao').textContent = c.mp_configurado ? '· ✅ conectado' : '· ⚠️ falta o MP_ACCESS_TOKEN no Easypanel';
+  f.pacotes.value = (c.pacotes || []).join(', ');
   $('#tabelaPrecos').innerHTML = `<tr><th>Oferecer</th><th>Veículo</th><th>Taxa base</th><th>Por km</th><th>Mínimo</th><th>3 km</th><th>10 km</th></tr>` +
     Object.keys(TIPOS).map((t) => `<tr data-tipo="${t}">
       <td><input type="checkbox" data-c="ativo" ${c.precos[t].ativo ? 'checked' : ''}></td>
@@ -205,7 +235,10 @@ function simular() {
 $('#formConfig').oninput = simular;
 $('#formConfig').onsubmit = async (e) => {
   e.preventDefault();
-  const f = e.target, corpo = { aceitando: f.aceitando.checked, aprovar_automatico: f.aprovar_automatico.checked, precos: lerPrecos() };
+  const f = e.target, corpo = {
+    aceitando: f.aceitando.checked, aprovar_automatico: f.aprovar_automatico.checked,
+    cobranca_ativa: f.cobranca_ativa.checked, mp_ativo: f.mp_ativo.checked, pacotes: f.pacotes.value, precos: lerPrecos(),
+  };
   CAMPOS.forEach((k) => corpo[k] = f[k].value);
   try {
     const c = await api('PUT', '/api/config', corpo);

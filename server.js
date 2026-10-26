@@ -13,10 +13,11 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { pool, migrar, lerConfig, salvarConfig, CONFIG_PADRAO } = require('./lib/db');
+const { pool, migrar, lerConfig, salvarConfig, moverCreditos, CONFIG_PADRAO } = require('./lib/db');
 const bot = require('./lib/bot');
 const whats = require('./lib/whats');
 const { TIPOS, ORDEM, rotulo } = require('./lib/tipos');
+const MP = require('./lib/mercadopago');
 
 const PORT = Number(process.env.PORT) || 3000;
 // tira espaços e aspas que às vezes vêm junto quando a variável é colada no Easypanel
@@ -113,9 +114,10 @@ function lerMensagem(b) {
     lat: Number(loc.degreesLatitude), lng: Number(loc.degreesLongitude),
     nome: loc.name || '', endereco: loc.address || '', aoVivo: !!m.liveLocationMessage,
   } : null;
+  const arquivo = m.imageMessage || m.documentMessage || m.documentWithCaptionMessage;
   const txt = m.conversation || (m.extendedTextMessage && m.extendedTextMessage.text) || '';
-  if (!txt && !local) return null;
-  return { telefone, contato: pessoal ? telefone : contato, nome: d.pushName || '', texto: txt, local };
+  if (!txt && !local && !arquivo) return null;
+  return { telefone, contato: pessoal ? telefone : contato, nome: d.pushName || '', texto: txt, local, midia: !!arquivo };
 }
 
 // ---------------------------------------------------------------- rotas
@@ -131,9 +133,19 @@ rota('POST', '/webhook/evolution', false, async ({ req, url }) => {
   return { ok: true };
 });
 
+// aviso do Mercado Pago: só traz o número do pagamento; a situação é sempre conferida na API deles
+rota('POST', '/api/mp/webhook', false, async ({ req, url }) => {
+  limitar('mp:' + ipDe(req), 120, 60_000);
+  const b = await lerCorpo(req).catch(() => ({}));
+  const id = String((b.data && b.data.id) || url.searchParams.get('data.id') || url.searchParams.get('id') || '').replace(/[^\w-]/g, '').slice(0, 64);
+  const tipo = b.type || b.topic || url.searchParams.get('type') || url.searchParams.get('topic') || '';
+  if (id && /order/.test(tipo) && MP.configurado()) await bot.processarPagamentoMP(id).catch((e) => console.error('mp webhook', e.message));
+  return { ok: true };
+});
+
 rota('GET', '/api/saude', false, async () => {
   await pool.query('SELECT 1');
-  return { ok: true, whatsapp: !!whats.EVO.url, painel: !!ADMIN_SENHA };
+  return { ok: true, whatsapp: !!whats.EVO.url, painel: !!ADMIN_SENHA, mercado_pago: MP.configurado() };
 });
 
 rota('POST', '/api/login', false, async ({ req, res }) => {
@@ -154,17 +166,22 @@ rota('POST', '/api/sair', false, async ({ res }) => {
   return { ok: true };
 });
 
-rota('GET', '/api/config', true, async () => lerConfig());
+rota('GET', '/api/config', true, async () => ({ ...(await lerConfig()), mp_configurado: MP.configurado() }));
 rota('PUT', '/api/config', true, async ({ req }) => {
   const b = await lerCorpo(req), atual = await lerConfig();
   const novo = { ...atual };
   for (const k of Object.keys(CONFIG_PADRAO)) {
-    if (b[k] === undefined || k === 'precos') continue;
+    if (b[k] === undefined || k === 'precos' || k === 'pacotes') continue;
     if (typeof CONFIG_PADRAO[k] === 'number') novo[k] = Math.max(0, numero(b[k], atual[k]));
     else if (typeof CONFIG_PADRAO[k] === 'boolean') novo[k] = !!b[k];
     else novo[k] = texto(b[k], 120);
   }
   if (novo.numero_admin) novo.numero_admin = telefoneBR(novo.numero_admin);
+  if (b.pacotes !== undefined) {
+    // "10, 20, 50" → [10, 20, 50]
+    novo.pacotes = [...new Set(String(b.pacotes).split(/[^\d]+/).map(Number).filter((n) => n > 0 && n <= 1000))].sort((x, y) => x - y).slice(0, 6);
+    if (!novo.pacotes.length) throw new Erro(400, 'Informe pelo menos um pacote de viagens (ex.: 10, 20, 50).');
+  }
   if (b.precos) {
     novo.precos = {};
     for (const t of ORDEM) {
@@ -202,8 +219,12 @@ async function gravarMotorista(sql, params) {
   try { return (await pool.query(sql, params)).rows[0]; }
   catch (e) { if (e.code === '23505') throw new Erro(400, 'Já existe um motorista com esse WhatsApp.'); throw e; }
 }
-rota('POST', '/api/motoristas', true, async ({ req }) => gravarMotorista(
-  'INSERT INTO motoristas (nome, telefone, carro, placa, ativo, tipo) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *', dadosMotorista(await lerCorpo(req))));
+rota('POST', '/api/motoristas', true, async ({ req }) => {
+  const m = await gravarMotorista(
+    'INSERT INTO motoristas (nome, telefone, carro, placa, ativo, tipo) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *', dadosMotorista(await lerCorpo(req)));
+  await darBoasVindas(m, await lerConfig());
+  return m;
+});
 rota('PUT', '/api/motoristas/:id', true, async ({ req, p }) => {
   const d = dadosMotorista(await lerCorpo(req));
   const m = await gravarMotorista(
@@ -212,13 +233,24 @@ rota('PUT', '/api/motoristas/:id', true, async ({ req, p }) => {
   if (!m) throw new Erro(404, 'Motorista não encontrado.');
   return m;
 });
+// viagens grátis uma única vez por motorista
+async function darBoasVindas(m, cfg) {
+  const n = Number(cfg.creditos_boas_vindas) || 0;
+  if (!cfg.cobranca_ativa || n <= 0) return 0;
+  const { rows } = await pool.query("SELECT 1 FROM creditos_mov WHERE motorista_id = $1 AND motivo = 'bonus'", [m.id]);
+  if (rows.length) return 0;
+  await moverCreditos(m.id, n, 'bonus');
+  return n;
+}
+
 // cadastro feito pelo próprio motorista no WhatsApp: aprovar ou recusar
 rota('POST', '/api/motoristas/:id/aprovar', true, async ({ p }) => {
   const { rows: [m] } = await pool.query('UPDATE motoristas SET aprovado = true, ativo = true WHERE id = $1 RETURNING *', [Number(p.id)]);
   if (!m) throw new Erro(404, 'Motorista não encontrado.');
   const cfg = await lerConfig();
+  const bonus = await darBoasVindas(m, cfg);
   whats.texto(m.contato || m.telefone, `🎉 *Cadastro aprovado!* Bem-vindo à ${cfg.nome}, ${m.nome.split(' ')[0]}!\n` +
-    `${rotulo(m.tipo)} · ${m.carro} · ${m.placa}\n\n` + bot.AJUDA_MOTORISTA);
+    `${rotulo(m.tipo)} · ${m.carro} · ${m.placa}\n` + (bonus ? `\n🎁 Você ganhou *${bonus} viagens grátis* para começar!\n` : '') + '\n' + bot.AJUDA_MOTORISTA);
   return m;
 });
 rota('POST', '/api/motoristas/:id/recusar', true, async ({ p }) => {
@@ -229,6 +261,43 @@ rota('POST', '/api/motoristas/:id/recusar', true, async ({ p }) => {
   whats.texto(m.contato || m.telefone, `Olá ${m.nome.split(' ')[0]}. Seu cadastro de motorista na ${cfg.nome} não foi aprovado. Para saber mais, fale com a central.`);
   return { ok: true };
 });
+// a central dá ou tira viagens na mão (ex.: pagou em dinheiro, cortesia, correção)
+rota('POST', '/api/motoristas/:id/creditos', true, async ({ req, p }) => {
+  const b = await lerCorpo(req);
+  const qtd = Math.trunc(Number(b.quantidade));
+  if (!qtd || Math.abs(qtd) > 10000) throw new Erro(400, 'Informe quantas viagens dar (ex.: 10) ou tirar (ex.: -2).');
+  return bot.rodar(async () => {
+    const { rows: [m] } = await pool.query('SELECT * FROM motoristas WHERE id = $1', [Number(p.id)]);
+    if (!m) throw new Erro(404, 'Motorista não encontrado.');
+    const saldo = await moverCreditos(m.id, qtd, 'ajuste');
+    whats.texto(m.contato || m.telefone, qtd > 0
+      ? `🎟️ A central adicionou *${qtd} viage${qtd === 1 ? 'm' : 'ns'}* para você. Saldo: *${saldo}*`
+      : `🎟️ A central retirou ${-qtd} viage${qtd === -1 ? 'm' : 'ns'} do seu saldo. Saldo: *${saldo}*`);
+    return { saldo };
+  });
+});
+
+rota('GET', '/api/compras', true, async () => {
+  const { rows } = await pool.query(`
+    SELECT c.*, m.nome AS motorista_nome, m.telefone AS motorista_tel, m.tipo AS motorista_tipo FROM compras c JOIN motoristas m ON m.id = c.motorista_id
+     WHERE c.status = 'pendente' ORDER BY c.id`);
+  return rows;
+});
+rota('POST', '/api/compras/:id/confirmar', true, async ({ p }) => bot.rodar(async () => {
+  const c = await bot.confirmarCompra(Number(p.id), 'central');
+  if (!c) throw new Erro(400, 'Essa compra já foi confirmada ou cancelada.');
+  return { ok: true, saldo: c.saldo };
+}));
+rota('POST', '/api/compras/:id/cancelar', true, async ({ p }) => {
+  const { rows: [c] } = await pool.query(
+    "UPDATE compras SET status = 'cancelado' WHERE id = $1 AND status = 'pendente' RETURNING *", [Number(p.id)]);
+  if (!c) throw new Erro(400, 'Essa compra já foi confirmada ou cancelada.');
+  if (c.mp_id && MP.configurado()) MP.cancelar(c.mp_id).catch((e) => console.error('mp cancelar', e.message));
+  const { rows: [m] } = await pool.query('SELECT telefone, contato FROM motoristas WHERE id = $1', [c.motorista_id]);
+  whats.texto(m.contato || m.telefone, `O pedido de compra #${c.id} (${c.quantidade} viagens) foi cancelado pela central. Dúvidas? Fale com a central.`);
+  return { ok: true };
+});
+
 rota('POST', '/api/motoristas/:id/online', true, async ({ req, p }) => {
   const b = await lerCorpo(req);
   await pool.query('UPDATE motoristas SET online = $2 WHERE id = $1 AND ativo', [Number(p.id), !!b.online]);
@@ -249,6 +318,7 @@ rota('POST', '/api/corridas/:id/cancelar', true, async ({ p }) => bot.rodar(asyn
     "SELECT * FROM corridas WHERE id = $1 AND status IN ('procurando', 'aceita', 'chegou', 'em_andamento')", [Number(p.id)]);
   if (!c) throw new Erro(400, 'Essa corrida já terminou.');
   await pool.query("UPDATE corridas SET status = 'cancelada', cancelado_por = 'central', oferta_motorista = NULL WHERE id = $1", [c.id]);
+  await bot.devolverCredito(c);
   whats.texto(c.passageiro_contato, `❌ Sua corrida #${c.id} foi cancelada pela central. Se precisar, mande *oi* para pedir outra.`);
   const avisar = c.motorista_id || c.oferta_motorista;
   if (avisar) {
@@ -274,7 +344,10 @@ rota('GET', '/api/resumo', true, async ({ url }) => {
            round(avg(c.avaliacao), 1)::float AS nota
       FROM corridas c JOIN motoristas m ON m.id = c.motorista_id
      WHERE c.status = 'finalizada' AND ${filtro} GROUP BY m.nome, m.tipo ORDER BY sum(c.valor_final) DESC`, [de, ate]);
-  return { total, motoristas };
+  const { rows: [vendas] } = await pool.query(`
+    SELECT count(*)::int AS compras, coalesce(sum(quantidade), 0)::int AS viagens, coalesce(sum(valor), 0)::float AS valor
+      FROM compras WHERE status = 'pago' AND (pago_em AT TIME ZONE 'America/Campo_Grande')::date BETWEEN $1 AND $2`, [de, ate]);
+  return { total, motoristas, vendas };
 });
 
 rota('GET', '/api/mensagens', true, async () => whats.enviados.slice(-50).reverse());
@@ -317,10 +390,12 @@ const server = http.createServer(async (req, res) => {
 (async () => {
   await migrar();
   setInterval(() => bot.varrer().catch((e) => console.error('Erro ao varrer chamadas:', e)), 3000).unref();
+  setInterval(() => bot.rondaMP().catch((e) => console.error('Erro na ronda do Mercado Pago:', e.message)), 30_000).unref();
   server.listen(PORT, () => {
     console.log(`Central de corridas no ar na porta ${PORT}`);
     if (!whats.EVO.url) console.log('Aviso: EVOLUTION_URL não definida, as mensagens só aparecem no log.');
     if (!WEBHOOK_TOKEN) console.log('Aviso: WEBHOOK_TOKEN não definido, qualquer um pode chamar o webhook.');
+    console.log(MP.configurado() ? 'Mercado Pago ligado: Pix automático na compra de viagens.' : 'Mercado Pago desligado (sem MP_ACCESS_TOKEN): compra de viagens com Pix manual.');
     if (!ADMIN_SENHA) console.log('Aviso: ADMIN_SENHA não definida, o painel fica bloqueado.');
     else console.log(`Senha do painel configurada (${ADMIN_SENHA.length} caracteres, começa com "${ADMIN_SENHA[0]}")`);
   });

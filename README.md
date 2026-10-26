@@ -50,7 +50,8 @@ O administrador também pode cadastrar motoristas direto no painel.
 | `CHEGUEI` | avisa o passageiro que chegou |
 | `INICIAR` | passageiro embarcou |
 | `FINALIZAR` ou `FINALIZAR 15` | encerra a corrida (com o valor, se for diferente do combinado ou no taxímetro) |
-| `CANCELAR` | desiste da corrida aceita; o sistema procura outro motorista |
+| `CANCELAR` | desiste da corrida aceita; o sistema procura outro motorista (a viagem usada não volta) |
+| `SALDO` · `COMPRAR` · `COMPRAR 20` | ver o saldo de viagens e comprar mais |
 | qualquer outra coisa | mostra a lista de comandos |
 
 ### Distribuição das chamadas
@@ -80,8 +81,32 @@ Tudo muda em Painel › Configurações, onde também dá para **desligar** um t
 - Quando **digita o endereço**, o sistema procura no OpenStreetMap dentro da cidade configurada. Se não achar, a corrida
   vai "no taxímetro" e o motorista informa o valor no fim (`FINALIZAR 15`).
 
-A **comissão** da central (padrão 10%) é calculada em cada corrida e aparece no relatório por motorista.
-O pagamento é feito direto ao motorista (dinheiro ou Pix).
+O passageiro paga a corrida direto ao motorista (dinheiro ou Pix).
+
+## Viagens pré-pagas (como a central ganha)
+
+O motorista **compra viagens antes** (padrão: **R$ 1,00 por viagem**, pacotes de 10, 20 e 50).
+Cada corrida aceita usa 1 viagem; **sem saldo ele não recebe chamadas**. Se o passageiro ou a central cancelar
+antes da corrida começar, a viagem volta para ele. Motorista novo ganha **3 viagens grátis** ao ser aprovado.
+
+```
+Motorista: COMPRAR
+Central:   10 viagens · R$ 10,00 → COMPRAR 10 / 20 viagens · R$ 20,00 → COMPRAR 20 / ...
+Motorista: COMPRAR 20
+Central:   Pedido #7 · R$ 20,00 + QR Code + Pix copia e cola (vale 30 min)
+           ... paga no banco ...
+Central:   ✅ Pagamento confirmado! +20 viagens · saldo: 23
+```
+
+- **Com Mercado Pago** (`MP_ACCESS_TOKEN`): o Pix tem o valor exato e as viagens entram **sozinhas** quando o
+  pagamento é aprovado. O sistema confere direto na API do Mercado Pago (o aviso do webhook sozinho não basta) e,
+  se o aviso não chegar, confere de novo a cada 30 segundos.
+- **Sem Mercado Pago**: o motorista recebe a chave Pix da central, manda a foto do comprovante, e você clica em
+  **Pix recebido, liberar viagens** no painel.
+- `SALDO` mostra quantas viagens ele tem. No painel, o botão **🎟️ Viagens** dá ou tira viagens na mão.
+- O relatório mostra quanto a central vendeu de viagens no período.
+
+Também existe uma **comissão %** por corrida (padrão 0%), só para controle no relatório.
 
 ## Painel (`/painel`)
 
@@ -110,6 +135,7 @@ EVOLUTION_INSTANCE=corridas
 EVOLUTION_APIKEY=apikey-da-evolution
 WEBHOOK_TOKEN=uma-senha-forte-qualquer
 ADMIN_SENHA=senha-do-painel
+MP_ACCESS_TOKEN=APP_USR-...                  (opcional: Pix automático na compra de viagens)
 ```
 
 Em *Domains*, aponte o domínio (ex.: `corridas.seudominio.com`) para a porta **3000** e clique em **Implantar**.
@@ -122,7 +148,19 @@ Nos logs deve aparecer `Central de corridas no ar na porta 3000`.
    - Evento: **`MESSAGES_UPSERT`**
    - Ligado: *Enabled*. Não precisa de *Webhook Base64*.
 
-### 4. Primeiro uso
+### 4. Mercado Pago (Pix automático)
+1. Entre em **https://www.mercadopago.com.br/developers/panel/app** → *Criar aplicação* → **Checkout Transparente**,
+   tipo de API **API de Orders** (pode ser a mesma conta do Naturalle ou outra).
+2. Em *Credenciais de produção*, copie o **Access Token** (`APP_USR-...`) e coloque em `MP_ACCESS_TOKEN` no Easypanel.
+   Não mande essa chave para ninguém. Clique em **Implantar**.
+3. Na aplicação do Mercado Pago, em *Webhooks* → *Configurar notificações* (modo produção), coloque
+   `https://SEU-DOMINIO/api/mp/webhook` e marque o evento **Order (Mercado Pago)**. Sem isso também funciona
+   (o sistema confere sozinho a cada 30 s), só fica uns segundos mais lento.
+4. Em Painel › Configurações aparece "✅ conectado" ao lado de *Pix automático pelo Mercado Pago*.
+
+O Mercado Pago cobra uma taxa por Pix recebido (veja no painel deles).
+
+### 5. Primeiro uso
 1. Abra `https://corridas.seudominio.com/painel` e entre com a `ADMIN_SENHA`.
 2. **Configurações**: nome da central, cidade (ex.: `Bonito, MS`), preços, comissão e seu WhatsApp para alertas.
 3. **Motoristas**: divulgue o número da central; cada motorista manda **CADASTRO** e você aprova no painel.
