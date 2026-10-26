@@ -72,8 +72,16 @@
         <label class="inline">De <input type="date" id="relDe"></label>
         <label class="inline">Até <input type="date" id="relAte"></label>
       </div>
-      <div class="kpis" id="kpisRel"></div>
-      <div id="tabelaRel"></div>
+      <div id="relGeral">
+        <div class="linha"><h3>Geral da central</h3>
+          <button class="sec nao-imprimir" id="imprimirGeral">🖨️ Imprimir / PDF</button></div>
+        <div class="kpis" id="kpisRel"></div>
+        <div class="linha"><h3>Por motorista</h3>
+          <button class="nao-imprimir" id="enviarTodos">📲 Enviar o relatório para todos</button></div>
+        <p class="dica nao-imprimir">Clique em <b>Ver</b> para abrir o relatório individual, imprimir ou mandar só para aquele motorista.</p>
+        <div id="tabelaRel"></div>
+      </div>
+      <div id="relIndividual" class="cartao" hidden></div>
     </section>
 
     <section id="aba-config" hidden>

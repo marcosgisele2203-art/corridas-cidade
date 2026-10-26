@@ -208,7 +208,10 @@ $('#formMotorista').onsubmit = async (e) => {
 
 // ---------------------------------------------------------------- relatório
 
-$('#relDe').onchange = $('#relAte').onchange = carregarRelatorio;
+$('#relDe').onchange = $('#relAte').onchange = () => {
+  $('#relIndividual').hidden = true; $('#relGeral').hidden = false;
+  carregarRelatorio();
+};
 async function carregarRelatorio() {
   if (!$('#relDe').value) { $('#relDe').value = hoje().slice(0, 8) + '01'; $('#relAte').value = hoje(); }
   const r = await api('GET', `/api/resumo?de=${$('#relDe').value}&ate=${$('#relAte').value}`);
@@ -217,12 +220,75 @@ async function carregarRelatorio() {
     ['Faturamento das corridas', reais(r.total.faturamento)], ['Comissão da central', reais(r.total.comissao)],
     ['Venda de viagens', reais(r.vendas.valor)], ['Viagens vendidas', r.vendas.viagens],
   ].map(([t, v]) => `<div class="kpi"><span>${t}</span><b>${v}</b></div>`).join('');
+  relMotoristas = r.motoristas;
+  const comComissao = r.motoristas.some((m) => m.comissao > 0);
   $('#tabelaRel').innerHTML = r.motoristas.length ? `<div class="tabela"><table>
-    <tr><th>Motorista</th><th>Veículo</th><th class="num">Corridas</th><th class="num">Faturamento</th><th class="num">Comissão a receber</th><th class="num">Nota</th></tr>
-    ${r.motoristas.map((m) => `<tr><td>${esc(m.nome)}</td><td>${TIPOS[m.tipo] || ''}</td><td class="num">${m.corridas}</td><td class="num">${reais(m.faturamento)}</td>
-      <td class="num"><b>${reais(m.comissao)}</b></td><td class="num">${m.nota ?? '—'}</td></tr>`).join('')}
-  </table></div>` : '<p class="vazio">Nenhuma corrida finalizada no período.</p>';
+    <tr><th>Motorista</th><th>Veículo</th><th class="num">Corridas</th><th class="num">Total das corridas</th>
+      ${comComissao ? '<th class="num">Comissão</th>' : ''}<th class="num">Nota</th><th class="num">Saldo</th><th class="nao-imprimir"></th></tr>
+    ${r.motoristas.map((m) => `<tr><td><b>${esc(m.nome)}</b></td><td>${TIPOS[m.tipo] || ''}</td><td class="num">${m.corridas}</td>
+      <td class="num">${reais(m.faturamento)}</td>${comComissao ? `<td class="num">${reais(m.comissao)}</td>` : ''}
+      <td class="num">${m.nota ?? '—'}</td><td class="num">${m.saldo}</td>
+      <td class="nao-imprimir"><button class="mini" data-ver="${m.id}">📄 Ver</button>
+        <button class="mini sec" data-enviar="${m.id}">📲 Enviar</button></td></tr>`).join('')}
+  </table></div>` : '<p class="vazio">Nenhum motorista aprovado ainda.</p>';
 }
+
+// ---- relatório individual
+let relMotoristas = [];
+const periodoRel = () => ({ de: $('#relDe').value, ate: $('#relAte').value });
+const dataBR = (iso) => iso.split('-').reverse().join('/');
+
+async function enviarRelatorios(ids, quem) {
+  if (!confirm(`Mandar o relatório de ${dataBR(periodoRel().de)} a ${dataBR(periodoRel().ate)} no WhatsApp de ${quem}?`)) return;
+  try {
+    const r = await api('POST', '/api/relatorios/enviar', { ...periodoRel(), ids });
+    alert(r.enviados > 1 ? `Enviando para ${r.enviados} motoristas (um a cada 3 segundos, termina em cerca de ${Math.ceil(r.segundos / 60) || 1} min).` : 'Relatório enviado! ✅');
+  } catch (err) { alert(err.message); }
+}
+
+async function abrirIndividual(id) {
+  const { de, ate } = periodoRel();
+  const r = await api('GET', `/api/motoristas/${id}/relatorio?de=${de}&ate=${ate}`);
+  const t = r.totais, v = r.viagens, mo = r.motorista;
+  const caixa = $('#relIndividual');
+  caixa.innerHTML = `
+    <div class="linha nao-imprimir">
+      <button class="sec" id="voltarGeral">← Voltar ao geral</button>
+      <span><button id="enviarUm">📲 Enviar no WhatsApp</button> <button class="sec" id="imprimirUm">🖨️ Imprimir / PDF</button></span>
+    </div>
+    <h2>📊 ${esc(mo.nome)}</h2>
+    <p>${TIPOS[mo.tipo] || ''} · ${esc(mo.veiculo)} · <b>${esc(mo.placa)}</b> · ${esc(mo.telefone)}<br>
+      Período: <b>${dataBR(de)}</b>${de !== ate ? ` a <b>${dataBR(ate)}</b>` : ''}</p>
+    <div class="kpis">
+      ${[['Corridas feitas', t.finalizadas], ['Canceladas', t.canceladas], ['Total das corridas', reais(t.ganhos)],
+        ['Distância', t.km.toFixed(1).replace('.', ',') + ' km'], ['Nota média', t.nota ? String(t.nota).replace('.', ',') + ' ⭐' : '—'],
+        ['Viagens compradas', v.compradas], ['Viagens usadas', v.usadas], ['Saldo atual', mo.saldo]]
+        .map(([n, x]) => `<div class="kpi"><span>${n}</span><b>${x}</b></div>`).join('')}
+    </div>
+    ${v.pago ? `<p class="dica">Pago à central por viagens no período: <b>${reais(v.pago)}</b>${v.bonus ? ` · grátis: ${v.bonus}` : ''}${v.ajustes ? ` · ajustes: ${v.ajustes}` : ''}</p>` : ''}
+    ${r.corridas.length ? `<div class="tabela"><table>
+      <tr><th>Quando</th><th>Saída → Destino</th><th class="num">Km</th><th class="num">Valor</th><th class="num">Nota</th><th>Situação</th></tr>
+      ${r.corridas.map((c) => `<tr><td>${c.quando}</td><td>${esc(c.origem_texto)} → ${esc(c.destino_texto)}</td>
+        <td class="num">${c.km ? String(Number(c.km)).replace('.', ',') : '—'}</td><td class="num">${c.status === 'finalizada' ? reais(c.valor_final) : '—'}</td>
+        <td class="num">${c.avaliacao ? c.avaliacao + '⭐' : '—'}</td><td>${STATUS[c.status]}</td></tr>`).join('')}
+    </table></div>` : '<p class="vazio">Nenhuma corrida no período.</p>'}`;
+  $('#relGeral').hidden = true; caixa.hidden = false;
+  window.scrollTo(0, 0);
+  $('#voltarGeral').onclick = () => { caixa.hidden = true; $('#relGeral').hidden = false; };
+  $('#enviarUm').onclick = () => enviarRelatorios([mo.id], mo.nome);
+  $('#imprimirUm').onclick = () => window.print();
+}
+
+$('#tabelaRel').onclick = (e) => {
+  const { ver, enviar } = e.target.dataset;
+  if (ver) abrirIndividual(Number(ver)).catch((err) => alert(err.message));
+  if (enviar) enviarRelatorios([Number(enviar)], relMotoristas.find((m) => m.id === Number(enviar)).nome);
+};
+$('#enviarTodos').onclick = () => {
+  if (!relMotoristas.length) return alert('Nenhum motorista para enviar.');
+  enviarRelatorios(relMotoristas.map((m) => m.id), `todos os ${relMotoristas.length} motoristas`);
+};
+$('#imprimirGeral').onclick = () => window.print();
 
 // ---------------------------------------------------------------- configurações
 

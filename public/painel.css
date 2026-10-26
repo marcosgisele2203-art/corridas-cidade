@@ -73,3 +73,14 @@ td button.mini { margin: 3px 4px 3px 0; }
   border: 2px solid var(--borda); padding: 8px 14px 8px 8px; font-weight: 500; font-size: 16px; text-transform: capitalize; }
 .paleta .cor span { width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, .25); flex: none; }
 .paleta .cor.escolhida { border-color: var(--cor); box-shadow: 0 0 0 2px var(--cor); }
+
+/* impressão / PDF: só o relatório que está na tela */
+@media print {
+  header, .nao-imprimir, #aba-relatorio > .linha label { display: none !important; }
+  body { background: #fff; color: #000; font-size: 14px; }
+  main { max-width: none; padding: 0; }
+  .cartao, .kpi, table { border-color: #ccc; box-shadow: none; }
+  .kpis { grid-template-columns: repeat(4, 1fr); }
+  .kpi b { font-size: 20px; }
+  th, td { padding: 6px 8px; }
+}

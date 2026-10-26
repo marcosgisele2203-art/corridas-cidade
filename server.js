@@ -18,6 +18,7 @@ const bot = require('./lib/bot');
 const whats = require('./lib/whats');
 const { TIPOS, ORDEM, rotulo, veiculo, coresDo } = require('./lib/tipos');
 const MP = require('./lib/mercadopago');
+const relatorio = require('./lib/relatorio');
 
 const PORT = Number(process.env.PORT) || 3000;
 // tira espaços e aspas que às vezes vêm junto quando a variável é colada no Easypanel
@@ -340,15 +341,49 @@ rota('GET', '/api/resumo', true, async ({ url }) => {
            coalesce(sum(valor_final), 0)::float AS faturamento,
            coalesce(sum(comissao), 0)::float AS comissao
       FROM corridas c WHERE ${filtro}`, [de, ate]);
+  // todos os motoristas aprovados, mesmo sem corrida no período (para mandar o relatório a cada um)
   const { rows: motoristas } = await pool.query(`
-    SELECT m.nome, m.tipo, count(*)::int AS corridas, sum(c.valor_final)::float AS faturamento, sum(c.comissao)::float AS comissao,
+    SELECT m.id, m.nome, m.tipo, m.creditos AS saldo, count(c.id)::int AS corridas,
+           coalesce(sum(c.valor_final), 0)::float AS faturamento, coalesce(sum(c.comissao), 0)::float AS comissao,
            round(avg(c.avaliacao), 1)::float AS nota
-      FROM corridas c JOIN motoristas m ON m.id = c.motorista_id
-     WHERE c.status = 'finalizada' AND ${filtro} GROUP BY m.nome, m.tipo ORDER BY sum(c.valor_final) DESC`, [de, ate]);
+      FROM motoristas m
+      LEFT JOIN corridas c ON c.motorista_id = m.id AND c.status = 'finalizada' AND ${filtro}
+     WHERE m.aprovado
+     GROUP BY m.id ORDER BY count(c.id) DESC, m.nome`, [de, ate]);
   const { rows: [vendas] } = await pool.query(`
     SELECT count(*)::int AS compras, coalesce(sum(quantidade), 0)::int AS viagens, coalesce(sum(valor), 0)::float AS valor
       FROM compras WHERE status = 'pago' AND (pago_em AT TIME ZONE 'America/Campo_Grande')::date BETWEEN $1 AND $2`, [de, ate]);
   return { total, motoristas, vendas };
+});
+
+// relatório individual do motorista (ver no painel, imprimir ou mandar no WhatsApp dele)
+function periodo(url, b = {}) {
+  const de = b.de || url.searchParams.get('de'), ate = b.ate || url.searchParams.get('ate');
+  if (![de, ate].every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d || '')) || de > ate) throw new Erro(400, 'Período inválido.');
+  return { de, ate };
+}
+rota('GET', '/api/motoristas/:id/relatorio', true, async ({ url, p }) => {
+  const { de, ate } = periodo(url);
+  const r = await relatorio.montar(Number(p.id), de, ate);
+  if (!r) throw new Erro(404, 'Motorista não encontrado.');
+  const cfg = await lerConfig();
+  return { ...r, texto: relatorio.texto(r, cfg.nome, cfg.cobranca_ativa) };
+});
+rota('POST', '/api/relatorios/enviar', true, async ({ req, url }) => {
+  const b = await lerCorpo(req);
+  const { de, ate } = periodo(url, b);
+  const ids = (Array.isArray(b.ids) ? b.ids : []).map(Number).filter((n) => n > 0).slice(0, 500);
+  if (!ids.length) throw new Erro(400, 'Escolha pelo menos um motorista.');
+  const cfg = await lerConfig();
+  // um de cada vez, com intervalo: muitas mensagens juntas parecem disparo em massa para o WhatsApp
+  (async () => {
+    for (const [i, id] of ids.entries()) {
+      if (i) await new Promise((ok) => setTimeout(ok, 3000));
+      const r = await relatorio.montar(id, de, ate).catch((e) => console.error('relatório', id, e.message));
+      if (r) whats.texto(r.motorista.contato || r.motorista.telefone, relatorio.texto(r, cfg.nome, cfg.cobranca_ativa));
+    }
+  })();
+  return { enviados: ids.length, segundos: (ids.length - 1) * 3 };
 });
 
 rota('GET', '/api/mensagens', true, async () => whats.enviados.slice(-50).reverse());
