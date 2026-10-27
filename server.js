@@ -678,6 +678,87 @@ rota('GET', '/api/motorista/relatorio', false, async ({ req, url }) => {
 
 rota('GET', '/api/mensagens', true, async () => whats.enviados.slice(-50).reverse());
 
+
+/* Solicitação de viagem pelo site, com telefone confirmado por código. */
+const geoPassageiro = require('./lib/geo');
+const hashPassageiro = (t,c) => crypto.createHmac('sha256','passageiro:'+segredoMotorista).update(t+':'+c).digest('hex');
+function sessaoPassageiro(req) {
+  const m=/(?:^|;\s*)cp_sessao=(\d+)\.(\d+)\.([\w-]+)/.exec(req.headers.cookie||'');
+  if(!m || Number(m[2])<Date.now()) throw new Erro(401,'Confirme seu WhatsApp novamente.');
+  const sig=hashPassageiro(m[1],m[2]);
+  if(m[3].length!==sig.length || !crypto.timingSafeEqual(Buffer.from(m[3]),Buffer.from(sig))) throw new Erro(401,'Sessão inválida.');
+  return m[1];
+}
+rota('POST','/api/passageiro/codigo',false,async({req})=>{
+  limitar('pc-ip:'+ipDe(req),6,15*60_000);
+  const b=await lerCorpo(req), tel=telefoneBR(b.telefone);
+  limitar('pc-tel:'+tel,3,15*60_000);
+  if(!whats.EVO.url || !whats.EVO.instancia || !whats.EVO.chave) throw new Erro(503,'O WhatsApp da central está indisponível.');
+  const code=String(crypto.randomInt(0,1000000)).padStart(6,'0');
+  await pool.query(`INSERT INTO passageiro_codigos(telefone,codigo_hash,expira_em) VALUES($1,$2,now()+interval '10 minutes')
+    ON CONFLICT(telefone) DO UPDATE SET codigo_hash=excluded.codigo_hash,expira_em=excluded.expira_em,tentativas=0`,[tel,hashPassageiro(tel,code)]);
+  whats.texto(tel,`🔐 Seu código de acesso à Vai com Manu: *${code}*. Válido por 10 minutos. Não compartilhe.`);
+  return {ok:true};
+});
+rota('POST','/api/passageiro/entrar',false,async({req,res})=>{
+  limitar('pe-ip:'+ipDe(req),15,15*60_000);
+  const b=await lerCorpo(req),tel=telefoneBR(b.telefone), code=soDigitos(b.codigo);
+  const {rows:[c]}=await pool.query("UPDATE passageiro_codigos SET tentativas=tentativas+1 WHERE telefone=$1 AND expira_em>now() AND tentativas<5 RETURNING codigo_hash",[tel]);
+  if(!c||code.length!==6) throw new Erro(400,'Código inválido ou expirado.');
+  const a=Buffer.from(hashPassageiro(tel,code)),z=Buffer.from(c.codigo_hash);
+  if(a.length!==z.length||!crypto.timingSafeEqual(a,z)) throw new Erro(400,'Código inválido.');
+  await pool.query('DELETE FROM passageiro_codigos WHERE telefone=$1',[tel]);
+  const expiry=String(Date.now()+24*3600_000), sig=hashPassageiro(tel,expiry);
+  const secure=String(req.headers['x-forwarded-proto']||'').includes('https')?'; Secure':'';
+  res.setHeader('Set-Cookie',`cp_sessao=${tel}.${expiry}.${sig}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${secure}`);
+  return {ok:true};
+});
+rota('POST','/api/passageiro/cotacao',false,async({req})=>{
+  limitar('cotacao:'+ipDe(req),12,15*60_000);
+  const tel=sessaoPassageiro(req), b=await lerCorpo(req),cfg=await lerConfig();
+  const nome=texto(b.nome,100),origem=texto(b.origem,180),destino=texto(b.destino,180),tipo=texto(b.tipo,20);
+  if(!cfg.aceitando) throw new Erro(400,'A central não está aceitando corridas agora.');
+  if(nome.length<2||origem.length<4||destino.length<4||!ORDEM.includes(tipo)||!cfg.precos[tipo].ativo) throw new Erro(400,'Confira nome, endereços e veículo.');
+  const [o,d]=await Promise.all([geoPassageiro.buscarEndereco(origem,cfg),geoPassageiro.buscarEndereco(destino,cfg)]);
+  if(!o||!d) throw new Erro(400,'Não foi possível localizar os dois endereços. Confira rua, número e bairro ou peça pelo WhatsApp.');
+  const km=geoPassageiro.kmRota(o,d,cfg),valor=geoPassageiro.preco(km,cfg.precos[tipo]);
+  const payload={tel,nome,origem,destino,o,d,tipo,km,valor,exp:Date.now()+5*60_000,nonce:crypto.randomBytes(16).toString('hex')};
+  const encoded=Buffer.from(JSON.stringify(payload)).toString('base64url');
+  return {km,valor,token:encoded+'.'+hashPassageiro(tel,encoded),aviso:'Distância e valor estimados.'};
+});
+rota('POST','/api/passageiro/pedir',false,async({req})=>bot.rodar(async()=>{
+  limitar('pedir:'+ipDe(req),10,15*60_000);
+  const tel=sessaoPassageiro(req),b=await lerCorpo(req),parts=String(b.token||'').split('.');
+  if(parts.length!==2||parts[0].length>5000) throw new Erro(400,'Faça uma nova cotação.');
+  const sig=hashPassageiro(tel,parts[0]);
+  if(sig.length!==parts[1].length||!crypto.timingSafeEqual(Buffer.from(sig),Buffer.from(parts[1]))) throw new Erro(400,'Cotação inválida.');
+  let q;try{q=JSON.parse(Buffer.from(parts[0],'base64url').toString('utf8'))}catch{throw new Erro(400,'Cotação inválida.')}
+  if(q.tel!==tel||q.exp<Date.now()) throw new Erro(400,'Cotação expirada. Faça outra.');
+  const cfg=await lerConfig();if(!cfg.aceitando||!cfg.precos[q.tipo]?.ativo) throw new Erro(400,'Veículo indisponível.');
+  const precoAtual=geoPassageiro.preco(q.km,cfg.precos[q.tipo]);if(precoAtual!==q.valor) throw new Erro(400,'O preço mudou. Faça outra cotação.');
+  const {rows:[existing]}=await pool.query('SELECT corrida_id FROM passageiro_pedidos WHERE token=$1',[q.nonce]);
+  if(existing) return {id:existing.corrida_id};
+  const {rows:[active]}=await pool.query("SELECT id FROM corridas WHERE passageiro_tel=$1 AND status IN ('procurando','aceita','chegou','em_andamento') LIMIT 1",[tel]);
+  if(active) throw new Erro(409,'Você já tem uma corrida em andamento.');
+  const client=await pool.connect();let ride;
+  try{
+    await client.query('BEGIN');
+    const result=await client.query(`INSERT INTO corridas(passageiro_tel,passageiro_contato,passageiro_nome,origem_texto,origem_lat,origem_lng,destino_texto,destino_lat,destino_lng,km,valor_estimado,tipo)
+    VALUES($1,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,[tel,q.nome,q.origem,q.o.lat,q.o.lng,q.destino,q.d.lat,q.d.lng,q.km,q.valor,q.tipo]);
+    ride=result.rows[0];await client.query('INSERT INTO passageiro_pedidos(token,corrida_id) VALUES($1,$2)',[q.nonce,ride.id]);
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
+  whats.texto(tel,`🔎 Corrida #${ride.id} solicitada pelo site. Procurando motorista. Para cancelar, envie CANCELAR.`);
+  await bot.despachar(ride.id);
+  return {id:ride.id};
+}));
+rota('GET','/api/passageiro/viagem/:id',false,async({req,p})=>{
+  const tel=sessaoPassageiro(req),id=Number(p.id);
+  const {rows:[c]}=await pool.query(`SELECT c.id,c.status,c.origem_texto,c.destino_texto,c.valor_estimado,c.valor_final,c.tipo,m.nome AS motorista_nome,m.carro,m.cor,m.placa
+    FROM corridas c LEFT JOIN motoristas m ON m.id=c.motorista_id WHERE c.id=$1 AND c.passageiro_tel=$2`,[id,tel]);
+  if(!c) throw new Erro(404,'Viagem não encontrada.');return c;
+});
+
 // ---------------------------------------------------------------- arquivos do painel
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml',
@@ -704,7 +785,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, resultado);
     }
     if (req.method === 'GET') {
-      const pagina = { '/': 'inicio.html', '/painel': 'index.html', '/motorista': 'motorista.html' }[url.pathname.replace(/\/+$/, '') || '/'];
+      const pagina = { '/': 'inicio.html', '/painel': 'index.html', '/motorista': 'motorista.html', '/passageiro': 'passageiro.html' }[url.pathname.replace(/\/+$/, '') || '/'];
       if (pagina) return arquivo(res, pagina) || json(res, 404, { erro: 'Não encontrado' });
       if (arquivo(res, url.pathname.slice(1))) return;
     }
