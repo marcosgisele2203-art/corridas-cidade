@@ -112,6 +112,14 @@ Central:   ✅ Pagamento confirmado! +20 viagens · saldo: 23
 
 Também existe uma **comissão %** por corrida (padrão 0%), só para controle no relatório.
 
+## Páginas
+
+| Endereço | Quem usa | O que tem |
+|---|---|---|
+| `/` | Todo mundo | Página inicial com 3 cartões: **Sou passageiro** (abre o WhatsApp da central), **Sou motorista** e **Administração** |
+| `/motorista` | Motorista | **Cadastro pelo site** (tipo, modelo, cor pela paleta, placa) e **entrada sem senha**: digita o WhatsApp e recebe um código de 6 números nele. Dentro: ficar **online/offline**, saldo, **comprar viagens** (QR Code e copia e cola do Pix na tela; as viagens entram sozinhas quando o Mercado Pago aprova), **meu relatório** com período e impressão, e **meu cadastro** (modelo, cor e placa; a central é avisada das mudanças) |
+| `/painel` | Central (senha `ADMIN_SENHA`) | Tudo da administração, abaixo |
+
 ## Painel (`/painel`)
 
 Ao entrar aparece a tela **Escolha sua área** (como a entrada da equipe do Naturally Mania): a Manu com o celular e um

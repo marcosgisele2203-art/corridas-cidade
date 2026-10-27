@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Área do motorista · Vai de Manu</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0aa84f">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="painel.css">
+</head>
+<body>
+
+<!-- entrar ou se cadastrar -->
+<div id="entrar" class="entrada" hidden>
+  <div class="entrada-manu">
+    <div class="balao"><b>Oi, motorista!</b><span>Bora trabalhar? 🚘<br>Entre ou faça seu cadastro!</span></div>
+    <img src="img/manu/manu-joinha.webp" alt="Manu fazendo joinha">
+  </div>
+  <section class="entrada-quadro">
+    <div class="entrada-topo">
+      <div><small>Área do motorista</small><h1><span class="nome-central">Vai de Manu</span></h1></div>
+      <a class="entrada-cadeado" href="/">← Voltar ao início</a>
+    </div>
+    <div class="abas-entrar">
+      <button type="button" data-entrar="login" class="ativa">Já sou motorista</button>
+      <button type="button" data-entrar="cadastro">Quero me cadastrar</button>
+    </div>
+
+    <form id="formCodigo" class="cartao form-entrar">
+      <p class="dica">Digite seu WhatsApp. Vamos mandar um <b>código de 6 números</b> nele para você entrar, sem senha.</p>
+      <label>Seu WhatsApp (com DDD)<input name="telefone" inputmode="tel" autocomplete="tel" placeholder="67 99999-9999" required></label>
+      <div id="passoCodigo" hidden>
+        <label>Código que chegou no WhatsApp<input name="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="000000"></label>
+      </div>
+      <button id="botaoCodigo">📲 Receber código no WhatsApp</button>
+      <button type="button" class="sec" id="reenviar" hidden>Mandar o código de novo</button>
+      <p class="erro" id="erroCodigo"></p>
+    </form>
+
+    <form id="formCadastro" class="cartao form-entrar" hidden>
+      <div class="grade">
+        <label>Nome completo<input name="nome" required autocomplete="name"></label>
+        <label>Seu WhatsApp (com DDD)<input name="telefone" inputmode="tel" required placeholder="67 99999-9999"></label>
+      </div>
+      <label>Seu veículo</label>
+      <div class="tipos-veiculo" id="tiposVeiculo">
+        <button type="button" data-tipo="moto">🏍️<span>Moto</span></button>
+        <button type="button" data-tipo="carro" class="escolhido">🚗<span>Carro</span></button>
+        <button type="button" data-tipo="van">🚐<span>Van</span></button>
+        <button type="button" data-tipo="caminhao">🚚<span>Caminhão</span></button>
+      </div>
+      <input type="hidden" name="tipo" value="carro">
+      <div class="grade">
+        <label>Modelo<input name="carro" required placeholder="VW Gol"></label>
+        <label>Cor<input name="cor" required placeholder="escolha abaixo ou digite"></label>
+        <label>Placa<input name="placa" required placeholder="ABC1D23"></label>
+      </div>
+      <div class="paleta" id="paletaCadastro"></div>
+      <button>✅ Enviar cadastro</button>
+      <p class="erro" id="erroCadastro"></p>
+    </form>
+  </section>
+</div>
+
+<!-- área do motorista depois de entrar -->
+<div id="area" hidden>
+  <header>
+    <strong class="marca"><img src="manu.png" alt=""><span class="nome-central">Vai de Manu</span></strong>
+    <nav>
+      <button data-aba="inicio" class="ativa">🏠 Início</button>
+      <button data-aba="comprar">🎟️ Comprar viagens</button>
+      <button data-aba="relatorio">📊 Meu relatório</button>
+      <button data-aba="cadastro">🚘 Meu cadastro</button>
+    </nav>
+    <button id="sair" class="sec">Sair</button>
+  </header>
+  <main>
+    <section id="aba-inicio">
+      <div class="dica-manu"><img src="img/manu/manu-joinha.webp" alt=""><div><b id="ola">Olá!</b><span>Fique online para receber corridas. Elas chegam no seu WhatsApp e você responde <strong>1</strong> para aceitar. 🚀</span></div></div>
+      <div id="aviso"></div>
+      <div class="cartao status-online">
+        <div><small>Sua situação</small><b id="situacao">—</b><span class="dica" id="situacaoDica"></span></div>
+        <button id="botaoOnline">🟢 Ficar online</button>
+      </div>
+      <div id="corridaAtual"></div>
+      <h3>Este mês</h3>
+      <div class="kpis" id="kpisMes"></div>
+    </section>
+
+    <section id="aba-comprar" hidden>
+      <div class="dica-manu"><img src="img/manu/manu-celular.webp" alt=""><div><b>Compre suas viagens</b><span>Cada corrida que você aceita usa 1 viagem. Pacote maior sai mais barato! 🔥</span></div></div>
+      <div id="compraAberta"></div>
+      <div class="kpis"><div class="kpi"><span>Seu saldo</span><b id="saldoComprar">0</b></div></div>
+      <div class="pacotes" id="pacotes"></div>
+    </section>
+
+    <section id="aba-relatorio" hidden>
+      <div class="dica-manu"><img src="img/manu/manu-cintura.webp" alt=""><div><b>Seu relatório completo</b><span>Escolha o período e veja suas corridas, ganhos, nota e viagens. Dá para imprimir ou salvar em PDF. 📊</span></div></div>
+      <div class="linha">
+        <h2>Meu relatório</h2>
+        <span class="linha">
+          <label class="inline">De <input type="date" id="relDe"></label>
+          <label class="inline">Até <input type="date" id="relAte"></label>
+          <button class="sec mini nao-imprimir" id="imprimir">🖨️ Imprimir / PDF</button>
+        </span>
+      </div>
+      <div class="kpis" id="kpisRel"></div>
+      <div id="tabelaRel"></div>
+    </section>
+
+    <section id="aba-cadastro" hidden>
+      <div class="dica-manu"><img src="img/manu/manu-joinha.webp" alt=""><div><b>Seus dados</b><span>Mantenha o modelo, a cor e a placa certinhos: é assim que o passageiro reconhece você. 🚘</span></div></div>
+      <form id="formEu" class="cartao">
+        <div class="grade">
+          <label>Nome<input name="nome" disabled></label>
+          <label>WhatsApp<input name="telefone" disabled></label>
+          <label>Veículo<input name="tipoNome" disabled></label>
+          <label>Modelo<input name="carro" required></label>
+          <label>Cor<input name="cor" required></label>
+          <label>Placa<input name="placa" required></label>
+        </div>
+        <div class="paleta" id="paletaEu"></div>
+        <p class="dica">Para trocar o nome, o WhatsApp ou o tipo de veículo, fale com a central.</p>
+        <button>Salvar</button>
+        <p class="ok" id="okEu"></p><p class="erro" id="erroEu"></p>
+      </form>
+    </section>
+  </main>
+</div>
+<script src="motorista.js"></script>
+</body>
+</html>

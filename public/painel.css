@@ -249,3 +249,45 @@ dialog.detalhe::backdrop { background: rgba(10, 25, 12, .55); }
 .linha-tempo .lt-icone { width: 34px; height: 34px; border-radius: 50%; background: var(--cartao); border: 2px solid var(--borda); display: inline-flex;
   align-items: center; justify-content: center; flex: none; font-size: 16px; }
 .linha-tempo small { display: block; color: var(--suave); }
+
+/* ---- página inicial pública */
+.painel-cartao.destaque { border: 2px solid var(--cor); box-shadow: 0 10px 24px rgba(10, 157, 72, .15); }
+a.entrada-cadeado { color: var(--cor-escura); font-weight: 700; text-decoration: none; }
+
+/* ---- área do motorista: entrar / cadastrar */
+.abas-entrar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.abas-entrar button { background: var(--cartao); color: var(--texto); border: 2px solid var(--borda); box-shadow: none; }
+.abas-entrar button.ativa { background: var(--cor-clara); color: var(--cor-escura); border-color: var(--cor); }
+.form-entrar { display: grid; gap: 14px; margin: 0; }
+.tipos-veiculo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: -6px 0 2px; }
+.tipos-veiculo button { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 32px; padding: 12px 6px;
+  background: var(--cartao); color: var(--texto); border: 2px solid var(--borda); box-shadow: none; }
+.tipos-veiculo button span { font-size: 16px; font-weight: 800; }
+.tipos-veiculo button.escolhido { border-color: var(--cor); background: var(--cor-clara); box-shadow: 0 0 0 2px var(--cor); }
+@media (max-width: 520px) { .tipos-veiculo { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---- área do motorista: início */
+.status-online { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; border-left: 8px solid var(--cor); }
+.status-online small { color: var(--suave); display: block; }
+.status-online b { font-family: var(--letra-marca); font-size: 32px; display: block; line-height: 1.1; }
+.status-online .dica { display: block; max-width: 520px; }
+.status-online button { font-size: 20px; padding: 16px 26px; }
+.corrida-agora { border-left: 8px solid #2f7de1; }
+
+/* ---- área do motorista: comprar viagens */
+.pacotes { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; }
+.pacote { position: relative; background: var(--cartao); border: 1px solid var(--borda); border-radius: 18px; padding: 18px 14px 14px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.pacote.destaque { border: 2px solid var(--rosa); }
+.pacote b { font-family: var(--letra-marca); font-size: 46px; line-height: 1; color: var(--cor-escura); }
+.pacote strong { font-family: var(--letra-marca); font-size: 26px; margin-top: 6px; }
+.pacote small { color: var(--suave); margin-bottom: 10px; }
+.pacote button { width: 100%; }
+.pacote-off { position: absolute; top: -12px; background: var(--rosa); color: #fff; font-weight: 800; font-size: 14px; border-radius: 999px; padding: 3px 12px; }
+.pix { display: grid; grid-template-columns: 220px 1fr; gap: 22px; align-items: center; border: 2px solid var(--amarelo-marca); }
+.pix:not(:has(.pix-qr)) { grid-template-columns: 1fr; }
+.pix h3 { margin-top: 0; }
+.pix-qr svg { width: 100%; height: auto; background: #fff; border-radius: 12px; display: block; }
+.aguardando { font-weight: 700; color: #8a5a00; }
+.pago { border: 2px solid var(--cor); background: var(--cor-clara); font-size: 18px; }
+@media (max-width: 640px) { .pix { grid-template-columns: 1fr; } .pix-qr { max-width: 240px; margin: 0 auto; } }

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vai de Manu · Corridas pelo WhatsApp</title>
+<meta name="description" content="Peça moto, carro, van ou frete pelo WhatsApp. Motorista: cadastre-se e trabalhe com a gente.">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0aa84f">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="painel.css">
+</head>
+<body>
+<div class="entrada">
+  <div class="entrada-manu">
+    <div class="balao"><b>Oi! Eu sou a Manu!</b><span>Bora rodar? 🚗<br>Escolha como você quer entrar!</span></div>
+    <img src="img/manu/manu-celular.webp" alt="Manu, mascote da Vai de Manu, com o celular no WhatsApp">
+  </div>
+  <section class="entrada-quadro">
+    <div class="entrada-topo">
+      <div><small>Bem-vindo à</small><h1><span class="nome-central">Vai de Manu</span></h1></div>
+      <span class="entrada-cadeado" id="tiposInicio">🏍️ Moto · 🚗 Carro · 🚐 Van · 🚚 Frete</span>
+    </div>
+    <div class="paineis">
+      <a class="painel-cartao destaque" id="cartaoPassageiro" href="#" target="_blank" rel="noopener">
+        <span class="painel-topo"><span class="painel-icone">🙋</span><span class="painel-aviso">Sem cadastro</span></span>
+        <b>Sou passageiro</b><span class="painel-texto">Peça sua corrida pelo WhatsApp. Mande sua localização e a Manu chama o motorista mais perto.</span>
+        <span class="painel-abrir">Pedir pelo WhatsApp <i>→</i></span>
+      </a>
+      <a class="painel-cartao" href="/motorista">
+        <span class="painel-topo"><span class="painel-icone">🚘</span><span class="painel-aviso">Código no WhatsApp</span></span>
+        <b>Sou motorista</b><span class="painel-texto">Cadastre-se, compre viagens, fique online e veja seus ganhos no seu relatório.</span>
+        <span class="painel-abrir">Área do motorista <i>→</i></span>
+      </a>
+      <a class="painel-cartao" href="/painel">
+        <span class="painel-topo"><span class="painel-icone">🛠️</span><span class="painel-aviso">🔒 Com senha</span></span>
+        <b>Administração</b><span class="painel-texto">Painel da central: viagens ao vivo, motoristas, relatórios, divulgação e configurações.</span>
+        <span class="painel-abrir">Entrar no painel <i>→</i></span>
+      </a>
+    </div>
+  </section>
+  <div class="entrada-rodape">
+    <span>📍 Corridas pelo WhatsApp em <b id="cidadeInicio">sua cidade</b></span>
+    <span id="foneInicio"></span>
+  </div>
+</div>
+<script>
+// nome, cidade e o link do WhatsApp da central (preenchidos pelo painel em Configurações)
+fetch('/api/publico/inicio').then((r) => r.json()).then((d) => {
+  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  if (d.nome) { document.querySelectorAll('.nome-central').forEach((el) => el.textContent = d.nome); document.title = d.nome + ' · Corridas pelo WhatsApp'; }
+  if (d.cidade) document.getElementById('cidadeInicio').textContent = d.cidade;
+  const nomes = { moto: '🏍️ Moto', carro: '🚗 Carro', van: '🚐 Van', caminhao: '🚚 Frete' };
+  if (d.tipos && d.tipos.length) document.getElementById('tiposInicio').textContent = d.tipos.map((t) => nomes[t]).join(' · ');
+  const c = document.getElementById('cartaoPassageiro');
+  if (d.passageiro) c.href = d.passageiro;
+  else { c.removeAttribute('target'); c.onclick = (e) => { e.preventDefault(); alert('O WhatsApp da central ainda não foi configurado.'); }; }
+  if (d.numero) {
+    const n = d.numero.replace(/^55/, '');
+    document.getElementById('foneInicio').innerHTML = `💬 WhatsApp <b>(${esc(n.slice(0, 2))}) ${esc(n.slice(2, -4))}-${esc(n.slice(-4))}</b>`;
+  }
+  if (d.aceitando === false) document.querySelector('#cartaoPassageiro .painel-aviso').textContent = 'Fechado agora';
+}).catch(() => {});
+</script>
+</body>
+</html>

@@ -68,10 +68,10 @@ async function carregarInicio() {
       <span class="painel-abrir">Abrir <i>→</i></span>
     </a>`);
   cartoes.push(`
-    <a class="painel-cartao" id="cartaoPedir" href="#" target="_blank" rel="noopener">
-      <span class="painel-topo"><span class="painel-icone">📲</span><span class="painel-aviso livre">Sem login</span></span>
-      <b>Pedir uma corrida</b><span class="painel-texto">Abre o WhatsApp da central do jeito que o cliente vê. Bom para testar!</span>
-      <span class="painel-abrir">Abrir WhatsApp <i>→</i></span>
+    <a class="painel-cartao" href="/motorista" target="_blank" rel="noopener">
+      <span class="painel-topo"><span class="painel-icone">🚘</span><span class="painel-aviso">Abre em outra aba</span></span>
+      <b>Área do motorista</b><span class="painel-texto">A página onde o motorista se cadastra, compra viagens e vê o relatório dele.</span>
+      <span class="painel-abrir">Ver como o motorista vê <i>→</i></span>
     </a>`);
   $('#paineis').innerHTML = cartoes.join('');
   // avisos (sem travar a tela se algum falhar)
@@ -84,7 +84,6 @@ async function carregarInicio() {
     const p = m.filter((x) => !x.aprovado).length;
     aviso('motoristas', [p && `${p} para aprovar`, c.length && `${c.length} Pix`].filter(Boolean).join(' · '));
   }).catch(() => {});
-  api('GET', '/api/divulgar').then((d) => { if (d.passageiro) $('#cartaoPedir').href = d.passageiro; }).catch(() => {});
 }
 $('#paineis').onclick = (e) => {
   const c = e.target.closest('[data-ir]');

@@ -13,7 +13,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { pool, migrar, lerConfig, salvarConfig, moverCreditos, CONFIG_PADRAO } = require('./lib/db');
+const { pool, migrar, lerConfig, salvarConfig, moverCreditos, pacotesComDesconto, CONFIG_PADRAO } = require('./lib/db');
 const bot = require('./lib/bot');
 const whats = require('./lib/whats');
 const { TIPOS, ORDEM, rotulo, veiculo, coresDo } = require('./lib/tipos');
@@ -462,19 +462,218 @@ rota('POST', '/api/relatorios/enviar', true, async ({ req, url }) => {
 });
 
 // divulgação: links e QR codes que abrem o WhatsApp da central já com a mensagem escrita
+async function numeroCentral(cfg) {
+  if (cfg.numero_central) return cfg.numero_central;
+  const numero = await whats.numeroDaInstancia();
+  if (numero) await salvarConfig({ ...cfg, numero_central: numero });
+  return numero;
+}
+const linkWhats = (numero, txt) => `https://wa.me/${numero}?text=${encodeURIComponent(txt)}`;
+
 rota('GET', '/api/divulgar', true, async () => {
   const cfg = await lerConfig();
-  let numero = cfg.numero_central;
-  if (!numero) {
-    numero = await whats.numeroDaInstancia();
-    if (numero) await salvarConfig({ ...cfg, numero_central: numero });
-  }
+  const numero = await numeroCentral(cfg);
   if (!numero) return { numero: '', nome: cfg.nome };
-  const link = (txt) => `https://wa.me/${numero}?text=${encodeURIComponent(txt)}`;
+  const link = (txt) => linkWhats(numero, txt);
   const qr = (url) => QRCode.toString(url, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' });
   const passageiro = link('Oi! Quero uma corrida');
   const motorista = link('CADASTRO');
   return { numero, nome: cfg.nome, passageiro, motorista, qr_passageiro: await qr(passageiro), qr_motorista: await qr(motorista) };
+});
+
+// ---------------------------------------------------------------- página inicial pública
+
+rota('GET', '/api/publico/inicio', false, async () => {
+  const cfg = await lerConfig();
+  const numero = await numeroCentral(cfg).catch(() => '');
+  return { nome: cfg.nome, cidade: cfg.cidade, aceitando: cfg.aceitando, numero,
+    passageiro: numero ? linkWhats(numero, 'Oi! Quero uma corrida') : '', tipos: ORDEM.filter((t) => cfg.precos[t].ativo) };
+});
+rota('GET', '/api/publico/cores', false, async () => Object.fromEntries(ORDEM.map((t) => [t, coresDo(t)])));
+
+// ---------------------------------------------------------------- área do motorista (entra com código no WhatsApp)
+
+let segredoMotorista = null; // gerado uma vez e guardado no banco
+async function prepararSegredoMotorista() {
+  const { rows } = await pool.query("SELECT valor FROM config WHERE chave = 'segredo_motorista'");
+  if (rows[0]) { segredoMotorista = rows[0].valor; return; }
+  segredoMotorista = crypto.randomBytes(32).toString('hex');
+  await pool.query("INSERT INTO config (chave, valor) VALUES ('segredo_motorista', $1) ON CONFLICT (chave) DO NOTHING", [JSON.stringify(segredoMotorista)]);
+}
+const assinarMotorista = (txt) => crypto.createHmac('sha256', 'motorista:' + segredoMotorista).update(txt).digest('base64url');
+const DURACAO_MOTORISTA = 60 * 24 * 3600 * 1000;
+
+async function motoristaLogado(req) {
+  const m = /(?:^|;\s*)cm_sessao=(\d+)\.(\d+)\.([\w-]+)/.exec(req.headers.cookie || '');
+  if (!m || Number(m[2]) < Date.now()) return null;
+  const esperado = assinarMotorista(m[1] + '.' + m[2]);
+  if (m[3].length !== esperado.length || !crypto.timingSafeEqual(Buffer.from(m[3]), Buffer.from(esperado))) return null;
+  const { rows: [mot] } = await pool.query('SELECT * FROM motoristas WHERE id = $1 AND ativo', [Number(m[1])]);
+  return mot || null;
+}
+async function exigirMotorista(req) {
+  const m = await motoristaLogado(req);
+  if (!m) throw new Erro(401, 'Entre com o código que chega no seu WhatsApp.');
+  return m;
+}
+const hashCodigo = (id, c) => crypto.createHmac('sha256', 'codigo:' + segredoMotorista).update(id + ':' + c).digest('hex');
+async function motoristaPeloTelefone(v) {
+  const dig = soDigitos(v);
+  if (dig.length < 10) throw new Erro(400, 'Digite seu WhatsApp com DDD.');
+  const { rows: [m] } = await pool.query('SELECT * FROM motoristas WHERE ativo AND right(telefone, 8) = right($1, 8) ORDER BY id LIMIT 1', [dig]);
+  return m || null;
+}
+
+rota('POST', '/api/motorista/codigo', false, async ({ req }) => {
+  limitar('codigo:' + ipDe(req), 6, 15 * 60_000);
+  const b = await lerCorpo(req);
+  const m = await motoristaPeloTelefone(b.telefone);
+  if (!m) throw new Erro(404, 'Não achamos motorista com esse WhatsApp. Faça seu cadastro na aba ao lado.');
+  limitar('codigo-m:' + m.id, 3, 15 * 60_000);
+  const codigo = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
+  await pool.query(`INSERT INTO motorista_codigos (motorista_id, codigo_hash, expira_em) VALUES ($1, $2, now() + interval '10 minutes')
+                    ON CONFLICT (motorista_id) DO UPDATE SET codigo_hash = EXCLUDED.codigo_hash, expira_em = EXCLUDED.expira_em, tentativas = 0`,
+    [m.id, hashCodigo(m.id, codigo)]);
+  const cfg = await lerConfig();
+  whats.texto(m.contato || m.telefone, `🔐 Seu código para entrar na área do motorista da ${cfg.nome}: *${codigo}*\n\nVale 10 minutos. Não passe para ninguém.`);
+  return { ok: true, final: m.telefone.slice(-4) };
+});
+
+rota('POST', '/api/motorista/entrar', false, async ({ req, res }) => {
+  limitar('entrar:' + ipDe(req), 15, 15 * 60_000);
+  const b = await lerCorpo(req);
+  const m = await motoristaPeloTelefone(b.telefone);
+  const codigo = soDigitos(b.codigo);
+  if (!m || codigo.length !== 6) throw new Erro(400, 'Código errado.');
+  const { rows: [c] } = await pool.query(
+    'UPDATE motorista_codigos SET tentativas = tentativas + 1 WHERE motorista_id = $1 RETURNING *, expira_em > now() AS valido', [m.id]);
+  if (!c || !c.valido || c.tentativas > 5) throw new Erro(400, 'O código venceu. Peça um novo.');
+  const a = Buffer.from(hashCodigo(m.id, codigo)), e = Buffer.from(c.codigo_hash);
+  if (a.length !== e.length || !crypto.timingSafeEqual(a, e)) throw new Erro(400, 'Código errado. Confira no seu WhatsApp.');
+  await pool.query('DELETE FROM motorista_codigos WHERE motorista_id = $1', [m.id]);
+  const corpo = m.id + '.' + (Date.now() + DURACAO_MOTORISTA);
+  const seguro = String(req.headers['x-forwarded-proto'] || '').includes('https') ? '; Secure' : '';
+  res.setHeader('Set-Cookie', `cm_sessao=${corpo}.${assinarMotorista(corpo)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${DURACAO_MOTORISTA / 1000}${seguro}`);
+  return { ok: true };
+});
+
+rota('POST', '/api/motorista/sair', false, async ({ res }) => {
+  res.setHeader('Set-Cookie', 'cm_sessao=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+  return { ok: true };
+});
+
+// cadastro pelo site (o mesmo do CADASTRO no WhatsApp)
+rota('POST', '/api/motorista/cadastro', false, async ({ req }) => {
+  limitar('cadastro:' + ipDe(req), 5, 60 * 60_000);
+  const b = await lerCorpo(req);
+  const nome = texto(b.nome, 80);
+  if (nome.replace(/[^a-zA-ZÀ-ÿ]/g, '').length < 3) throw new Erro(400, 'Digite seu nome completo.');
+  const telefone = telefoneBR(b.telefone);
+  if (!TIPOS[b.tipo]) throw new Erro(400, 'Escolha o tipo de veículo.');
+  const carro = texto(b.carro, 60), cor = texto(b.cor, 30).toLowerCase();
+  if (carro.length < 2) throw new Erro(400, 'Digite o modelo do veículo.');
+  if (cor.length < 3) throw new Erro(400, 'Escolha a cor do veículo.');
+  const placa = texto(b.placa, 10).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!/^[A-Z]{3}\d[A-Z0-9]\d{2}$/.test(placa)) throw new Erro(400, 'Placa inválida. Use o formato ABC1D23 ou ABC1234.');
+  if (await motoristaPeloTelefone(telefone)) throw new Erro(400, 'Esse WhatsApp já tem cadastro. Use a aba "Já sou motorista" para entrar.');
+  const cfg = await lerConfig();
+  const aprovado = !!cfg.aprovar_automatico;
+  const { rows: [m] } = await pool.query(
+    `INSERT INTO motoristas (nome, telefone, tipo, carro, cor, placa, aprovado, ativo) VALUES ($1, $2, $3, $4, $5, $6, $7, true) RETURNING *`,
+    [nome, telefone, b.tipo, carro, cor, placa, aprovado]);
+  const ficha = `👤 ${nome}\n${rotulo(b.tipo)} · ${carro} ${cor} · ${placa}`;
+  if (cfg.numero_admin) {
+    whats.texto(cfg.numero_admin, `🆕 *Novo motorista ${aprovado ? 'cadastrado' : 'aguardando aprovação'}* (pelo site)\n${ficha}\n📞 wa.me/${telefone}` +
+      (aprovado ? '' : '\n\nAprove no painel, em *Motoristas*.'));
+  }
+  whats.texto(telefone, aprovado
+    ? `✅ *Cadastro feito na ${cfg.nome}!*\n${ficha}\n\n` + bot.AJUDA_MOTORISTA
+    : `✅ *Cadastro enviado!*\n${ficha}\n\nA ${cfg.nome} vai conferir seus dados. Você recebe uma mensagem aqui assim que for aprovado. 🙌`);
+  return { ok: true, aprovado, id: m.id };
+});
+
+rota('GET', '/api/motorista/eu', false, async ({ req }) => {
+  const m = await exigirMotorista(req);
+  const cfg = await lerConfig();
+  const { rows: [compra] } = await pool.query(
+    "SELECT id, quantidade, valor, mp_id, pix_copia_cola, pix_expira, comprovante, criado_em FROM compras WHERE motorista_id = $1 AND status = 'pendente' ORDER BY id DESC LIMIT 1", [m.id]);
+  const { rows: [atual] } = await pool.query(
+    "SELECT id, status, origem_texto, destino_texto, passageiro_nome, valor_estimado FROM corridas WHERE motorista_id = $1 AND status IN ('aceita', 'chegou', 'em_andamento') LIMIT 1", [m.id]);
+  const { de, ate } = relatorio.mesAtual();
+  const mes = await relatorio.montar(m.id, de, ate);
+  return {
+    motorista: { id: m.id, nome: m.nome, telefone: m.telefone, tipo: m.tipo, carro: m.carro, cor: m.cor, placa: m.placa,
+      aprovado: m.aprovado, online: m.online, saldo: m.creditos, veiculo: veiculo(m) },
+    central: { nome: cfg.nome, cobranca: !!cfg.cobranca_ativa, mp: MP.configurado() && cfg.mp_ativo !== false, pix_chave: cfg.pix_chave, pix_nome: cfg.pix_nome },
+    pacotes: pacotesComDesconto(cfg),
+    compra: compra ? { ...compra, qr: compra.pix_copia_cola ? await QRCode.toString(compra.pix_copia_cola, { type: 'svg', margin: 1 }) : '' } : null,
+    corrida: atual || null,
+    mes: mes.totais,
+  };
+});
+
+rota('POST', '/api/motorista/online', false, async ({ req }) => {
+  const m = await exigirMotorista(req);
+  if (!m.aprovado) throw new Erro(400, 'Seu cadastro ainda está em análise.');
+  const b = await lerCorpo(req);
+  return bot.rodar(async () => {
+    if (b.online) await pool.query('UPDATE motoristas SET online = true WHERE id = $1', [m.id]);
+    else {
+      // privacidade: fora do ar, a central não guarda onde o motorista está
+      await pool.query('UPDATE motoristas SET online = false, lat = NULL, lng = NULL, local_em = NULL WHERE id = $1', [m.id]);
+      const { rows: [c] } = await pool.query("SELECT id FROM corridas WHERE status = 'procurando' AND oferta_motorista = $1", [m.id]);
+      if (c) { await pool.query('UPDATE corridas SET oferta_motorista = NULL, oferta_expira = NULL WHERE id = $1', [c.id]); await bot.despachar(c.id); }
+    }
+    return { online: !!b.online };
+  });
+});
+
+rota('PUT', '/api/motorista/eu', false, async ({ req }) => {
+  const m = await exigirMotorista(req);
+  const b = await lerCorpo(req);
+  const carro = texto(b.carro, 60), cor = texto(b.cor, 30).toLowerCase();
+  const placa = texto(b.placa, 10).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (carro.length < 2) throw new Erro(400, 'Digite o modelo do veículo.');
+  if (cor.length < 3) throw new Erro(400, 'Escolha a cor do veículo.');
+  if (!/^[A-Z]{3}\d[A-Z0-9]\d{2}$/.test(placa)) throw new Erro(400, 'Placa inválida. Use o formato ABC1D23 ou ABC1234.');
+  await pool.query('UPDATE motoristas SET carro = $2, cor = $3, placa = $4 WHERE id = $1', [m.id, carro, cor, placa]);
+  const mudou = [m.carro !== carro && `modelo: ${m.carro} → ${carro}`, m.cor !== cor && `cor: ${m.cor || '—'} → ${cor}`, m.placa !== placa && `placa: ${m.placa} → ${placa}`].filter(Boolean);
+  const cfg = await lerConfig();
+  if (mudou.length && cfg.numero_admin) whats.texto(cfg.numero_admin, `✏️ ${m.nome} mudou o cadastro pelo site:\n${mudou.join('\n')}`);
+  return { ok: true };
+});
+
+rota('POST', '/api/motorista/comprar', false, async ({ req }) => {
+  const m = await exigirMotorista(req);
+  limitar('comprar-m:' + m.id, 6, 15 * 60_000);
+  const b = await lerCorpo(req);
+  const cfg = await lerConfig();
+  if (!cfg.cobranca_ativa) throw new Erro(400, 'A central não está cobrando por viagem no momento.');
+  const pacote = pacotesComDesconto(cfg).find((p) => p.qtd === Number(b.qtd));
+  if (!pacote) throw new Erro(400, 'Pacote não encontrado.');
+  const { compra } = await bot.rodar(() => bot.criarCompra(m, pacote, cfg));
+  return { ok: true, compra: compra.id };
+});
+
+// a página fica perguntando enquanto o Pix não cai; de vez em quando confere direto no Mercado Pago
+rota('GET', '/api/motorista/compra/:id', false, async ({ req, p }) => {
+  const m = await exigirMotorista(req);
+  const { rows: [c] } = await pool.query(
+    'SELECT id, status, quantidade, mp_id, mp_checado_em < now() - interval \'8 seconds\' OR mp_checado_em IS NULL AS conferir FROM compras WHERE id = $1 AND motorista_id = $2',
+    [Number(p.id), m.id]);
+  if (!c) throw new Erro(404, 'Compra não encontrada.');
+  if (c.status === 'pendente' && c.mp_id && c.conferir && MP.configurado()) {
+    await bot.processarPagamentoMP(c.mp_id).catch((e) => console.error('mp consulta', e.message));
+  }
+  const { rows: [agora] } = await pool.query('SELECT status FROM compras WHERE id = $1', [c.id]);
+  const { rows: [mot] } = await pool.query('SELECT creditos FROM motoristas WHERE id = $1', [m.id]);
+  return { status: agora.status, saldo: mot.creditos };
+});
+
+rota('GET', '/api/motorista/relatorio', false, async ({ req, url }) => {
+  const m = await exigirMotorista(req);
+  const { de, ate } = periodo(url);
+  return relatorio.montar(m.id, de, ate);
 });
 
 rota('GET', '/api/mensagens', true, async () => whats.enviados.slice(-50).reverse());
@@ -505,7 +704,8 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, resultado);
     }
     if (req.method === 'GET') {
-      if (url.pathname === '/' || url.pathname === '/painel') return arquivo(res, 'index.html') || json(res, 404, { erro: 'Não encontrado' });
+      const pagina = { '/': 'inicio.html', '/painel': 'index.html', '/motorista': 'motorista.html' }[url.pathname.replace(/\/+$/, '') || '/'];
+      if (pagina) return arquivo(res, pagina) || json(res, 404, { erro: 'Não encontrado' });
       if (arquivo(res, url.pathname.slice(1))) return;
     }
     json(res, 404, { erro: 'Não encontrado' });
@@ -517,6 +717,7 @@ const server = http.createServer(async (req, res) => {
 
 (async () => {
   await migrar();
+  await prepararSegredoMotorista();
   setInterval(() => bot.varrer().catch((e) => console.error('Erro ao varrer chamadas:', e)), 3000).unref();
   setInterval(() => bot.limparLocalizacoes().catch((e) => console.error('Erro ao apagar localizações:', e.message)), 5 * 60_000).unref();
   bot.limparLocalizacoes().catch(() => {});
