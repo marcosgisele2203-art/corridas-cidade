@@ -24,6 +24,7 @@ const QRCode = require('qrcode');
 const PORT = Number(process.env.PORT) || 3000;
 // tira espaços e aspas que às vezes vêm junto quando a variável é colada no Easypanel
 const limparVar = (v) => String(v || '').trim().replace(/^(['"])(.*)\1$/, '$2').trim();
+const MODO_TESTE_SITE = limparVar(process.env.MODO_TESTE_SITE) === 'true';
 const WEBHOOK_TOKEN = limparVar(process.env.WEBHOOK_TOKEN);
 const ADMIN_SENHA = limparVar(process.env.ADMIN_SENHA);
 const PUBLIC = path.join(__dirname, 'public');
@@ -689,15 +690,17 @@ function sessaoPassageiro(req) {
   if(m[3].length!==sig.length || !crypto.timingSafeEqual(Buffer.from(m[3]),Buffer.from(sig))) throw new Erro(401,'Sessão inválida.');
   return m[1];
 }
+rota('GET','/api/passageiro/modo',false,async()=>({teste:MODO_TESTE_SITE}));
 rota('POST','/api/passageiro/codigo',false,async({req})=>{
   limitar('pc-ip:'+ipDe(req),6,15*60_000);
   const b=await lerCorpo(req), tel=telefoneBR(b.telefone);
   limitar('pc-tel:'+tel,3,15*60_000);
-  if(!whats.EVO.url || !whats.EVO.instancia || !whats.EVO.chave) throw new Erro(503,'O WhatsApp da central está indisponível.');
-  const code=String(crypto.randomInt(0,1000000)).padStart(6,'0');
+  if(MODO_TESTE_SITE && tel !== '5500000000000') throw new Erro(400,'No teste, use o número fictício indicado na tela.');
+  if(!MODO_TESTE_SITE && (!whats.EVO.url || !whats.EVO.instancia || !whats.EVO.chave)) throw new Erro(503,'O WhatsApp da central está indisponível.');
+  const code=MODO_TESTE_SITE ? '123456' : String(crypto.randomInt(0,1000000)).padStart(6,'0');
   await pool.query(`INSERT INTO passageiro_codigos(telefone,codigo_hash,expira_em) VALUES($1,$2,now()+interval '10 minutes')
     ON CONFLICT(telefone) DO UPDATE SET codigo_hash=excluded.codigo_hash,expira_em=excluded.expira_em,tentativas=0`,[tel,hashPassageiro(tel,code)]);
-  whats.texto(tel,`🔐 Seu código de acesso à Vai com Manu: *${code}*. Válido por 10 minutos. Não compartilhe.`);
+  if(!MODO_TESTE_SITE) whats.texto(tel,`🔐 Seu código de acesso à Vai com Manu: *${code}*. Válido por 10 minutos. Não compartilhe.`);
   return {ok:true};
 });
 rota('POST','/api/passageiro/entrar',false,async({req,res})=>{
@@ -797,6 +800,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 (async () => {
+  if (MODO_TESTE_SITE && (whats.EVO.url || whats.EVO.instancia || whats.EVO.chave || MP.configurado())) throw new Error('Modo de teste exige Evolution e Mercado Pago desativados.');
   await migrar();
   await prepararSegredoMotorista();
   setInterval(() => bot.varrer().catch((e) => console.error('Erro ao varrer chamadas:', e)), 3000).unref();
