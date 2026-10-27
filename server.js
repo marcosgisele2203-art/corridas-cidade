@@ -615,6 +615,17 @@ rota('GET', '/api/motorista/eu', false, async ({ req }) => {
   };
 });
 
+rota('GET', '/api/motorista/oferta', false, async ({req}) => {
+  const m = await exigirMotorista(req);
+  const {rows} = await pool.query("SELECT id, origem_texto, destino_texto, valor_estimado, oferta_expira FROM corridas WHERE status = 'procurando' AND oferta_motorista = $1 AND oferta_expira > now() LIMIT 1", [m.id]);
+  return {oferta:rows[0] || null};
+});
+rota('POST', '/api/motorista/corrida/:id/acao', false, async ({req,p}) => {
+  const m = await exigirMotorista(req), b = await lerCorpo(req);
+  limitar('acao-m:'+m.id, 60, 60_000);
+  try { return await bot.acaoSite(m.id, Number(p.id), b.acao); }
+  catch(e) { if(e.status === 409) throw new Erro(409,e.message); throw e; }
+});
 rota('POST', '/api/motorista/online', false, async ({ req }) => {
   const m = await exigirMotorista(req);
   if (!m.aprovado) throw new Erro(400, 'Seu cadastro ainda está em análise.');
