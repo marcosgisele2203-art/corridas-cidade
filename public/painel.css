@@ -291,3 +291,44 @@ a.entrada-cadeado { color: var(--cor-escura); font-weight: 700; text-decoration:
 .aguardando { font-weight: 700; color: #8a5a00; }
 .pago { border: 2px solid var(--cor); background: var(--cor-clara); font-size: 18px; }
 @media (max-width: 640px) { .pix { grid-template-columns: 1fr; } .pix-qr { max-width: 240px; margin: 0 auto; } }
+
+/* Atualização visual Vai de Manu */
+@media screen {
+  :root { --fundo:#f4f8f4; --cartao:#fff; --texto:#183126; --suave:#52685b; --borda:#dce9df; --cor:#087d48; --cor-escura:#066039; --cor-clara:#e2f5e9; }
+  body { background:var(--fundo); }
+  header { box-shadow:0 8px 28px rgba(19,57,35,.07); }
+  header nav button { border-radius:12px; }
+  header nav button:hover { background:var(--cor-clara); color:var(--cor-escura); }
+  button { transition:transform .16s ease, box-shadow .16s ease, filter .16s ease; }
+  button:focus-visible, a:focus-visible { outline:3px solid #f4ad15; outline-offset:3px; }
+  .cartao, .kpi, .coluna { box-shadow:0 8px 26px rgba(22,63,39,.055); }
+  input, select, textarea { border-radius:12px; }
+  .entrada { max-width:1600px; margin:auto; align-items:center; gap:24px 36px; }
+  .entrada::before { background:linear-gradient(120deg,rgba(6,50,32,.94),rgba(8,83,52,.88) 58%,rgba(9,48,37,.92)),url(artes/moto.jpg) center / cover no-repeat; filter:none; }
+  .entrada-manu img { max-width:300px; filter:drop-shadow(0 20px 30px rgba(0,0,0,.28)); }
+  .balao { border-radius:20px; padding:16px 20px; box-shadow:0 14px 35px rgba(0,0,0,.18); }
+  .entrada-quadro { background:#f9fcf8; border:1px solid rgba(255,255,255,.7); border-radius:30px; padding:clamp(22px,3.5vw,42px); box-shadow:0 28px 70px rgba(0,0,0,.22); }
+  .entrada-topo { align-items:center; margin-bottom:28px; }
+  .entrada-topo small { color:#087d48; }
+  .entrada-topo h1 { font-size:clamp(32px,4vw,48px); letter-spacing:-.02em; }
+  .entrada-cadeado { color:#405b4a; background:#e8f4e9; border-radius:999px; padding:9px 14px; }
+  .paineis { gap:16px; }
+  .painel-cartao { min-height:240px; padding:22px; border:1px solid #dce9df; border-radius:22px; color:#183126; box-shadow:0 8px 22px rgba(19,57,35,.06); }
+  .painel-cartao:hover { transform:translateY(-5px); box-shadow:0 18px 34px rgba(19,57,35,.14); }
+  .painel-cartao.destaque { background:linear-gradient(145deg,#edfbf1,#fff); border-color:#94d5a7; }
+  .painel-icone { width:54px; height:54px; border-radius:17px; font-size:27px; }
+  .painel-aviso { color:#52685b; }
+  .painel-texto { color:#52685b; }
+  .painel-abrir { color:#087d48; }
+  .entrada-rodape { background:rgba(248,252,248,.96); color:#405b4a; border-radius:18px; padding:14px 20px; }
+  @media (max-width:760px) {
+    .entrada { padding:18px; gap:16px; }
+    .entrada-manu { align-self:auto; }
+    .entrada-manu img { width:115px; }
+    .entrada-quadro { padding:22px; border-radius:24px; }
+    .entrada-topo { margin-bottom:20px; }
+    .painel-cartao { min-height:0; }
+    .entrada-rodape { font-size:14px; }
+  }
+  @media (prefers-reduced-motion:reduce) { *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
+}
