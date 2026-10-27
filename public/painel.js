@@ -293,6 +293,19 @@ $('#imprimirGeral').onclick = () => window.print();
 
 // ---------------------------------------------------------------- divulgar
 
+const ARTES = [
+  { arquivo: 'todos-os-veiculos', titulo: 'Todos os veículos', uso: 'Lançamento, cartaz impresso e status (vertical)' },
+  { arquivo: 'carro-e-moto', titulo: 'Carro e moto', uso: 'Status e stories (vertical)' },
+  { arquivo: 'moto', titulo: 'Moto', uso: 'Feed do Instagram/Facebook e grupos (quadrada)' },
+  { arquivo: 'frete', titulo: 'Frete / caminhão', uso: 'Grupos de mudança, compra e venda (quadrada)' },
+];
+$('#artes').innerHTML = ARTES.map((a) => `
+  <figure class="arte">
+    <a href="artes/${a.arquivo}.jpg" target="_blank" rel="noopener"><img src="artes/${a.arquivo}.jpg" alt="Arte ${a.titulo}" loading="lazy"></a>
+    <figcaption><b>${a.titulo}</b><br><small>${a.uso}</small></figcaption>
+    <a class="botao" href="artes/${a.arquivo}.jpg" download="vai-de-manu-${a.arquivo}.jpg">⬇️ Baixar</a>
+  </figure>`).join('');
+
 const foneBR = (n) => { const d = String(n).replace(/^55/, ''); return d.length >= 10 ? `(${d.slice(0, 2)}) ${d.slice(2, -4)}-${d.slice(-4)}` : n; };
 async function carregarDivulgar() {
   const d = await api('GET', '/api/divulgar');
@@ -353,7 +366,7 @@ $('#divulgar').onclick = async (e) => {
 
 // ---------------------------------------------------------------- configurações
 
-const CAMPOS = ['nome', 'cidade', 'numero_admin', 'numero_central', 'comissao_pct', 'oferta_segundos', 'fator_rota',
+const CAMPOS = ['nome', 'cidade', 'numero_admin', 'numero_central', 'arte_boas_vindas', 'comissao_pct', 'oferta_segundos', 'fator_rota',
   'creditos_boas_vindas', 'pix_chave', 'pix_nome'];
 const reaisCurto = (v) => 'R$ ' + (Math.ceil(v * 2) / 2).toFixed(2).replace('.', ',');
 async function carregarConfig() {

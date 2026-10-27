@@ -90,6 +90,11 @@
       <p class="dica">O cliente não instala nada: só precisa do WhatsApp da central. Mande o link, poste o texto ou imprima o cartaz com QR Code
         (a pessoa aponta a câmera do celular e cai direto na conversa).</p>
       <div id="divulgar"></div>
+      <div class="cartao nao-imprimir">
+        <h3>🎨 Artes da Vai de Manu</h3>
+        <p class="dica">Baixe e poste no status do WhatsApp, Instagram, Facebook e grupos. Use o texto pronto de cima junto.</p>
+        <div class="artes" id="artes"></div>
+      </div>
     </section>
 
     <section id="aba-config" hidden>
@@ -106,6 +111,16 @@
         </div>
         <label class="inline"><input type="checkbox" name="aceitando"> Central aberta (aceitando pedidos)</label>
         <label class="inline"><input type="checkbox" name="aprovar_automatico"> Aprovar sozinho o motorista que se cadastra pelo WhatsApp</label>
+        <div class="grade">
+          <label>Arte enviada com o "Bem-vindo" (no máximo 1 vez por semana para cada cliente)<select name="arte_boas_vindas">
+            <option value="auto">Automática (conforme os veículos ligados)</option>
+            <option value="carro-e-moto">Carro e moto</option>
+            <option value="todos-os-veiculos">Todos os veículos</option>
+            <option value="moto">Moto</option>
+            <option value="frete">Frete / caminhão</option>
+            <option value="">Nenhuma (só texto)</option>
+          </select></label>
+        </div>
 
         <h3>Cobrança dos motoristas (viagens pré-pagas)</h3>
         <p class="dica">O motorista compra viagens antes. Cada corrida aceita usa 1. Sem saldo ele não recebe chamadas.

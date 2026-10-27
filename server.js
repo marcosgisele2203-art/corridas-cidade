@@ -193,6 +193,7 @@ rota('PUT', '/api/config', true, async ({ req }) => {
     else novo[k] = texto(b[k], 120);
   }
   if (novo.numero_admin) novo.numero_admin = telefoneBR(novo.numero_admin);
+  if (!['auto', '', 'carro-e-moto', 'todos-os-veiculos', 'moto', 'frete'].includes(novo.arte_boas_vindas)) novo.arte_boas_vindas = 'auto';
   if (novo.numero_central) novo.numero_central = telefoneBR(novo.numero_central);
   // "Miranda -MS", "Miranda/MS" ou "Miranda MS" → "Miranda, MS" (o mapa acha melhor com vírgula)
   novo.cidade = String(novo.cidade || '').trim().replace(/\s*[-–/,]?\s*\b([A-Za-z]{2})$/, (m, uf) => ', ' + uf.toUpperCase()).replace(/^,\s*/, '');
@@ -429,7 +430,8 @@ rota('GET', '/api/mensagens', true, async () => whats.enviados.slice(-50).revers
 
 // ---------------------------------------------------------------- arquivos do painel
 
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml',
+  '.jpg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp' };
 function arquivo(res, nome) {
   const caminho = path.join(PUBLIC, nome);
   if (!caminho.startsWith(PUBLIC + path.sep)) return false;
