@@ -172,6 +172,14 @@ O Mercado Pago cobra uma taxa por Pix recebido (veja no painel deles).
 4. Depois de aprovado, o motorista manda **ONLINE** e a **localização em tempo real** (8 horas).
 5. Teste: de outro celular, mande **oi** para a central.
 
+## Privacidade da localização
+
+- **Motorista:** a posição só é guardada enquanto ele está **ONLINE**. Ao mandar **OFFLINE** (ou ser tirado do ar no
+  painel) ela é apagada, e a localização em tempo real que continuar chegando é ignorada.
+- **Cliente:** a localização de saída e destino é usada só durante a corrida. Quando a corrida termina (finalizada,
+  cancelada ou sem motorista) as coordenadas são apagadas; ficam o nome do lugar, os km e o valor para os relatórios.
+  Pedido abandonado no meio é apagado depois de 1 hora. A limpeza roda a cada 5 minutos.
+
 ## Cuidados com o WhatsApp
 
 A Evolution usa conexão não oficial; o WhatsApp pode bloquear números que parecem robô de propaganda.

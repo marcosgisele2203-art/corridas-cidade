@@ -463,6 +463,8 @@ const server = http.createServer(async (req, res) => {
 (async () => {
   await migrar();
   setInterval(() => bot.varrer().catch((e) => console.error('Erro ao varrer chamadas:', e)), 3000).unref();
+  setInterval(() => bot.limparLocalizacoes().catch((e) => console.error('Erro ao apagar localizações:', e.message)), 5 * 60_000).unref();
+  bot.limparLocalizacoes().catch(() => {});
   setInterval(() => bot.rondaMP().catch((e) => console.error('Erro na ronda do Mercado Pago:', e.message)), 30_000).unref();
   server.listen(PORT, () => {
     console.log(`Central de corridas no ar na porta ${PORT}`);
