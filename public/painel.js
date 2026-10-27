@@ -6,6 +6,8 @@ const hora = (d) => (d ? new Date(d).toLocaleTimeString('pt-BR', { hour: '2-digi
 const hoje = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const TIPOS = { moto: '🏍️ Moto', carro: '🚗 Carro', van: '🚐 Van', caminhao: '🚚 Caminhão' };
 const veiculo = (m) => esc([m.carro, m.cor].filter(Boolean).join(' '));
+// tela vazia com a Manu
+const vazio = (titulo, texto) => `<div class="vazio"><img src="manu.png" alt=""><b>${titulo}</b>${texto ? `<span>${texto}</span>` : ''}</div>`;
 const STATUS = {
   procurando: 'Procurando motorista', aceita: 'Motorista a caminho', chegou: 'Motorista chegou', em_andamento: 'Em andamento',
   finalizada: 'Finalizada', cancelada: 'Cancelada', sem_motorista: 'Sem motorista',
@@ -21,7 +23,11 @@ async function api(metodo, caminho, corpo) {
 
 // ---------------------------------------------------------------- login
 
-function mostrarLogin() { $('#app').hidden = true; $('#login').hidden = false; }
+function mostrarNomeNoLogin() {
+  fetch('/api/marca').then((r) => r.json()).then((m) => { if (m.nome) { $('#nomeLogin').textContent = m.nome; document.title = 'Painel · ' + m.nome; } }).catch(() => {});
+}
+
+function mostrarLogin() { $('#app').hidden = true; $('#login').hidden = false; mostrarNomeNoLogin(); }
 $('#formLogin').onsubmit = async (e) => {
   e.preventDefault();
   try { await api('POST', '/api/login', { senha: e.target.senha.value }); iniciar(); }
@@ -77,7 +83,7 @@ async function carregarCorridas() {
       </small>
       ${['procurando', 'aceita', 'chegou', 'em_andamento'].includes(c.status)
         ? `<div><button class="mini perigo" data-cancelar="${c.id}">Cancelar corrida</button></div>` : ''}
-    </div>`).join('') : '<p class="vazio">Nenhuma corrida por enquanto.</p>';
+    </div>`).join('') : vazio('Nenhuma corrida por enquanto.', 'Quando um cliente pedir pelo WhatsApp, ela aparece aqui na hora. 🚗');
 }
 $('#listaCorridas').onclick = async (e) => {
   const id = e.target.dataset.cancelar;
@@ -123,7 +129,7 @@ async function carregarMotoristas() {
         <button class="mini sec" data-editar="${m.id}">Editar</button>
         ${m.ativo ? `<button class="mini sec" data-online="${m.id}" data-valor="${!m.online}">${m.online ? 'Tirar do ar' : 'Pôr online'}</button>` : ''}</td>
     </tr>`).join('')}</table></div>`
-    : '<p class="vazio">Nenhum motorista ainda. Peça para eles mandarem <b>CADASTRO</b> no WhatsApp da central, ou cadastre aqui.</p>';
+    : vazio('Nenhum motorista ainda.', 'Peça para eles mandarem <b>CADASTRO</b> no WhatsApp da central (o link está na aba Divulgar), ou cadastre aqui.');
 }
 $('#compras').onclick = async (e) => {
   const { confirmar, cancelarcompra } = e.target.dataset;
@@ -231,7 +237,7 @@ async function carregarRelatorio() {
       <td class="num">${m.nota ?? '—'}</td><td class="num">${m.saldo}</td>
       <td class="nao-imprimir"><button class="mini" data-ver="${m.id}">📄 Ver</button>
         <button class="mini sec" data-enviar="${m.id}">📲 Enviar</button></td></tr>`).join('')}
-  </table></div>` : '<p class="vazio">Nenhum motorista aprovado ainda.</p>';
+  </table></div>` : vazio('Nenhum motorista aprovado ainda.', 'Aprove os cadastros na aba Motoristas.');
 }
 
 // ---- relatório individual
@@ -272,7 +278,7 @@ async function abrirIndividual(id) {
       ${r.corridas.map((c) => `<tr><td>${c.quando}</td><td>${esc(c.origem_texto)} → ${esc(c.destino_texto)}</td>
         <td class="num">${c.km ? String(Number(c.km)).replace('.', ',') : '—'}</td><td class="num">${c.status === 'finalizada' ? reais(c.valor_final) : '—'}</td>
         <td class="num">${c.avaliacao ? c.avaliacao + '⭐' : '—'}</td><td>${STATUS[c.status]}</td></tr>`).join('')}
-    </table></div>` : '<p class="vazio">Nenhuma corrida no período.</p>'}`;
+    </table></div>` : vazio('Nenhuma corrida no período.', '')}`;
   $('#relGeral').hidden = true; caixa.hidden = false;
   window.scrollTo(0, 0);
   $('#voltarGeral').onclick = () => { caixa.hidden = true; $('#relGeral').hidden = false; };
@@ -450,7 +456,7 @@ $('#formConfig').onsubmit = async (e) => {
   CAMPOS.forEach((k) => corpo[k] = f[k].value);
   try {
     const c = await api('PUT', '/api/config', corpo);
-    $('#nomeCentral').textContent = '🚗 ' + c.nome;
+    $('#nomeCentral').textContent = c.nome;
     $('#okConfig').textContent = '✅ Salvo!';
     setTimeout(() => $('#okConfig').textContent = '', 3000);
   } catch (err) { alert(err.message); }
@@ -461,7 +467,7 @@ $('#formConfig').onsubmit = async (e) => {
 async function iniciar() {
   try {
     const c = await api('GET', '/api/config');
-    $('#nomeCentral').textContent = '🚗 ' + c.nome;
+    $('#nomeCentral').textContent = c.nome;
     $('#login').hidden = true; $('#app').hidden = false;
     $('#diaCorridas').value = hoje();
     atualizar();

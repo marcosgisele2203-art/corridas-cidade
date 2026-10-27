@@ -3,22 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Painel da Central</title>
+<title>Painel · Vai de Manu</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0aa84f">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@400;600;700;800&display=swap">
 <link rel="stylesheet" href="painel.css">
 </head>
 <body>
 <div id="login" class="login" hidden>
-  <form id="formLogin" class="cartao">
-    <h1>🚗 Painel da Central</h1>
-    <label>Senha<input type="password" name="senha" autocomplete="current-password" required></label>
-    <button>Entrar</button>
-    <p class="erro" id="erroLogin"></p>
-  </form>
+  <div class="login-caixa">
+    <img class="login-arte" src="artes/todos-os-veiculos.jpg" alt="">
+    <form id="formLogin">
+      <img class="login-manu" src="manu.png" alt="Manu">
+      <h1 class="marca-grande" id="nomeLogin">Vai de Manu</h1>
+      <p class="dica">Painel da central · entre com a senha</p>
+      <label>Senha<input type="password" name="senha" autocomplete="current-password" required></label>
+      <button>Entrar</button>
+      <p class="erro" id="erroLogin"></p>
+    </form>
+  </div>
 </div>
 
 <div id="app" hidden>
   <header>
-    <strong id="nomeCentral">Central</strong>
+    <strong class="marca"><img src="manu.png" alt=""><span id="nomeCentral">Central</span></strong>
     <nav>
       <button data-aba="corridas" class="ativa">Corridas</button>
       <button data-aba="motoristas">Motoristas</button>

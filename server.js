@@ -158,6 +158,9 @@ rota('POST', '/api/mp/webhook', false, async ({ req, url }) => {
   return { ok: true };
 });
 
+// nome da central para a tela de login (não é segredo)
+rota('GET', '/api/marca', false, async () => ({ nome: (await lerConfig()).nome }));
+
 rota('GET', '/api/saude', false, async () => {
   await pool.query('SELECT 1');
   return { ok: true, whatsapp: !!whats.EVO.url, painel: !!ADMIN_SENHA, mercado_pago: MP.configurado() };
