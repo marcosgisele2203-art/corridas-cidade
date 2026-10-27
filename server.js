@@ -722,8 +722,13 @@ rota('POST','/api/passageiro/cotacao',false,async({req})=>{
   const nome=texto(b.nome,100),origem=texto(b.origem,180),destino=texto(b.destino,180),tipo=texto(b.tipo,20);
   if(!cfg.aceitando) throw new Erro(400,'A central não está aceitando corridas agora.');
   if(nome.length<2||origem.length<4||destino.length<4||!ORDEM.includes(tipo)||!cfg.precos[tipo].ativo) throw new Erro(400,'Confira nome, endereços e veículo.');
-  const [o,d]=await Promise.all([geoPassageiro.buscarEndereco(origem,cfg),geoPassageiro.buscarEndereco(destino,cfg)]);
-  if(!o||!d) throw new Erro(400,'Não foi possível localizar os dois endereços. Confira rua, número e bairro ou peça pelo WhatsApp.');
+  function ponto(v) {
+    if (!v || typeof v.lat !== 'number' || typeof v.lng !== 'number' || !Number.isFinite(v.lat) || !Number.isFinite(v.lng) || Math.abs(v.lat)>90 || Math.abs(v.lng)>180) return null;
+    return {lat:v.lat,lng:v.lng};
+  }
+  if ((b.origemPonto && !ponto(b.origemPonto)) || (b.destinoPonto && !ponto(b.destinoPonto))) throw new Erro(400,'Ponto do mapa inválido.');
+  const [o,d]=await Promise.all([b.origemPonto ? ponto(b.origemPonto) : geoPassageiro.buscarEndereco(origem,cfg),b.destinoPonto ? ponto(b.destinoPonto) : geoPassageiro.buscarEndereco(destino,cfg)]);
+  if(!o || !d) throw new Erro(400, !o && !d ? 'Não encontramos a origem nem o destino. Marque os pontos no mapa.' : !o ? 'Não encontramos a origem. Marque o ponto no mapa.' : 'Não encontramos o destino. Marque o ponto no mapa.');
   const km=geoPassageiro.kmRota(o,d,cfg),valor=geoPassageiro.preco(km,cfg.precos[tipo]);
   const payload={tel,nome,origem,destino,o,d,tipo,km,valor,exp:Date.now()+5*60_000,nonce:crypto.randomBytes(16).toString('hex')};
   const encoded=Buffer.from(JSON.stringify(payload)).toString('base64url');
