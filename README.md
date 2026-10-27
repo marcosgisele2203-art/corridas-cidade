@@ -114,6 +114,11 @@ Também existe uma **comissão %** por corrida (padrão 0%), só para controle n
 
 ## Painel (`/painel`)
 
+Ao entrar aparece a tela **Escolha sua área** (como a entrada da equipe do Naturally Mania): a Manu com o celular e um
+cartão para cada área, com avisos do que precisa de atenção (corridas em andamento, motoristas para aprovar, Pix para
+liberar). Cada página tem uma dica da Manu no topo. As poses da Manu (`public/img/manu/`) foram recortadas das artes da
+Vai de Manu.
+
 | Aba | O que tem |
 |---|---|
 | **Corridas** | corridas do dia ao vivo (atualiza sozinho), botão de cancelar, link do WhatsApp do passageiro |

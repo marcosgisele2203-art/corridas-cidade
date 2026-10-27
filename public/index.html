@@ -28,9 +28,29 @@
 </div>
 
 <div id="app" hidden>
+  <!-- tela inicial: a Manu e os cartões de cada área (igual à entrada do Naturally Mania) -->
+  <div id="inicio" class="entrada" hidden>
+    <div class="entrada-manu">
+      <div class="balao"><b>Oi! Eu sou a Manu!</b><span>Bora rodar? 🚗<br>Escolha seu painel ao lado!</span></div>
+      <img src="img/manu/manu-celular.webp" alt="Manu, mascote da Vai de Manu, com o celular no WhatsApp">
+    </div>
+    <section class="entrada-quadro">
+      <div class="entrada-topo">
+        <div><small>Escolha sua área</small><h1>Todos os painéis da <span class="nome-central">Vai de Manu</span></h1></div>
+        <span class="entrada-cadeado">🔒 Só entra quem tem a senha do painel</span>
+      </div>
+      <div class="paineis" id="paineis"></div>
+    </section>
+    <div class="entrada-rodape">
+      <span>📍 Corridas pelo WhatsApp em <b id="cidadeInicio">sua cidade</b></span>
+      <span>Você está no painel da central · <button type="button" id="sairInicio">Sair</button></span>
+    </div>
+  </div>
+
   <header>
     <strong class="marca"><img src="manu.png" alt=""><span id="nomeCentral">Central</span></strong>
     <nav>
+      <button data-aba="inicio">🏠 Início</button>
       <button data-aba="corridas" class="ativa">Corridas</button>
       <button data-aba="motoristas">Motoristas</button>
       <button data-aba="relatorio">Relatório</button>
@@ -42,6 +62,7 @@
 
   <main>
     <section id="aba-corridas">
+      <div class="dica-manu"><img src="img/manu/manu-celular.webp" alt=""><div><b>As corridas aparecem aqui na hora!</b><span>Quando um cliente pede pelo WhatsApp, a corrida surge nesta tela e eu já chamo o motorista mais perto. 📲</span></div></div>
       <div class="linha">
         <h2>Corridas</h2>
         <label class="inline">Dia <input type="date" id="diaCorridas"></label>
@@ -51,6 +72,7 @@
     </section>
 
     <section id="aba-motoristas" hidden>
+      <div class="dica-manu"><img src="img/manu/manu-joinha.webp" alt=""><div><b>Seus motoristas ficam aqui</b><span>Aprove quem se cadastrou pelo WhatsApp e libere as viagens quando o Pix cair. 🚘</span></div></div>
       <div class="linha">
         <h2>Motoristas</h2>
         <button id="novoMotorista">+ Cadastrar motorista</button>
@@ -79,6 +101,7 @@
     </section>
 
     <section id="aba-relatorio" hidden>
+      <div class="dica-manu"><img src="img/manu/manu-cintura.webp" alt=""><div><b>Quanto a Vai de Manu rodou?</b><span>Veja o geral da central e o relatório de cada motorista, e mande direto no WhatsApp dele. 📊</span></div></div>
       <div class="linha">
         <h2>Relatório</h2>
         <label class="inline">De <input type="date" id="relDe"></label>
@@ -97,6 +120,7 @@
     </section>
 
     <section id="aba-divulgar" hidden>
+      <div class="dica-manu"><img src="img/manu/manu-celular.webp" alt=""><div><b>Me ajuda a divulgar? 😍</b><span>Mande o link, poste as artes e imprima o cartaz com QR Code. Quanto mais gente souber, mais corrida!</span></div></div>
       <h2>Divulgar a central</h2>
       <p class="dica">O cliente não instala nada: só precisa do WhatsApp da central. Mande o link, poste o texto ou imprima o cartaz com QR Code
         (a pessoa aponta a câmera do celular e cai direto na conversa).</p>
@@ -109,6 +133,7 @@
     </section>
 
     <section id="aba-config" hidden>
+      <div class="dica-manu"><img src="img/manu/manu-joinha.webp" alt=""><div><b>Aqui você ajusta tudo</b><span>Nome, cidade, preços, pacotes de viagens e Pix. Depois é só clicar em Salvar. ⚙️</span></div></div>
       <h2>Configurações</h2>
       <form id="formConfig" class="cartao">
         <div class="grade">

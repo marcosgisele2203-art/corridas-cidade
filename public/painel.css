@@ -93,7 +93,7 @@ th { color: var(--suave); font-size: 15px; font-weight: 600; }
 td.num, th.num { text-align: right; }
 .tabela { overflow-x: auto; }
 .vazio { color: var(--suave); text-align: center; padding: 30px 16px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.vazio img { width: 120px; height: 120px; border-radius: 50%; border: 5px solid var(--amarelo-marca); margin-bottom: 8px; }
+.vazio img { width: auto; height: 190px; margin-bottom: 8px; filter: drop-shadow(0 8px 12px rgba(0,0,0,.18)); }
 .vazio b { font-family: var(--letra-marca); font-size: 24px; color: var(--texto); }
 .vazio span { max-width: 460px; }
 @media (max-width: 600px) { header nav { order: 3; flex-basis: 100%; } header .marca { flex: 1; } .marca span { font-size: 22px; } }
@@ -146,3 +146,59 @@ textarea { font: inherit; font-size: 16px; width: 100%; padding: 12px; border: 1
 .arte figcaption { line-height: 1.3; }
 a.botao { display: inline-block; text-align: center; text-decoration: none; font-weight: 600; border-radius: 10px; padding: 10px 16px;
   background: var(--cor); color: #fff; }
+
+/* ---- tela inicial (igual à entrada do Naturally Mania, com as cores e a arte da Vai de Manu) */
+.entrada { position: relative; isolation: isolate; min-height: 100vh; padding: clamp(16px, 4vw, 40px); display: grid;
+  grid-template-columns: minmax(180px, 290px) minmax(0, 1fr); grid-template-rows: 1fr auto; gap: 20px 28px; align-items: end; }
+.entrada::before { content: ''; position: fixed; inset: -30px; z-index: -1;
+  background: linear-gradient(180deg, rgba(8, 40, 20, .35), rgba(8, 40, 20, .7)), url(artes/moto.jpg) center 40% / cover no-repeat;
+  filter: blur(4px) saturate(1.1); }
+.entrada-manu { display: flex; flex-direction: column; align-items: center; align-self: end; }
+.entrada-manu img { width: 100%; max-width: 270px; height: auto; filter: drop-shadow(0 14px 20px rgba(0, 0, 0, .45)); }
+.balao { position: relative; background: #fffdf6; border-radius: 18px; padding: 12px 18px; text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .3); margin-bottom: 10px; }
+.balao::after { content: ''; position: absolute; left: 55%; bottom: -9px; width: 18px; height: 18px; background: #fffdf6; transform: rotate(45deg); }
+.balao b { display: block; font-family: var(--letra-marca); font-size: 25px; line-height: 1.1; color: var(--rosa); }
+.balao span { font-size: 15px; color: var(--suave); }
+.entrada-quadro { background: rgba(255, 253, 246, .96); border-radius: 24px; padding: clamp(16px, 2.4vw, 28px); box-shadow: 0 20px 50px rgba(0, 0, 0, .35); min-width: 0; }
+.entrada-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.entrada-topo small { font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--suave); }
+.entrada-topo h1 { font-size: clamp(26px, 3.2vw, 36px); line-height: 1.1; color: #12301b; margin: 4px 0 0; }
+.entrada-topo h1 span { color: var(--rosa); }
+.entrada-cadeado { font-size: 14px; color: var(--suave); max-width: 230px; }
+.paineis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.painel-cartao { display: flex; flex-direction: column; gap: 6px; background: #fff; border: 1px solid var(--borda); border-radius: 16px; padding: 18px;
+  color: var(--texto); text-decoration: none; transition: transform .12s, box-shadow .12s, border-color .12s; }
+.painel-cartao:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(0, 0, 0, .12); border-color: var(--cor); }
+.painel-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.painel-icone { width: 46px; height: 46px; border-radius: 12px; background: var(--cor-clara); display: inline-flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 6px; }
+.painel-cartao:nth-child(3n+2) .painel-icone { background: #fff4cc; }
+.painel-cartao:nth-child(3n+3) .painel-icone { background: #ffe1ef; }
+.painel-aviso { font-size: 13px; font-weight: 800; color: var(--suave); }
+.painel-aviso.alerta { background: var(--rosa); color: #fff; border-radius: 999px; padding: 3px 10px; }
+.painel-cartao b { font-family: var(--letra-marca); font-size: 25px; line-height: 1.1; color: #12301b; }
+.painel-texto { color: var(--suave); font-size: 16px; flex: 1; }
+.painel-abrir { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--borda); padding-top: 12px; margin-top: 8px; font-weight: 800; }
+.painel-abrir i { font-style: normal; font-size: 20px; transition: transform .12s; }
+.painel-cartao:hover .painel-abrir i { transform: translateX(4px); }
+.entrada-rodape { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: 10px 20px; flex-wrap: wrap;
+  background: rgba(255, 253, 246, .96); border-radius: 14px; padding: 10px 18px; font-size: 15px; color: var(--suave); }
+.entrada-rodape button { background: none; box-shadow: none; padding: 0; color: var(--rosa); text-decoration: underline; font-weight: 800; }
+@media (max-width: 1000px) { .paineis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) {
+  .entrada { grid-template-columns: 1fr; align-items: start; }
+  .entrada-manu { flex-direction: row; align-items: flex-end; gap: 8px; justify-content: center; }
+  .entrada-manu img { width: 120px; order: -1; }
+  .balao::after { left: -7px; bottom: 30px; }
+  .balao b { font-size: 21px; }
+}
+@media (max-width: 520px) { .paineis { grid-template-columns: 1fr; } }
+
+/* ---- dica da Manu no topo de cada página */
+.dica-manu { display: flex; align-items: center; gap: 16px; background: linear-gradient(90deg, #fff6d1, #ffe9f3); border: 1px solid #f6e3a8;
+  border-radius: 18px; padding: 12px 18px 12px 12px; margin-bottom: 18px; }
+.dica-manu img { width: 74px; height: 120px; object-fit: contain; object-position: bottom; flex: none; margin: -14px 0 -12px; filter: drop-shadow(0 4px 6px rgba(0,0,0,.18)); }
+.dica-manu b { display: block; font-family: var(--letra-marca); font-size: 22px; line-height: 1.15; color: var(--rosa); }
+.dica-manu span { color: #5b4a2a; font-size: 16px; }
+@media (prefers-color-scheme: dark) { .dica-manu { background: linear-gradient(90deg, #3a3315, #3a1f2c); border-color: #4d4220; } .dica-manu span { color: #e8dcc0; } }
+@media print { .dica-manu { display: none; } }

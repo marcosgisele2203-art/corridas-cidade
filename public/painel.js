@@ -7,7 +7,7 @@ const hoje = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
 const TIPOS = { moto: '🏍️ Moto', carro: '🚗 Carro', van: '🚐 Van', caminhao: '🚚 Caminhão' };
 const veiculo = (m) => esc([m.carro, m.cor].filter(Boolean).join(' '));
 // tela vazia com a Manu
-const vazio = (titulo, texto) => `<div class="vazio"><img src="manu.png" alt=""><b>${titulo}</b>${texto ? `<span>${texto}</span>` : ''}</div>`;
+const vazio = (titulo, texto) => `<div class="vazio"><img src="img/manu/manu-joinha.webp" alt=""><b>${titulo}</b>${texto ? `<span>${texto}</span>` : ''}</div>`;
 const STATUS = {
   procurando: 'Procurando motorista', aceita: 'Motorista a caminho', chegou: 'Motorista chegou', em_andamento: 'Em andamento',
   finalizada: 'Finalizada', cancelada: 'Cancelada', sem_motorista: 'Sem motorista',
@@ -37,15 +37,63 @@ $('#sair').onclick = async () => { await api('POST', '/api/sair'); mostrarLogin(
 
 // ---------------------------------------------------------------- abas
 
-let aba = 'corridas';
-document.querySelectorAll('header nav button').forEach((b) => b.onclick = () => {
-  aba = b.dataset.aba;
-  document.querySelectorAll('header nav button').forEach((x) => x.classList.toggle('ativa', x === b));
+let aba = 'inicio';
+function irPara(nova) {
+  aba = nova;
+  const noInicio = aba === 'inicio';
+  $('#inicio').hidden = !noInicio;
+  document.querySelector('#app > header').hidden = noInicio;
+  document.querySelector('#app > main').hidden = noInicio;
+  document.querySelectorAll('header nav button').forEach((x) => x.classList.toggle('ativa', x.dataset.aba === aba));
   document.querySelectorAll('main > section').forEach((s) => s.hidden = s.id !== 'aba-' + aba);
+  try { location.hash = noInicio ? '' : aba; } catch { /* sem hash */ }
+  window.scrollTo(0, 0);
   atualizar();
-});
+}
+document.querySelectorAll('header nav button').forEach((b) => b.onclick = () => irPara(b.dataset.aba));
+
+// ---- tela inicial: cartões de cada área, com avisos do que precisa de atenção
+const AREAS = [
+  { aba: 'corridas', icone: '🚗', titulo: 'Corridas', texto: 'Acompanhe as corridas ao vivo, do pedido até o fim, e cancele se precisar.' },
+  { aba: 'motoristas', icone: '🚘', titulo: 'Motoristas', texto: 'Aprove cadastros, libere viagens compradas e veja quem está online.' },
+  { aba: 'relatorio', icone: '📊', titulo: 'Relatório', texto: 'O geral da central e o individual de cada motorista, para imprimir ou mandar.' },
+  { aba: 'divulgar', icone: '📣', titulo: 'Divulgar', texto: 'Links, QR Code, cartaz e as artes da Vai de Manu para postar.' },
+  { aba: 'config', icone: '⚙️', titulo: 'Configurações', texto: 'Nome, cidade, preços, pacotes de viagens, Pix e Mercado Pago.' },
+];
+async function carregarInicio() {
+  const cartoes = AREAS.map((a) => `
+    <a class="painel-cartao" href="#${a.aba}" data-ir="${a.aba}">
+      <span class="painel-topo"><span class="painel-icone">${a.icone}</span><span class="painel-aviso" id="aviso-${a.aba}"></span></span>
+      <b>${a.titulo}</b><span class="painel-texto">${a.texto}</span>
+      <span class="painel-abrir">Abrir <i>→</i></span>
+    </a>`);
+  cartoes.push(`
+    <a class="painel-cartao" id="cartaoPedir" href="#" target="_blank" rel="noopener">
+      <span class="painel-topo"><span class="painel-icone">📲</span><span class="painel-aviso livre">Sem login</span></span>
+      <b>Pedir uma corrida</b><span class="painel-texto">Abre o WhatsApp da central do jeito que o cliente vê. Bom para testar!</span>
+      <span class="painel-abrir">Abrir WhatsApp <i>→</i></span>
+    </a>`);
+  $('#paineis').innerHTML = cartoes.join('');
+  // avisos (sem travar a tela se algum falhar)
+  const aviso = (id, txt) => { const el = $('#aviso-' + id); if (el && txt) { el.textContent = txt; el.classList.add('alerta'); } };
+  api('GET', '/api/corridas').then((l) => {
+    const n = l.filter((c) => ['procurando', 'aceita', 'chegou', 'em_andamento'].includes(c.status)).length;
+    aviso('corridas', n ? `${n} em andamento` : '');
+  }).catch(() => {});
+  Promise.all([api('GET', '/api/motoristas'), api('GET', '/api/compras')]).then(([m, c]) => {
+    const p = m.filter((x) => !x.aprovado).length;
+    aviso('motoristas', [p && `${p} para aprovar`, c.length && `${c.length} Pix`].filter(Boolean).join(' · '));
+  }).catch(() => {});
+  api('GET', '/api/divulgar').then((d) => { if (d.passageiro) $('#cartaoPedir').href = d.passageiro; }).catch(() => {});
+}
+$('#paineis').onclick = (e) => {
+  const c = e.target.closest('[data-ir]');
+  if (c) { e.preventDefault(); irPara(c.dataset.ir); }
+};
+$('#sairInicio').onclick = () => $('#sair').click();
 
 function atualizar() {
+  if (aba === 'inicio') carregarInicio();
   if (aba === 'corridas') carregarCorridas();
   if (aba === 'motoristas') carregarMotoristas();
   if (aba === 'relatorio') carregarRelatorio();
@@ -468,9 +516,12 @@ async function iniciar() {
   try {
     const c = await api('GET', '/api/config');
     $('#nomeCentral').textContent = c.nome;
+    document.querySelectorAll('.nome-central').forEach((el) => el.textContent = c.nome);
+    if (c.cidade) $('#cidadeInicio').textContent = c.cidade;
     $('#login').hidden = true; $('#app').hidden = false;
     $('#diaCorridas').value = hoje();
-    atualizar();
+    const pedida = (location.hash || '').slice(1);
+    irPara(AREAS.some((a) => a.aba === pedida) ? pedida : 'inicio');
   } catch { /* mostrarLogin já foi chamado */ }
 }
 setInterval(() => { if (!$('#app').hidden && aba === 'corridas' && !document.hidden) carregarCorridas().catch(() => {}); }, 5000);
