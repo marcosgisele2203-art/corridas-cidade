@@ -13,39 +13,21 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@400;600;700;800&display=swap">
 <link rel="stylesheet" href="painel.css">
 </head>
-<body>
-<div class="entrada">
-  <div class="entrada-manu">
-    <div class="balao"><b>Oi! Eu sou a Manu!</b><span>Bora rodar? 🚗<br>Escolha como você quer entrar!</span></div>
-    <img src="img/manu/manu-celular.webp" alt="Manu, mascote da Vai de Manu, com o celular no WhatsApp">
-  </div>
-  <section class="entrada-quadro">
-    <div class="entrada-topo">
-      <div><small>Bem-vindo à</small><h1><span class="nome-central">Vai de Manu</span></h1></div>
-      <span class="entrada-cadeado" id="tiposInicio">🏍️ Moto · 🚗 Carro · 🚐 Van · 🚚 Frete</span>
+<body class="pagina-inicio">
+<div class="inicio-vai">
+  <header class="inicio-marca"><span class="inicio-logo nome-central">Vai de Manu</span><span class="inicio-selo">🚗 Sua central pelo WhatsApp</span></header>
+  <main class="inicio-conteudo">
+    <div class="inicio-apresentacao">
+      <img src="img/manu/manu-celular.webp" alt="Manu, mascote da Vai de Manu, com um celular">
+      <div class="inicio-intro"><div class="inicio-balao">Oi! Eu sou a Manu! <span>💗</span></div><h1 class="nome-central">Vai de Manu</h1><p>Seu transporte, do seu jeito, pelo WhatsApp!</p><div id="tiposInicio" class="inicio-tipos">🏍️ Moto · 🚗 Carro · 🚐 Van · 🚚 Frete</div></div>
     </div>
-    <div class="paineis">
-      <a class="painel-cartao destaque" id="cartaoPassageiro" href="#" target="_blank" rel="noopener">
-        <span class="painel-topo"><span class="painel-icone">🙋</span><span class="painel-aviso">Sem cadastro</span></span>
-        <b>Sou passageiro</b><span class="painel-texto">Peça sua corrida pelo WhatsApp. Mande sua localização e a Manu chama o motorista mais perto.</span>
-        <span class="painel-abrir">Pedir pelo WhatsApp <i>→</i></span>
-      </a>
-      <a class="painel-cartao" href="/motorista">
-        <span class="painel-topo"><span class="painel-icone">🚘</span><span class="painel-aviso">Código no WhatsApp</span></span>
-        <b>Sou motorista</b><span class="painel-texto">Cadastre-se, compre viagens, fique online e veja seus ganhos no seu relatório.</span>
-        <span class="painel-abrir">Área do motorista <i>→</i></span>
-      </a>
-      <a class="painel-cartao" href="/painel">
-        <span class="painel-topo"><span class="painel-icone">🛠️</span><span class="painel-aviso">🔒 Com senha</span></span>
-        <b>Administração</b><span class="painel-texto">Painel da central: viagens ao vivo, motoristas, relatórios, divulgação e configurações.</span>
-        <span class="painel-abrir">Entrar no painel <i>→</i></span>
-      </a>
+    <div class="inicio-cartoes">
+      <a class="inicio-cartao" id="cartaoPassageiro" href="#" target="_blank" rel="noopener"><span class="inicio-icone icone-rosa" aria-hidden="true">🛵</span><span class="inicio-detalhes"><strong>Sou passageiro</strong><span>Peça sua corrida pelo WhatsApp e compartilhe sua localização.</span><span class="inicio-botao">💬 Pedir pelo WhatsApp <b>→</b></span><small class="painel-aviso">Sem cadastro</small></span></a>
+      <a class="inicio-cartao" href="/motorista"><span class="inicio-icone icone-amarelo" aria-hidden="true">🚘</span><span class="inicio-detalhes"><strong>Sou motorista</strong><span>Faça seu cadastro, fique online e acompanhe suas viagens.</span><span class="inicio-botao">Área do motorista <b>→</b></span></span></a>
+      <a class="inicio-cartao" href="/painel"><span class="inicio-icone icone-rosa" aria-hidden="true">📊</span><span class="inicio-detalhes"><strong>Administração</strong><span>Acesse o painel para acompanhar e gerenciar a central.</span><span class="inicio-botao">🔒 Entrar no painel <b>→</b></span></span></a>
     </div>
-  </section>
-  <div class="entrada-rodape">
-    <span>📍 Corridas pelo WhatsApp em <b id="cidadeInicio">sua cidade</b></span>
-    <span id="foneInicio"></span>
-  </div>
+  </main>
+  <footer class="inicio-rodape"><span>📍 Corridas pelo WhatsApp em <b id="cidadeInicio">sua cidade</b></span><span id="foneInicio"></span></footer>
 </div>
 <script>
 // nome, cidade e o link do WhatsApp da central (preenchidos pelo painel em Configurações)
