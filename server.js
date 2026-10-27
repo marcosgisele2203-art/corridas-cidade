@@ -321,7 +321,9 @@ rota('POST', '/api/compras/:id/cancelar', true, async ({ p }) => {
 
 rota('POST', '/api/motoristas/:id/online', true, async ({ req, p }) => {
   const b = await lerCorpo(req);
-  await pool.query('UPDATE motoristas SET online = $2 WHERE id = $1 AND ativo', [Number(p.id), !!b.online]);
+  // tirado do ar pela central: a localização dele também é apagada
+  await pool.query(`UPDATE motoristas SET online = $2, lat = CASE WHEN $2 THEN lat END, lng = CASE WHEN $2 THEN lng END,
+                    local_em = CASE WHEN $2 THEN local_em END WHERE id = $1 AND ativo`, [Number(p.id), !!b.online]);
   return { ok: true };
 });
 
