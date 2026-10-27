@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Solicitar uma viagem · Vai com Manu</title><link rel="stylesheet" href="/painel.css">
+<style>
+.passageiro{max-width:680px;margin:0 auto;padding:20px 16px 48px}.passageiro a{color:var(--cor-escura)}.passageiro .marca-tela{display:flex;align-items:center;gap:16px;margin:24px 0}.marca-tela img{height:100px;width:74px;object-fit:contain}.marca-tela h1{margin:0;font-size:32px;line-height:1.1}.passageiro .cartao{padding:22px}.passageiro label{display:block;font-weight:800;margin:14px 0}.passageiro textarea{min-height:80px}.passageiro .alerta-teste{background:#fff3cd;color:#624600;padding:14px;border-radius:12px}.passageiro .botoes{display:flex;flex-wrap:wrap;gap:12px;margin-top:18px}.passageiro a.botao{padding:12px 20px}.passageiro fieldset{border:0;padding:0;margin:0}.passageiro :disabled{opacity:.6;cursor:not-allowed}
+</style></head><body><main class="passageiro">
+<a href="/">← Voltar para o início</a>
+<div class="marca-tela"><img src="/img/manu/manu-celular.webp" alt=""><div><small>VAI COM MANU</small><h1>Para onde vamos?</h1><p class="dica">Informe os dados da sua viagem.</p></div></div>
+<div class="alerta-teste"><strong>Em construção:</strong> esta página ainda não envia corridas. Para pedir agora, use o WhatsApp.</div>
+<form class="cartao" id="form-passageiro">
+<label>Seu nome<input name="nome" autocomplete="name" maxlength="100" placeholder="Como podemos chamar você?"></label>
+<label>Seu WhatsApp com DDD<input name="telefone" type="tel" autocomplete="tel" inputmode="tel" placeholder="(67) 99999-9999"></label>
+<label>Onde vamos buscar você?<input name="origem" autocomplete="street-address" maxlength="180" placeholder="Rua, número e bairro"></label>
+<label>Para onde você vai?<input name="destino" maxlength="180" placeholder="Endereço ou local de destino"></label>
+<label>Escolha o veículo<select name="tipo"><option value="moto">🏍️ Moto</option><option value="carro">🚗 Carro</option><option value="van">🚐 Van</option><option value="caminhao">🚚 Frete</option></select></label>
+<p class="dica">O valor será apresentado para conferência antes da confirmação, quando esta função estiver pronta.</p>
+<div class="botoes"><button type="button" disabled>Continuar</button><a id="whatsapp" class="botao" href="/">Pedir pelo WhatsApp</a></div></form></main>
+<script>
+fetch('/api/publico/inicio').then(r=>r.ok?r.json():Promise.reject()).then(d=>{
+  const select=document.querySelector('[name=tipo]');
+  if(Array.isArray(d.tipos)) [...select.options].forEach(o=>{if(!d.tipos.includes(o.value))o.remove()});
+  const a=document.getElementById('whatsapp');
+  if(d.passageiro){a.href=d.passageiro;a.target='_blank';a.rel='noopener noreferrer'} else {a.textContent='WhatsApp indisponível';a.removeAttribute('href')}
+}).catch(()=>{const a=document.getElementById('whatsapp');a.textContent='WhatsApp indisponível';a.removeAttribute('href')});
+</script></body></html>
