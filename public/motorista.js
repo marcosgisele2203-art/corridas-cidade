@@ -119,8 +119,10 @@ async function carregar() {
   b.hidden = !m.aprovado;
   b.textContent = m.online ? '🔴 Ficar offline' : '🟢 Ficar online';
   b.className = m.online ? 'perigo' : '';
-  $('#corridaAtual').innerHTML = eu.corrida ? `<div class="cartao corrida-agora">🛣️ <b>Corrida #${eu.corrida.id} em andamento</b> com ${esc(eu.corrida.passageiro_nome || 'passageiro')}<br>
-    <small>📍 ${esc(eu.corrida.origem_texto)} → 🏁 ${esc(eu.corrida.destino_texto)} · use o WhatsApp: CHEGUEI, INICIAR, FINALIZAR</small></div>` : '';
+  const {oferta} = await api('GET','/api/motorista/oferta');
+  const c = eu.corrida || oferta;
+  const acoes = eu.corrida ? (c.status === 'aceita' ? [['cheguei','Cheguei ao local'],['iniciar','Iniciar viagem']] : c.status === 'chegou' ? [['iniciar','Iniciar viagem']] : c.status === 'em_andamento' ? [['finalizar','Finalizar viagem']] : []) : oferta ? [['aceitar','Aceitar corrida']] : [];
+  $('#corridaAtual').innerHTML = c ? '<div class="cartao corrida-agora"><h3>Corrida #'+esc(c.id)+' · '+esc(c.status || 'Nova oferta')+'</h3><p>📍 '+esc(c.origem_texto)+' → 🏁 '+esc(c.destino_texto)+'</p><p>Estimativa: '+reais(c.valor_estimado)+'</p><div class="botoes">'+acoes.map(([acao,label])=>'<button data-acao="'+acao+'" data-corrida="'+esc(c.id)+'">'+label+'</button>').join(' ')+'</div><p id="erroAcao" role="alert"></p></div>' : '';
   const t = eu.mes;
   $('#kpisMes').innerHTML = [
     ['Saldo de viagens', eu.central.cobranca ? m.saldo : '—'], ['Corridas feitas', t.finalizadas], ['Total das corridas', reais(t.ganhos)],
@@ -251,3 +253,15 @@ async function iniciar() {
 // mantém saldo e situação em dia (ex.: viagem usada pelo WhatsApp)
 setInterval(() => { if (!$('#area').hidden && !document.hidden && aba === 'inicio') carregar().catch(() => {}); }, 30000);
 iniciar();
+
+let agindo = false;
+$('#corridaAtual').onclick = async e => {
+  const b = e.target.closest('[data-acao]');
+  if (!b || agindo) return;
+  if (b.dataset.acao === 'finalizar' && !confirm('Finalizar esta viagem pelo valor estimado?')) return;
+  agindo = true; b.disabled = true;
+  try { await api('POST','/api/motorista/corrida/'+b.dataset.corrida+'/acao',{acao:b.dataset.acao}); await carregar(); }
+  catch(err) { alert(err.message); await carregar().catch(()=>{}); }
+  finally { agindo = false; b.disabled = false; }
+};
+setInterval(()=>{if(!agindo && !$('#area').hidden && !document.hidden && aba === 'inicio') carregar().catch(()=>{});},5000);
