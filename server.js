@@ -526,21 +526,23 @@ async function motoristaPeloTelefone(v) {
 }
 
 rota('POST', '/api/motorista/codigo', false, async ({ req }) => {
+  if (MODO_TESTE_SITE && !logado(req)) throw new Erro(401, 'Para testar o motorista, entre primeiro no painel administrativo neste navegador.');
   limitar('codigo:' + ipDe(req), 6, 15 * 60_000);
   const b = await lerCorpo(req);
   const m = await motoristaPeloTelefone(b.telefone);
   if (!m) throw new Erro(404, 'Não achamos motorista com esse WhatsApp. Faça seu cadastro na aba ao lado.');
   limitar('codigo-m:' + m.id, 3, 15 * 60_000);
-  const codigo = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
+  const codigo = MODO_TESTE_SITE ? '123456' : String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
   await pool.query(`INSERT INTO motorista_codigos (motorista_id, codigo_hash, expira_em) VALUES ($1, $2, now() + interval '10 minutes')
                     ON CONFLICT (motorista_id) DO UPDATE SET codigo_hash = EXCLUDED.codigo_hash, expira_em = EXCLUDED.expira_em, tentativas = 0`,
     [m.id, hashCodigo(m.id, codigo)]);
   const cfg = await lerConfig();
-  whats.texto(m.contato || m.telefone, `🔐 Seu código para entrar na área do motorista da ${cfg.nome}: *${codigo}*\n\nVale 10 minutos. Não passe para ninguém.`);
+  if (!MODO_TESTE_SITE) whats.texto(m.contato || m.telefone, `🔐 Seu código para entrar na área do motorista da ${cfg.nome}: *${codigo}*\n\nVale 10 minutos. Não passe para ninguém.`);
   return { ok: true, final: m.telefone.slice(-4) };
 });
 
 rota('POST', '/api/motorista/entrar', false, async ({ req, res }) => {
+  if (MODO_TESTE_SITE && !logado(req)) throw new Erro(401, 'Para testar o motorista, entre primeiro no painel administrativo neste navegador.');
   limitar('entrar:' + ipDe(req), 15, 15 * 60_000);
   const b = await lerCorpo(req);
   const m = await motoristaPeloTelefone(b.telefone);
