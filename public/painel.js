@@ -54,7 +54,7 @@ document.querySelectorAll('header nav button').forEach((b) => b.onclick = () => 
 
 // ---- tela inicial: cartões de cada área, com avisos do que precisa de atenção
 const AREAS = [
-  { aba: 'corridas', icone: '🚗', titulo: 'Corridas', texto: 'Acompanhe as corridas ao vivo, do pedido até o fim, e cancele se precisar.' },
+  { aba: 'corridas', icone: '🛣️', titulo: 'Viagens', texto: 'Ao vivo: quem pediu, qual motorista aceitou e as viagens em andamento. E todas as que já foram feitas.' },
   { aba: 'motoristas', icone: '🚘', titulo: 'Motoristas', texto: 'Aprove cadastros, libere viagens compradas e veja quem está online.' },
   { aba: 'relatorio', icone: '📊', titulo: 'Relatório', texto: 'O geral da central e o individual de cada motorista, para imprimir ou mandar.' },
   { aba: 'divulgar', icone: '📣', titulo: 'Divulgar', texto: 'Links, QR Code, cartaz e as artes da Vai de Manu para postar.' },
@@ -103,41 +103,173 @@ function atualizar() {
 
 // ---------------------------------------------------------------- corridas
 
-$('#diaCorridas').onchange = carregarCorridas;
-async function carregarCorridas() {
-  const dia = $('#diaCorridas').value;
-  const lista = await api('GET', '/api/corridas' + (dia && dia !== hoje() ? '?dia=' + dia : ''));
-  const ativas = lista.filter((c) => ['procurando', 'aceita', 'chegou', 'em_andamento'].includes(c.status));
-  const fin = lista.filter((c) => c.status === 'finalizada');
-  $('#kpisAgora').innerHTML = [
-    ['Em andamento', ativas.length], ['Finalizadas', fin.length],
-    ['Faturamento', reais(fin.reduce((s, c) => s + Number(c.valor_final || 0), 0))],
-    ['Comissão', reais(fin.reduce((s, c) => s + Number(c.comissao || 0), 0))],
-  ].map(([t, v]) => `<div class="kpi"><span>${t}</span><b>${v}</b></div>`).join('');
-
-  $('#listaCorridas').innerHTML = lista.length ? lista.map((c) => `
-    <div class="cartao corrida">
-      <div class="topo">
-        <b>#${c.id} · ${esc(c.passageiro_nome || 'Passageiro')} <small>${TIPOS[c.tipo] || ''} · ${hora(c.criado_em)}</small></b>
-        <span class="etiqueta st-${c.status}">${STATUS[c.status] || c.status}</span>
-      </div>
-      <div>📍 ${esc(c.origem_texto)}</div>
-      <div>🏁 ${esc(c.destino_texto)}</div>
-      <small>
-        ${c.motorista_nome ? '🚗 ' + esc(c.motorista_nome) + ' · ' : ''}
-        ${reais(c.valor_final ?? c.valor_estimado)}${c.km ? ' · ' + String(Number(c.km)).replace('.', ',') + ' km' : ''}
-        ${c.avaliacao ? ' · ' + '⭐'.repeat(c.avaliacao) : ''}
-        · <a href="https://wa.me/${esc(c.passageiro_tel)}" target="_blank" rel="noopener">WhatsApp do passageiro</a>
-      </small>
-      ${['procurando', 'aceita', 'chegou', 'em_andamento'].includes(c.status)
-        ? `<div><button class="mini perigo" data-cancelar="${c.id}">Cancelar corrida</button></div>` : ''}
-    </div>`).join('') : vazio('Nenhuma corrida por enquanto.', 'Quando um cliente pedir pelo WhatsApp, ela aparece aqui na hora. 🚗');
-}
-$('#listaCorridas').onclick = async (e) => {
-  const id = e.target.dataset.cancelar;
-  if (!id || !confirm(`Cancelar a corrida #${id}? O passageiro e o motorista serão avisados.`)) return;
-  try { await api('POST', `/api/corridas/${id}/cancelar`); carregarCorridas(); } catch (err) { alert(err.message); }
+// ---- viagens: quadro ao vivo (3 colunas), histórico com filtros e o passo a passo de cada uma
+const ATIVAS = ['procurando', 'aceita', 'chegou', 'em_andamento'];
+const desde = (d) => {
+  if (!d) return '';
+  const min = Math.max(0, Math.round((Date.now() - new Date(d)) / 60000));
+  return min < 1 ? 'agora' : min < 60 ? `há ${min} min` : `há ${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')}`;
 };
+const duracao = (a, b) => {
+  if (!a || !b) return '—';
+  const min = Math.max(1, Math.round((new Date(b) - new Date(a)) / 60000));
+  return min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')}`;
+};
+const veiculoDe = (v) => [v.carro, v.cor].filter(Boolean).join(' ');
+const dataHora = (d) => (d ? new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '');
+
+function cartaoVivo(v) {
+  let quem = '';
+  if (v.status === 'procurando') {
+    quem = v.oferta_nome
+      ? `<div class="vivo-quem chamando">📞 Chamando <b>${esc(v.oferta_nome)}</b> · ${v.oferta_resta}s</div>`
+      : '<div class="vivo-quem chamando">⏳ Esperando um motorista ficar livre</div>';
+  } else {
+    quem = `<div class="vivo-quem">👤 <b>${esc(v.motorista_nome || '')}</b> · ${esc(veiculoDe(v))} <b>${esc(v.placa || '')}</b></div>`;
+  }
+  const quando = v.status === 'procurando' ? `pediu ${desde(v.criado_em)}`
+    : v.status === 'em_andamento' ? `em viagem ${desde(v.iniciada_em || v.aceita_em)}`
+    : v.status === 'chegou' ? `📍 chegou ${desde(v.chegou_em)}` : `aceitou ${desde(v.aceita_em)}`;
+  return `<div class="vivo" data-viagem="${v.id}">
+    <div class="vivo-topo"><b>#${v.id} · ${esc(v.passageiro_nome || 'Passageiro')}</b><span class="vivo-tipo">${TIPOS[v.tipo] || ''}</span></div>
+    <div class="vivo-trajeto">📍 ${esc(v.origem_texto)}<br>🏁 ${esc(v.destino_texto)}</div>
+    ${quem}
+    <div class="vivo-rodape"><span class="${v.status === 'chegou' ? 'chegou' : ''}">${quando}</span>
+      <span>${reais(v.valor_final ?? v.valor_estimado)}</span></div>
+    <div class="vivo-acoes"><a href="https://wa.me/${esc(v.passageiro_tel)}" target="_blank" rel="noopener">💬 Passageiro</a>
+      ${v.motorista_tel ? `<a href="https://wa.me/${esc(v.motorista_tel)}" target="_blank" rel="noopener">💬 Motorista</a>` : ''}
+      <button class="mini perigo" data-cancelar="${v.id}">Cancelar</button></div>
+  </div>`;
+}
+
+// som de pedido novo (o navegador só deixa tocar depois de um clique na página)
+let somLigado = false, ultimosPedidos = null;
+try { somLigado = localStorage.getItem('somPedidos') === '1'; } catch { /* sem armazenamento */ }
+const mostrarSom = () => { $('#som').textContent = somLigado ? '🔔 Som de pedido novo ligado' : '🔕 Ligar som de pedido novo'; };
+mostrarSom();
+$('#som').onclick = () => {
+  somLigado = !somLigado; mostrarSom();
+  try { localStorage.setItem('somPedidos', somLigado ? '1' : '0'); } catch { /* ok */ }
+  if (somLigado) tocar();
+};
+function tocar() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.18, 0.36].forEach((t, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = [880, 1175, 1568][i]; o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.25, ctx.currentTime + t); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.16);
+      o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.17);
+    });
+  } catch { /* sem áudio */ }
+}
+
+let idsAoVivo = new Set();
+async function carregarAoVivo() {
+  const { ativas, hoje: h } = await api('GET', '/api/viagens/ao-vivo');
+  diaCentral = h.dia;
+  $('#kpisViagens').innerHTML = [
+    ['Acontecendo agora', ativas.length], ['Finalizadas hoje', h.finalizadas], ['Faturamento hoje', reais(h.faturamento)],
+    ['Perdidas hoje', h.perdidas], ['Motoristas online', h.online],
+  ].map(([t, v]) => `<div class="kpi"><span>${t}</span><b>${v}</b></div>`).join('');
+  const col = { procurando: [], caminho: [], viagem: [] };
+  for (const v of ativas) col[v.status === 'procurando' ? 'procurando' : v.status === 'em_andamento' ? 'viagem' : 'caminho'].push(v);
+  const vazioCol = { procurando: 'Nenhum pedido esperando 😊', caminho: 'Ninguém a caminho agora', viagem: 'Nenhuma viagem rolando' };
+  for (const k of Object.keys(col)) {
+    $('#col-' + k).innerHTML = col[k].map(cartaoVivo).join('') || `<p class="col-vazia">${vazioCol[k]}</p>`;
+    $('#n-' + k).textContent = col[k].length;
+  }
+  $('#atualizado').textContent = 'atualizado ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  // pedido novo: toca o som; viagem que saiu do quadro: atualiza o histórico
+  const pedidos = new Set(col.procurando.map((v) => v.id));
+  if (ultimosPedidos && somLigado && [...pedidos].some((id) => !ultimosPedidos.has(id))) tocar();
+  ultimosPedidos = pedidos;
+  const agora = new Set(ativas.map((v) => v.id));
+  if ([...idsAoVivo].some((id) => !agora.has(id))) carregarHistorico();
+  idsAoVivo = agora;
+}
+
+let motoristasFiltro = false, diaCentral = null; // "hoje" no fuso da central (o navegador pode estar em outro)
+async function carregarHistorico() {
+  if (!$('#vDe').value) { $('#vDe').value = diaCentral || hoje(); $('#vAte').value = diaCentral || hoje(); }
+  if (!motoristasFiltro) {
+    motoristasFiltro = true;
+    api('GET', '/api/motoristas').then((l) => {
+      $('#vMotorista').innerHTML = '<option value="">Todos</option>' +
+        l.filter((m) => m.aprovado).map((m) => `<option value="${m.id}">${esc(m.nome)}</option>`).join('');
+    }).catch(() => { motoristasFiltro = false; });
+  }
+  const q = new URLSearchParams({ de: $('#vDe').value, ate: $('#vAte').value, status: $('#vStatus').value,
+    motorista: $('#vMotorista').value, busca: $('#vBusca').value.trim() });
+  const lista = await api('GET', '/api/viagens?' + q);
+  const fin = lista.filter((v) => v.status === 'finalizada');
+  $('#historico').innerHTML = lista.length ? `
+    <p class="dica">${lista.length} viage${lista.length === 1 ? 'm' : 'ns'} · ${fin.length} finalizada${fin.length === 1 ? '' : 's'} ·
+      total ${reais(fin.reduce((t, v) => t + Number(v.valor_final || 0), 0))}</p>
+    <div class="tabela"><table class="historico">
+      <tr><th>Quando</th><th>Passageiro</th><th>Trajeto</th><th>Motorista</th><th class="num">Valor</th><th class="num">Tempo</th><th>Situação</th></tr>
+      ${lista.map((v) => `<tr data-viagem="${v.id}">
+        <td>${dataHora(v.criado_em)}<br><small>#${v.id} · ${TIPOS[v.tipo] || ''}</small></td>
+        <td>${esc(v.passageiro_nome || 'Passageiro')}</td>
+        <td><small>📍 ${esc(v.origem_texto)}<br>🏁 ${esc(v.destino_texto)}</small></td>
+        <td>${v.motorista_nome ? esc(v.motorista_nome) + `<br><small>${esc(v.placa || '')}</small>` : '—'}</td>
+        <td class="num">${v.status === 'finalizada' ? reais(v.valor_final) : '—'}${v.avaliacao ? `<br><small>${'⭐'.repeat(v.avaliacao)}</small>` : ''}</td>
+        <td class="num">${v.status === 'finalizada' ? duracao(v.criado_em, v.finalizada_em) : '—'}</td>
+        <td><span class="etiqueta st-${v.status}">${STATUS[v.status]}</span></td></tr>`).join('')}
+    </table></div>` : vazio('Nenhuma viagem neste período.', 'Troque as datas ou o filtro para ver outras viagens.');
+}
+let esperaBusca;
+['#vDe', '#vAte', '#vStatus', '#vMotorista'].forEach((id) => $(id).onchange = carregarHistorico);
+$('#vBusca').oninput = () => { clearTimeout(esperaBusca); esperaBusca = setTimeout(carregarHistorico, 350); };
+
+async function carregarCorridas() {
+  await carregarAoVivo();
+  if (!$('#historico').innerHTML) await carregarHistorico();
+}
+
+// passo a passo de uma viagem
+async function abrirViagem(id) {
+  const v = await api('GET', `/api/viagens/${id}`);
+  const passos = [
+    [v.criado_em, '📲', `${esc(v.passageiro_nome || 'Passageiro')} pediu ${TIPOS[v.tipo] || 'uma viagem'}`],
+    [v.chamados && v.chamados.length ? v.criado_em : null, '📞', `Motoristas chamados: ${(v.chamados || []).map(esc).join(' → ')}`],
+    [v.aceita_em, '✅', `${esc(v.motorista_nome || 'Motorista')} aceitou`],
+    [v.chegou_em, '📍', 'Motorista chegou no local'],
+    [v.iniciada_em, '🛣️', 'Passageiro embarcou'],
+    [v.finalizada_em, '🏁', `Viagem finalizada · ${reais(v.valor_final)}${v.avaliacao ? ' · ' + '⭐'.repeat(v.avaliacao) : ''}`],
+    [v.cancelada_em, '❌', v.status === 'sem_motorista' ? 'Nenhum motorista disponível' : `Cancelada${v.cancelado_por ? ' pelo ' + (v.cancelado_por === 'central' ? 'painel da central' : v.cancelado_por) : ''}`],
+  ].filter((p) => p[0]);
+  const d = $('#detalheViagem');
+  d.innerHTML = `
+    <div class="linha"><h2>Viagem #${v.id}</h2><button class="sec mini" id="fecharViagem">Fechar ✕</button></div>
+    <p><span class="etiqueta st-${v.status}">${STATUS[v.status]}</span> ${TIPOS[v.tipo] || ''}
+      ${v.km ? ` · ${String(Number(v.km)).replace('.', ',')} km` : ''} · ${reais(v.valor_final ?? v.valor_estimado)}</p>
+    <div class="det-grade">
+      <div><small>Passageiro</small><b>${esc(v.passageiro_nome || 'Passageiro')}</b>
+        <a href="https://wa.me/${esc(v.passageiro_tel)}" target="_blank" rel="noopener">💬 ${esc(v.passageiro_tel)}</a></div>
+      <div><small>Motorista</small>${v.motorista_nome ? `<b>${esc(v.motorista_nome)}</b><span>${esc(veiculoDe(v))} · <b>${esc(v.placa || '')}</b></span>
+        <a href="https://wa.me/${esc(v.motorista_tel)}" target="_blank" rel="noopener">💬 ${esc(v.motorista_tel)}</a>` : '<b>—</b>'}</div>
+    </div>
+    <p>📍 <b>Saída:</b> ${esc(v.origem_texto)}<br>🏁 <b>Destino:</b> ${esc(v.destino_texto)}</p>
+    <ol class="linha-tempo">${passos.map(([t, ic, txt]) => `<li><span class="lt-icone">${ic}</span><div>${txt}<small>${dataHora(t)}</small></div></li>`).join('')}</ol>
+    ${ATIVAS.includes(v.status) ? `<button class="perigo" data-cancelar="${v.id}">Cancelar esta viagem</button>` : ''}`;
+  d.showModal();
+  $('#fecharViagem').onclick = () => d.close();
+}
+
+// cliques: abrir viagem, cancelar
+document.querySelector('#aba-corridas').addEventListener('click', async (e) => {
+  if (e.target.closest('a')) return;
+  const cancelar = e.target.dataset.cancelar;
+  if (cancelar) {
+    if (!confirm(`Cancelar a viagem #${cancelar}? O passageiro e o motorista serão avisados.`)) return;
+    try { await api('POST', `/api/corridas/${cancelar}/cancelar`); $('#detalheViagem').close(); carregarCorridas(); } catch (err) { alert(err.message); }
+    return;
+  }
+  const alvo = e.target.closest('[data-viagem]');
+  if (alvo) abrirViagem(alvo.dataset.viagem).catch((err) => alert(err.message));
+});
+$('#detalheViagem').addEventListener('click', (e) => { if (e.target.id === 'detalheViagem') e.currentTarget.close(); });
 
 // ---------------------------------------------------------------- motoristas
 
@@ -519,10 +651,9 @@ async function iniciar() {
     document.querySelectorAll('.nome-central').forEach((el) => el.textContent = c.nome);
     if (c.cidade) $('#cidadeInicio').textContent = c.cidade;
     $('#login').hidden = true; $('#app').hidden = false;
-    $('#diaCorridas').value = hoje();
     const pedida = (location.hash || '').slice(1);
     irPara(AREAS.some((a) => a.aba === pedida) ? pedida : 'inicio');
   } catch { /* mostrarLogin já foi chamado */ }
 }
-setInterval(() => { if (!$('#app').hidden && aba === 'corridas' && !document.hidden) carregarCorridas().catch(() => {}); }, 5000);
+setInterval(() => { if (!$('#app').hidden && aba === 'corridas' && !document.hidden) carregarAoVivo().catch(() => {}); }, 5000);
 iniciar();

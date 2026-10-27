@@ -202,3 +202,50 @@ a.botao { display: inline-block; text-align: center; text-decoration: none; font
 .dica-manu span { color: #5b4a2a; font-size: 16px; }
 @media (prefers-color-scheme: dark) { .dica-manu { background: linear-gradient(90deg, #3a3315, #3a1f2c); border-color: #4d4220; } .dica-manu span { color: #e8dcc0; } }
 @media print { .dica-manu { display: none; } }
+
+/* ---- viagens: quadro ao vivo */
+h3.ao-vivo { display: flex; align-items: center; gap: 10px; }
+h3.ao-vivo small { font-family: 'Nunito', sans-serif; font-weight: 600; font-size: 14px; color: var(--suave); }
+.pulso { width: 12px; height: 12px; border-radius: 50%; background: #e5193a; box-shadow: 0 0 0 0 rgba(229, 25, 58, .6); animation: pulso 1.6s infinite; }
+@keyframes pulso { 70% { box-shadow: 0 0 0 10px rgba(229, 25, 58, 0); } 100% { box-shadow: 0 0 0 0 rgba(229, 25, 58, 0); } }
+.quadro-vivo { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; margin-bottom: 10px; }
+@media (max-width: 900px) { .quadro-vivo { grid-template-columns: 1fr; } }
+.coluna { background: var(--cartao); border: 1px solid var(--borda); border-radius: 18px; padding: 12px; min-height: 140px; border-top: 6px solid var(--amarelo-marca); }
+.col-caminho { border-top-color: #2f7de1; } .col-viagem { border-top-color: var(--cor); }
+.coluna-topo { display: flex; justify-content: space-between; align-items: center; font-family: var(--letra-marca); font-weight: 800; font-size: 19px; margin: 2px 4px 10px; }
+.coluna-topo b { background: var(--fundo); border-radius: 999px; min-width: 32px; text-align: center; padding: 0 10px; font-size: 17px; }
+.col-vazia { color: var(--suave); text-align: center; font-size: 15px; margin: 24px 0; }
+.vivo { background: var(--fundo); border: 1px solid var(--borda); border-radius: 14px; padding: 12px; margin-bottom: 10px; cursor: pointer; display: grid; gap: 6px;
+  transition: transform .1s, box-shadow .1s; }
+.vivo:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0, 0, 0, .1); }
+.col-procurando .vivo { background: #fffbea; border-color: #f6e3a8; animation: chega .4s ease-out; }
+@keyframes chega { from { transform: scale(.96); opacity: .3; } }
+.vivo-topo { display: flex; justify-content: space-between; gap: 8px; }
+.vivo-tipo { font-size: 14px; color: var(--suave); white-space: nowrap; }
+.vivo-trajeto { font-size: 15px; line-height: 1.35; }
+.vivo-quem { font-size: 15px; } .vivo-quem.chamando { color: #8a5a00; font-weight: 600; }
+.vivo-rodape { display: flex; justify-content: space-between; font-size: 14px; color: var(--suave); }
+.vivo-rodape .chegou { color: var(--cor-escura); font-weight: 800; }
+.vivo-acoes { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 14px; border-top: 1px dashed var(--borda); padding-top: 8px; }
+.vivo-acoes a { color: var(--cor-escura); font-weight: 700; text-decoration: none; }
+.vivo-acoes button { margin-left: auto; padding: 4px 10px; font-size: 13px; }
+
+/* ---- viagens feitas */
+.filtros { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.6fr); gap: 12px; align-items: end; }
+@media (max-width: 900px) { .filtros { grid-template-columns: repeat(2, minmax(0, 1fr)); } .filtros .busca { grid-column: 1 / -1; } }
+table.historico tr[data-viagem] { cursor: pointer; }
+table.historico tr[data-viagem]:hover td { background: var(--cor-clara); }
+
+/* ---- detalhe da viagem */
+dialog.detalhe { width: min(620px, calc(100% - 24px)); border: 0; border-radius: 22px; padding: 22px; background: var(--cartao); color: var(--texto);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .35); }
+dialog.detalhe::backdrop { background: rgba(10, 25, 12, .55); }
+.det-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+.det-grade > div { background: var(--fundo); border-radius: 14px; padding: 12px; display: grid; gap: 2px; }
+.det-grade small { color: var(--suave); } .det-grade a { color: var(--cor-escura); font-weight: 700; text-decoration: none; font-size: 15px; }
+@media (max-width: 520px) { .det-grade { grid-template-columns: 1fr; } }
+.linha-tempo { list-style: none; padding: 0; margin: 16px 0; border-left: 3px solid var(--borda); margin-left: 18px; }
+.linha-tempo li { display: flex; gap: 12px; align-items: flex-start; margin: 0 0 14px -18px; }
+.linha-tempo .lt-icone { width: 34px; height: 34px; border-radius: 50%; background: var(--cartao); border: 2px solid var(--borda); display: inline-flex;
+  align-items: center; justify-content: center; flex: none; font-size: 16px; }
+.linha-tempo small { display: block; color: var(--suave); }

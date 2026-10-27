@@ -51,7 +51,7 @@
     <strong class="marca"><img src="manu.png" alt=""><span id="nomeCentral">Central</span></strong>
     <nav>
       <button data-aba="inicio">🏠 Início</button>
-      <button data-aba="corridas" class="ativa">Corridas</button>
+      <button data-aba="corridas" class="ativa">🛣️ Viagens</button>
       <button data-aba="motoristas">Motoristas</button>
       <button data-aba="relatorio">Relatório</button>
       <button data-aba="divulgar">📣 Divulgar</button>
@@ -62,13 +62,33 @@
 
   <main>
     <section id="aba-corridas">
-      <div class="dica-manu"><img src="img/manu/manu-celular.webp" alt=""><div><b>As corridas aparecem aqui na hora!</b><span>Quando um cliente pede pelo WhatsApp, a corrida surge nesta tela e eu já chamo o motorista mais perto. 📲</span></div></div>
+      <div class="dica-manu"><img src="img/manu/manu-celular.webp" alt=""><div><b>As viagens aparecem aqui na hora!</b><span>Quando um cliente pede pelo WhatsApp, a viagem surge em <strong>Procurando motorista</strong> e eu já chamo o mais perto. Clique numa viagem para ver o passo a passo. 📲</span></div></div>
       <div class="linha">
-        <h2>Corridas</h2>
-        <label class="inline">Dia <input type="date" id="diaCorridas"></label>
+        <h2>Viagens</h2>
+        <button type="button" class="sec mini" id="som">🔕 Ligar som de pedido novo</button>
       </div>
-      <div class="kpis" id="kpisAgora"></div>
-      <div id="listaCorridas"></div>
+      <div class="kpis" id="kpisViagens"></div>
+
+      <h3 class="ao-vivo"><span class="pulso"></span> Ao vivo <small id="atualizado"></small></h3>
+      <div class="quadro-vivo">
+        <div class="coluna col-procurando"><div class="coluna-topo">🔎 Procurando motorista <b id="n-procurando">0</b></div><div id="col-procurando"></div></div>
+        <div class="coluna col-caminho"><div class="coluna-topo">🚗 Motorista a caminho <b id="n-caminho">0</b></div><div id="col-caminho"></div></div>
+        <div class="coluna col-viagem"><div class="coluna-topo">🛣️ Em viagem <b id="n-viagem">0</b></div><div id="col-viagem"></div></div>
+      </div>
+
+      <h3>✅ Viagens feitas</h3>
+      <div class="cartao filtros">
+        <label>De<input type="date" id="vDe"></label>
+        <label>Até<input type="date" id="vAte"></label>
+        <label>Situação<select id="vStatus">
+          <option value="">Todas</option><option value="finalizada">Finalizadas</option>
+          <option value="cancelada">Canceladas</option><option value="sem_motorista">Sem motorista</option>
+        </select></label>
+        <label>Motorista<select id="vMotorista"><option value="">Todos</option></select></label>
+        <label class="busca">Buscar<input id="vBusca" placeholder="nome, telefone, lugar ou nº"></label>
+      </div>
+      <div id="historico"></div>
+      <dialog id="detalheViagem" class="detalhe"></dialog>
     </section>
 
     <section id="aba-motoristas" hidden>

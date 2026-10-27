@@ -342,11 +342,59 @@ rota('GET', '/api/corridas', true, async ({ url }) => {
      ORDER BY c.id DESC LIMIT 300`, [dia]);
   return rows;
 });
+// ---- painel de viagens: ao vivo, histórico e detalhe de cada viagem
+const SQL_VIAGEM = `
+  SELECT c.id, c.status, c.tipo, c.passageiro_nome, c.passageiro_tel, c.origem_texto, c.destino_texto, c.km,
+         c.valor_estimado, c.valor_final, c.avaliacao, c.cancelado_por,
+         c.criado_em, c.aceita_em, c.chegou_em, c.iniciada_em, c.finalizada_em, c.cancelada_em,
+         m.id AS motorista_id, m.nome AS motorista_nome, m.telefone AS motorista_tel, m.carro, m.cor, m.placa,
+         o.nome AS oferta_nome, greatest(0, extract(epoch FROM c.oferta_expira - now()))::int AS oferta_resta,
+         (SELECT array_agg(x.nome ORDER BY array_position(c.ja_ofertados, x.id)) FROM motoristas x WHERE x.id = ANY(c.ja_ofertados)) AS chamados
+    FROM corridas c
+    LEFT JOIN motoristas m ON m.id = c.motorista_id
+    LEFT JOIN motoristas o ON o.id = c.oferta_motorista AND c.status = 'procurando'`;
+const DIA_LOCAL = "(c.criado_em AT TIME ZONE 'America/Campo_Grande')::date";
+
+rota('GET', '/api/viagens/ao-vivo', true, async () => {
+  const { rows: ativas } = await pool.query(`${SQL_VIAGEM}
+    WHERE c.status IN ('procurando', 'aceita', 'chegou', 'em_andamento') ORDER BY c.id`);
+  const { rows: [hoje] } = await pool.query(`
+    SELECT count(*) FILTER (WHERE status = 'finalizada')::int AS finalizadas,
+           count(*) FILTER (WHERE status IN ('cancelada', 'sem_motorista'))::int AS perdidas,
+           coalesce(sum(valor_final) FILTER (WHERE status = 'finalizada'), 0)::float AS faturamento,
+           (SELECT count(*)::int FROM motoristas WHERE ativo AND aprovado AND online) AS online,
+           to_char(now() AT TIME ZONE 'America/Campo_Grande', 'YYYY-MM-DD') AS dia
+      FROM corridas c WHERE ${DIA_LOCAL} = (now() AT TIME ZONE 'America/Campo_Grande')::date`);
+  return { ativas, hoje };
+});
+
+rota('GET', '/api/viagens', true, async ({ url }) => {
+  const q = url.searchParams;
+  const de = q.get('de'), ate = q.get('ate');
+  if (![de, ate].every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d || ''))) throw new Erro(400, 'Período inválido.');
+  const status = ['finalizada', 'cancelada', 'sem_motorista'].includes(q.get('status')) ? [q.get('status')] : ['finalizada', 'cancelada', 'sem_motorista'];
+  const motorista = Number(q.get('motorista')) || null;
+  const busca = texto(q.get('busca'), 60);
+  const { rows } = await pool.query(`${SQL_VIAGEM}
+    WHERE ${DIA_LOCAL} BETWEEN $1 AND $2 AND c.status = ANY($3)
+      AND ($4::int IS NULL OR c.motorista_id = $4)
+      AND ($5 = '' OR c.passageiro_nome ILIKE '%' || $5 || '%' OR (regexp_replace($5, '\\D', '', 'g') <> '' AND c.passageiro_tel LIKE '%' || regexp_replace($5, '\\D', '', 'g') || '%')
+           OR c.origem_texto ILIKE '%' || $5 || '%' OR c.destino_texto ILIKE '%' || $5 || '%' OR c.id::text = $5)
+    ORDER BY c.id DESC LIMIT 500`, [de, ate, status, motorista, busca]);
+  return rows;
+});
+
+rota('GET', '/api/viagens/:id', true, async ({ p }) => {
+  const { rows: [v] } = await pool.query(`${SQL_VIAGEM} WHERE c.id = $1`, [Number(p.id)]);
+  if (!v) throw new Erro(404, 'Viagem não encontrada.');
+  return v;
+});
+
 rota('POST', '/api/corridas/:id/cancelar', true, async ({ p }) => bot.rodar(async () => {
   const { rows: [c] } = await pool.query(
     "SELECT * FROM corridas WHERE id = $1 AND status IN ('procurando', 'aceita', 'chegou', 'em_andamento')", [Number(p.id)]);
   if (!c) throw new Erro(400, 'Essa corrida já terminou.');
-  await pool.query("UPDATE corridas SET status = 'cancelada', cancelado_por = 'central', oferta_motorista = NULL WHERE id = $1", [c.id]);
+  await pool.query("UPDATE corridas SET status = 'cancelada', cancelada_em = now(), cancelado_por = 'central', oferta_motorista = NULL WHERE id = $1", [c.id]);
   await bot.devolverCredito(c);
   whats.texto(c.passageiro_contato, `❌ Sua corrida #${c.id} foi cancelada pela central. Se precisar, mande *oi* para pedir outra.`);
   const avisar = c.motorista_id || c.oferta_motorista;
