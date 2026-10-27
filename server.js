@@ -194,6 +194,8 @@ rota('PUT', '/api/config', true, async ({ req }) => {
   }
   if (novo.numero_admin) novo.numero_admin = telefoneBR(novo.numero_admin);
   if (novo.numero_central) novo.numero_central = telefoneBR(novo.numero_central);
+  // "Miranda -MS", "Miranda/MS" ou "Miranda MS" → "Miranda, MS" (o mapa acha melhor com vírgula)
+  novo.cidade = String(novo.cidade || '').trim().replace(/\s*[-–/,]?\s*\b([A-Za-z]{2})$/, (m, uf) => ', ' + uf.toUpperCase()).replace(/^,\s*/, '');
   if (b.pacotes !== undefined) {
     // [{ qtd: 10, preco: 9.5 }, ...]: uma quantidade só aparece uma vez, do menor para o maior
     const vistos = new Set();
