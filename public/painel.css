@@ -104,3 +104,5 @@ textarea { font: inherit; font-size: 16px; width: 100%; padding: 12px; border: 1
   .cartaz-passo { font-size: 22px; margin: 16px 0; }
   .cartaz-fone { font-size: 24px; } .cartaz-fone b { font-size: 36px; }
 }
+#tabelaPacotes input[type=number] { width: 140px; margin: 0; padding: 10px; }
+.desconto { color: var(--verde); }

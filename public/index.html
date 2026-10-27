@@ -113,12 +113,16 @@
         <label class="inline"><input type="checkbox" name="cobranca_ativa"> Cobrar por viagem</label>
         <label class="inline"><input type="checkbox" name="mp_ativo"> Pix automático pelo Mercado Pago (libera as viagens na hora) <span id="mpSituacao" class="dica"></span></label>
         <div class="grade">
-          <label>Valor de cada viagem (R$)<input name="valor_viagem" type="number" step="0.05" min="0"></label>
-          <label>Pacotes à venda (quantidade de viagens)<input name="pacotes" placeholder="10, 20, 50"></label>
           <label>Viagens grátis ao aprovar motorista<input name="creditos_boas_vindas" type="number" min="0" step="1"></label>
           <label>Chave Pix manual (usada sem Mercado Pago)<input name="pix_chave" placeholder="CPF, celular, e-mail ou chave aleatória"></label>
           <label>Nome de quem recebe o Pix<input name="pix_nome"></label>
         </div>
+
+        <h3>Pacotes de viagens</h3>
+        <p class="dica">Coloque a quantidade de viagens e o preço do pacote. O valor de cada viagem e o desconto são calculados sozinhos
+          (o desconto é em relação ao pacote mais caro por viagem). O motorista vê a lista quando manda <b>COMPRAR</b>.</p>
+        <div class="tabela"><table id="tabelaPacotes"></table></div>
+        <p><button type="button" class="sec" id="maisPacote">+ Adicionar pacote</button></p>
 
         <h3>Preços por veículo</h3>
         <p class="dica">Valor = taxa base + km × valor por km, nunca abaixo do mínimo. Desmarque um tipo para não oferecê-lo ao passageiro.</p>

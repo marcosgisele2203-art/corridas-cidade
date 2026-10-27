@@ -195,9 +195,13 @@ rota('PUT', '/api/config', true, async ({ req }) => {
   if (novo.numero_admin) novo.numero_admin = telefoneBR(novo.numero_admin);
   if (novo.numero_central) novo.numero_central = telefoneBR(novo.numero_central);
   if (b.pacotes !== undefined) {
-    // "10, 20, 50" → [10, 20, 50]
-    novo.pacotes = [...new Set(String(b.pacotes).split(/[^\d]+/).map(Number).filter((n) => n > 0 && n <= 1000))].sort((x, y) => x - y).slice(0, 6);
-    if (!novo.pacotes.length) throw new Erro(400, 'Informe pelo menos um pacote de viagens (ex.: 10, 20, 50).');
+    // [{ qtd: 10, preco: 9.5 }, ...]: uma quantidade só aparece uma vez, do menor para o maior
+    const vistos = new Set();
+    novo.pacotes = (Array.isArray(b.pacotes) ? b.pacotes : [])
+      .map((p) => ({ qtd: Math.trunc(numero(p.qtd, 0)), preco: Math.round(numero(String(p.preco).replace(',', '.'), 0) * 100) / 100 }))
+      .filter((p) => p.qtd > 0 && p.qtd <= 10000 && p.preco > 0 && p.preco <= 100000 && !vistos.has(p.qtd) && vistos.add(p.qtd))
+      .sort((x, y) => x.qtd - y.qtd).slice(0, 12);
+    if (!novo.pacotes.length) throw new Erro(400, 'Cadastre pelo menos um pacote de viagens com quantidade e preço.');
   }
   if (b.precos) {
     novo.precos = {};

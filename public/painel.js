@@ -354,7 +354,7 @@ $('#divulgar').onclick = async (e) => {
 // ---------------------------------------------------------------- configurações
 
 const CAMPOS = ['nome', 'cidade', 'numero_admin', 'numero_central', 'comissao_pct', 'oferta_segundos', 'fator_rota',
-  'valor_viagem', 'creditos_boas_vindas', 'pix_chave', 'pix_nome'];
+  'creditos_boas_vindas', 'pix_chave', 'pix_nome'];
 const reaisCurto = (v) => 'R$ ' + (Math.ceil(v * 2) / 2).toFixed(2).replace('.', ',');
 async function carregarConfig() {
   const c = await api('GET', '/api/config');
@@ -365,7 +365,7 @@ async function carregarConfig() {
   f.cobranca_ativa.checked = !!c.cobranca_ativa;
   f.mp_ativo.checked = c.mp_ativo !== false;
   $('#mpSituacao').textContent = c.mp_configurado ? '· ✅ conectado' : '· ⚠️ falta o MP_ACCESS_TOKEN no Easypanel';
-  f.pacotes.value = (c.pacotes || []).join(', ');
+  desenharPacotes(c.pacotes || []);
   $('#tabelaPrecos').innerHTML = `<tr><th>Oferecer</th><th>Veículo</th><th>Taxa base</th><th>Por km</th><th>Mínimo</th><th>3 km</th><th>10 km</th></tr>` +
     Object.keys(TIPOS).map((t) => `<tr data-tipo="${t}">
       <td><input type="checkbox" data-c="ativo" ${c.precos[t].ativo ? 'checked' : ''}></td>
@@ -376,6 +376,40 @@ async function carregarConfig() {
       <td class="ex3"></td><td class="ex10"></td></tr>`).join('');
   simular();
 }
+// ---- pacotes de viagens: quantidade + preço; valor de cada viagem e desconto calculados
+function desenharPacotes(lista) {
+  $('#tabelaPacotes').innerHTML = `<tr><th>Viagens</th><th>Preço do pacote (R$)</th><th class="num">Cada viagem</th><th class="num">Desconto</th><th></th></tr>` +
+    lista.map((p) => `<tr class="pacote">
+      <td><input type="number" min="1" step="1" data-p="qtd" value="${p.qtd ?? ''}" placeholder="10"></td>
+      <td><input type="number" min="0" step="0.5" data-p="preco" value="${p.preco ?? ''}" placeholder="9,50"></td>
+      <td class="num cada"></td><td class="num desc"></td>
+      <td><button type="button" class="mini sec" data-remover>Remover</button></td></tr>`).join('');
+  calcularPacotes();
+}
+function lerPacotes() {
+  return [...document.querySelectorAll('#tabelaPacotes tr.pacote')].map((tr) => ({
+    qtd: tr.querySelector('[data-p=qtd]').value, preco: tr.querySelector('[data-p=preco]').value,
+  })).filter((p) => p.qtd !== '' || p.preco !== '');
+}
+function calcularPacotes() {
+  const linhas = [...document.querySelectorAll('#tabelaPacotes tr.pacote')];
+  const cada = linhas.map((tr) => Number(tr.querySelector('[data-p=preco]').value) / Number(tr.querySelector('[data-p=qtd]').value));
+  const cheio = Math.max(0, ...cada.filter((v) => Number.isFinite(v) && v > 0));
+  linhas.forEach((tr, i) => {
+    const ok = Number.isFinite(cada[i]) && cada[i] > 0;
+    tr.querySelector('.cada').textContent = ok ? reais(cada[i]) : '—';
+    const d = ok && cheio ? Math.round((1 - cada[i] / cheio) * 100) : 0;
+    tr.querySelector('.desc').innerHTML = d > 0 ? `<b class="desconto">${d}% off</b>` : '—';
+  });
+}
+$('#tabelaPacotes').oninput = calcularPacotes;
+$('#tabelaPacotes').onclick = (e) => { if ('remover' in e.target.dataset) { e.target.closest('tr').remove(); calcularPacotes(); } };
+$('#maisPacote').onclick = () => {
+  desenharPacotes([...lerPacotes(), {}]);
+  const ultimas = document.querySelectorAll('#tabelaPacotes [data-p=qtd]');
+  ultimas[ultimas.length - 1].focus();
+};
+
 function lerPrecos() {
   const precos = {};
   document.querySelectorAll('#tabelaPrecos tr[data-tipo]').forEach((tr) => {
@@ -398,7 +432,7 @@ $('#formConfig').onsubmit = async (e) => {
   e.preventDefault();
   const f = e.target, corpo = {
     aceitando: f.aceitando.checked, aprovar_automatico: f.aprovar_automatico.checked,
-    cobranca_ativa: f.cobranca_ativa.checked, mp_ativo: f.mp_ativo.checked, pacotes: f.pacotes.value, precos: lerPrecos(),
+    cobranca_ativa: f.cobranca_ativa.checked, mp_ativo: f.mp_ativo.checked, pacotes: lerPacotes(), precos: lerPrecos(),
   };
   CAMPOS.forEach((k) => corpo[k] = f[k].value);
   try {

@@ -87,13 +87,15 @@ O passageiro paga a corrida direto ao motorista (dinheiro ou Pix).
 
 ## Viagens pré-pagas (como a central ganha)
 
-O motorista **compra viagens antes** (padrão: **R$ 1,00 por viagem**, pacotes de 10, 20 e 50).
+O motorista **compra pacotes de viagens antes**. Em Painel › Configurações › *Pacotes de viagens* você cadastra cada pacote
+com a **quantidade** e o **preço** (ex.: 1 = R$ 1,00 · 10 = R$ 8,00 · 100 = R$ 55,00); o painel calcula o valor de cada
+viagem e o **desconto**, que aparecem para o motorista no WhatsApp.
 Cada corrida aceita usa 1 viagem; **sem saldo ele não recebe chamadas**. Se o passageiro ou a central cancelar
 antes da corrida começar, a viagem volta para ele. Motorista novo ganha **3 viagens grátis** ao ser aprovado.
 
 ```
 Motorista: COMPRAR
-Central:   10 viagens · R$ 10,00 → COMPRAR 10 / 20 viagens · R$ 20,00 → COMPRAR 20 / ...
+Central:   1 viagem · R$ 1,00 / 10 viagens · R$ 8,00 (R$ 0,80 cada · 20% off) → COMPRAR 10 / ...
 Motorista: COMPRAR 20
 Central:   Pedido #7 · R$ 20,00 + QR Code + Pix copia e cola (vale 30 min)
            ... paga no banco ...
