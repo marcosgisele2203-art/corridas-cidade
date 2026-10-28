@@ -4,7 +4,7 @@ const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const reais = (v) => (v == null ? '—' : 'R$ ' + Number(v).toFixed(2).replace('.', ','));
 const hora = (d) => (d ? new Date(d).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '');
 const hoje = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-const TIPOS = { moto: '🏍️ Moto', carro: '🚗 Carro', van: '🚐 Van', caminhao: '🚚 Caminhão' };
+const TIPOS = { moto: 'Moto', carro: 'Carro', van: 'Van', caminhao: 'Caminhão' };
 const veiculo = (m) => esc([m.carro, m.cor].filter(Boolean).join(' '));
 // tela vazia com a Manu
 const vazio = (titulo, texto) => `<div class="vazio"><img src="img/manu/manu-joinha.webp" alt=""><b>${titulo}</b>${texto ? `<span>${texto}</span>` : ''}</div>`;
@@ -55,7 +55,7 @@ document.querySelectorAll('header nav button').forEach((b) => b.onclick = () => 
 // ---- tela inicial: cartões de cada área, com avisos do que precisa de atenção
 const AREAS = [
   { aba: 'corridas', icone: '🛣️', titulo: 'Viagens', texto: 'Ao vivo: quem pediu, qual motorista aceitou e as viagens em andamento. E todas as que já foram feitas.' },
-  { aba: 'motoristas', icone: '🚘', titulo: 'Motoristas', texto: 'Aprove cadastros, libere viagens compradas e veja quem está online.' },
+  { aba: 'motoristas', icone: '', titulo: 'Motoristas', texto: 'Aprove cadastros, libere viagens compradas e veja quem está online.' },
   { aba: 'relatorio', icone: '📊', titulo: 'Relatório', texto: 'O geral da central e o individual de cada motorista, para imprimir ou mandar.' },
   { aba: 'divulgar', icone: '📣', titulo: 'Divulgar', texto: 'Links, QR Code, cartaz e as artes da Vai de Manu para postar.' },
   { aba: 'config', icone: '⚙️', titulo: 'Configurações', texto: 'Nome, cidade, preços, pacotes de viagens, Pix e Mercado Pago.' },
@@ -69,7 +69,7 @@ async function carregarInicio() {
     </a>`);
   cartoes.push(`
     <a class="painel-cartao" href="/motorista" target="_blank" rel="noopener">
-      <span class="painel-topo"><span class="painel-icone">🚘</span><span class="painel-aviso">Abre em outra aba</span></span>
+      <span class="painel-topo"><span class="painel-icone"></span><span class="painel-aviso">Abre em outra aba</span></span>
       <b>Área do motorista</b><span class="painel-texto">A página onde o motorista se cadastra, compra viagens e vê o relatório dele.</span>
       <span class="painel-abrir">Ver como o motorista vê <i>→</i></span>
     </a>`);
@@ -507,8 +507,8 @@ async function carregarDivulgar() {
       Preencha <b>WhatsApp da central</b> em Configurações e volte aqui.</p>`;
     return;
   }
-  const textoPassageiro = `🚗 *${d.nome}*\nPrecisa de uma corrida? Peça pelo WhatsApp, rapidinho!\n🏍️ Moto · 🚗 Carro · 🚐 Van · 🚚 Frete\n\n👉 ${d.passageiro}\n📞 ${foneBR(d.numero)}`;
-  const textoMotorista = `🚘 *${d.nome}* está cadastrando motoristas!\nMoto, carro, van ou caminhão. Cadastro pelo WhatsApp em 1 minuto.\n\n👉 ${d.motorista}`;
+  const textoPassageiro = ` *${d.nome}*\nPrecisa de uma corrida? Peça pelo WhatsApp, rapidinho!\n Moto ·  Carro ·  Van ·  Frete\n\n👉 ${d.passageiro}\n📞 ${foneBR(d.numero)}`;
+  const textoMotorista = ` *${d.nome}* está cadastrando motoristas!\nMoto, carro, van ou caminhão. Cadastro pelo WhatsApp em 1 minuto.\n\n👉 ${d.motorista}`;
   caixa.innerHTML = `
     <div class="cartao divulga nao-imprimir">
       <h3>👥 Para passageiros</h3>
@@ -525,7 +525,7 @@ async function carregarDivulgar() {
       </div>
     </div>
     <div class="cartao divulga nao-imprimir">
-      <h3>🚘 Para motoristas</h3>
+      <h3> Para motoristas</h3>
       <div class="divulga-grade">
         <div class="qr">${d.qr_motorista}</div>
         <div>
@@ -538,9 +538,9 @@ async function carregarDivulgar() {
       </div>
     </div>
     <div class="cartaz">
-      <h1>🚗 ${esc(d.nome)}</h1>
+      <h1> ${esc(d.nome)}</h1>
       <p class="cartaz-sub">Peça sua corrida pelo WhatsApp</p>
-      <p class="cartaz-tipos">🏍️ Moto · 🚗 Carro · 🚐 Van · 🚚 Frete</p>
+      <p class="cartaz-tipos"> Moto ·  Carro ·  Van ·  Frete</p>
       <div class="qr">${d.qr_passageiro}</div>
       <p class="cartaz-passo">Aponte a câmera do celular aqui 👆</p>
       <p class="cartaz-fone">ou chame no WhatsApp<br><b>${foneBR(d.numero)}</b></p>
