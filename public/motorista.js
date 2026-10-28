@@ -3,7 +3,7 @@ const $ = (s) => document.querySelector(s);
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const reais = (v) => (v == null ? '—' : 'R$ ' + Number(v).toFixed(2).replace('.', ','));
 const hoje = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-const TIPOS = { moto: '🏍️ Moto', carro: '🚗 Carro', van: '🚐 Van', caminhao: '🚚 Caminhão' };
+const TIPOS = { moto: 'Moto', carro: 'Carro', van: 'Van', caminhao: 'Caminhão' };
 const MODELO = { moto: 'Honda Titan 160', carro: 'VW Gol', van: 'Sprinter', caminhao: 'Mercedes 710 baú' };
 
 async function api(metodo, caminho, corpo) {
