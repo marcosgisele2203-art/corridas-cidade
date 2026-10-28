@@ -642,6 +642,24 @@ rota('POST', '/api/motorista/online', false, async ({ req }) => {
   });
 });
 
+// GPS do motorista: coordenadas vinculadas à sessão autenticada e aceitas somente online.
+rota('POST', '/api/motorista/gps', false, async ({ req }) => {
+  const m = await exigirMotorista(req);
+  limitar('gps:' + m.id, 180, 60_000);
+  const b = await lerCorpo(req);
+  if (b.ativo === false) {
+    await pool.query('UPDATE motoristas SET lat = NULL, lng = NULL, local_em = NULL WHERE id = $1', [m.id]);
+    return { ok: true, ativo: false };
+  }
+  if (!m.online || !m.aprovado) throw new Erro(409, 'Fique online e tenha o cadastro aprovado antes de ativar o GPS.');
+  const lat = Number(b.lat), lng = Number(b.lng), precisao = Number(b.precisao);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180 ||
+      !Number.isFinite(precisao) || precisao < 0 || precisao > 5000) throw new Erro(400, 'Localização inválida ou sem precisão suficiente.');
+  await pool.query('UPDATE motoristas SET lat = $2, lng = $3, local_em = now() WHERE id = $1 AND online AND aprovado',
+    [m.id, lat, lng]);
+  return { ok: true, ativo: true };
+});
+
 rota('PUT', '/api/motorista/eu', false, async ({ req }) => {
   const m = await exigirMotorista(req);
   const b = await lerCorpo(req);
