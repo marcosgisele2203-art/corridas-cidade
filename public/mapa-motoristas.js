@@ -1,1 +1,2 @@
-// Atualização do mapa de motoristas na central.
+// Mostra mapa administrativo
+(function(){let mapa;function iniciar(){const area=document.getElementById('centralMapaMotoristas');if(!area||area.closest('section').hidden||!window.L)return;if(!mapa){mapa=L.map(area).setView([-20.239,-56.378],13);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapa)}mapa.invalidateSize()}setInterval(iniciar,12000);document.querySelectorAll('[data-aba="motoristas"]').forEach(el=>el.addEventListener('click',()=>setTimeout(iniciar,500)));})();
