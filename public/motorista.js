@@ -207,7 +207,11 @@ $('#relDe').onchange = $('#relAte').onchange = () => carregarRelatorio();
 $('#imprimir').onclick = () => window.print();
 async function carregarRelatorio() {
   if (!$('#relDe').value) { $('#relDe').value = hoje().slice(0, 8) + '01'; $('#relAte').value = hoje(); }
-  const r = await api('GET', `/api/motorista/relatorio?de=${$('#relDe').value}&ate=${$('#relAte').value}`);
+  const de = $('#relDe').value, ate = $('#relAte').value;
+  const r = await api('GET', `/api/motorista/relatorio?de=${de}&ate=${ate}`);
+  const dataRelatorio = (data) => data.split('-').reverse().join('/');
+  $('#identificacaoRelatorio').textContent = 'Motorista: ' + r.motorista.nome +
+    ' · Período: ' + dataRelatorio(de) + ' a ' + dataRelatorio(ate);
   const t = r.totais, v = r.viagens;
   $('#kpisRel').innerHTML = [
     ['Corridas feitas', t.finalizadas], ['Canceladas', t.canceladas], ['Total das corridas', reais(t.ganhos)],
