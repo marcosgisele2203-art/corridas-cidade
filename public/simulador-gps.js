@@ -19,6 +19,6 @@
  caixa.querySelector('#simIniciar').onclick=iniciar;
  caixa.querySelector('#simPausar').onclick=()=>{if(timer){clearInterval(timer);timer=null;caixa.querySelector('#simStatus').textContent='Simulacao pausada.';}};
  caixa.querySelector('#simParar').onclick=parar;
- const attach=()=>{const gps=document.getElementById('painelGps');if(gps&&typeof eu!=='undefined'&&eu?.central?.simulador_gps){if(!caixa.isConnected)gps.append(caixa);}else if(caixa.isConnected){parar();caixa.remove();}};
+ const attach=()=>{const gps=document.getElementById('painelGps');if(!gps)return;const configurado=typeof eu!=='undefined'&&eu?.central?.simulador_gps===true;if(configurado){if(!caixa.isConnected)gps.append(caixa);}else {if(caixa.isConnected){parar();caixa.remove();}let aviso=document.getElementById('simuladorDiagnostico');if(!aviso){aviso=document.createElement('p');aviso.id='simuladorDiagnostico';aviso.className='dica';gps.append(aviso);}aviso.textContent=typeof eu==='undefined'||!eu?'Simulador: aguardando login.':'Simulador: desativado na configuracao recebida do servidor.';return;}const aviso=document.getElementById('simuladorDiagnostico');if(aviso)aviso.remove();};
  setInterval(attach,1500);attach();
 })();
