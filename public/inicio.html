@@ -15,15 +15,15 @@
 </head>
 <body class="pagina-inicio">
 <div class="inicio-vai">
-  <header class="inicio-marca"><span class="inicio-logo nome-central">Vai de Manu</span><span class="inicio-selo">🚗 Sua central pelo WhatsApp</span></header>
+  <header class="inicio-marca"><span class="inicio-logo nome-central">Vai de Manu</span><span class="inicio-selo"> Sua central pelo WhatsApp</span></header>
   <main class="inicio-conteudo">
     <div class="inicio-apresentacao">
       <img src="img/manu/manu-celular.webp" alt="Manu, mascote da Vai de Manu, com um celular">
-      <div class="inicio-intro"><div class="inicio-balao">Oi! Eu sou a Manu! <span>💗</span></div><h1 class="nome-central">Vai de Manu</h1><p>Seu transporte, do seu jeito, pelo WhatsApp!</p><div id="tiposInicio" class="inicio-tipos">🏍️ Moto · 🚗 Carro · 🚐 Van · 🚚 Frete</div></div>
+      <div class="inicio-intro"><div class="inicio-balao">Oi! Eu sou a Manu! <span>💗</span></div><h1 class="nome-central">Vai de Manu</h1><p>Seu transporte, do seu jeito, pelo WhatsApp!</p><div id="tiposInicio" class="inicio-tipos"> Moto ·  Carro ·  Van ·  Frete</div></div>
     </div>
     <div class="inicio-cartoes">
-      <a class="inicio-cartao" id="cartaoPassageiro" href="/passageiro"><span class="inicio-icone icone-rosa" aria-hidden="true">🛵</span><span class="inicio-detalhes"><strong>Sou passageiro</strong><span>Peça pelo site ou converse pelo WhatsApp.</span><span class="inicio-botao">🚗 Solicitar viagem <b>→</b></span><small class="painel-aviso">Sem cadastro</small></span></a>
-      <a class="inicio-cartao" href="/motorista"><span class="inicio-icone icone-amarelo" aria-hidden="true">🚘</span><span class="inicio-detalhes"><strong>Sou motorista</strong><span>Faça seu cadastro, fique online e acompanhe suas viagens.</span><span class="inicio-botao">Área do motorista <b>→</b></span></span></a>
+      <a class="inicio-cartao" id="cartaoPassageiro" href="/passageiro"><span class="inicio-icone icone-rosa" aria-hidden="true"><svg class="icone-veiculo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="17" r="3"/><circle cx="19" cy="17" r="3"/><path d="m5 17 5-8 5 8H5m5-8h6l3 8M14 5h3l2 6M8 9H5"/></svg></span><span class="inicio-detalhes"><strong>Sou passageiro</strong><span>Peça pelo site ou converse pelo WhatsApp.</span><span class="inicio-botao"> Solicitar viagem <b>→</b></span><small class="painel-aviso">Sem cadastro</small></span></a>
+      <a class="inicio-cartao" href="/motorista"><span class="inicio-icone icone-amarelo" aria-hidden="true"><svg class="icone-veiculo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 10 2-5h10l2 5M3 10h18v8H3zM5 18v2m14-2v2M6 14h2m8 0h2"/></svg></span><span class="inicio-detalhes"><strong>Sou motorista</strong><span>Faça seu cadastro, fique online e acompanhe suas viagens.</span><span class="inicio-botao">Área do motorista <b>→</b></span></span></a>
       <a class="inicio-cartao" href="/painel"><span class="inicio-icone icone-rosa" aria-hidden="true">📊</span><span class="inicio-detalhes"><strong>Administração</strong><span>Acesse o painel para acompanhar e gerenciar a central.</span><span class="inicio-botao">🔒 Entrar no painel <b>→</b></span></span></a>
     </div>
   </main>
@@ -35,7 +35,7 @@ fetch('/api/publico/inicio').then((r) => r.json()).then((d) => {
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   if (d.nome) { document.querySelectorAll('.nome-central').forEach((el) => el.textContent = d.nome); document.title = d.nome + ' · Corridas pelo WhatsApp'; }
   if (d.cidade) document.getElementById('cidadeInicio').textContent = d.cidade;
-  const nomes = { moto: '🏍️ Moto', carro: '🚗 Carro', van: '🚐 Van', caminhao: '🚚 Frete' };
+  const nomes = { moto: 'Moto', carro: 'Carro', van: 'Van', caminhao: 'Frete' };
   if (d.tipos && d.tipos.length) document.getElementById('tiposInicio').textContent = d.tipos.map((t) => nomes[t]).join(' · ');
   const c = document.getElementById('cartaoPassageiro');
   if (d.numero) {
