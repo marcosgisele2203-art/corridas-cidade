@@ -607,7 +607,7 @@ rota('GET', '/api/motorista/eu', false, async ({ req }) => {
   return {
     motorista: { id: m.id, nome: m.nome, telefone: m.telefone, tipo: m.tipo, carro: m.carro, cor: m.cor, placa: m.placa,
       aprovado: m.aprovado, online: m.online, saldo: m.creditos, veiculo: veiculo(m) },
-    modo_teste: MODO_TESTE_SITE,
+    simulador_gps: limparVar(process.env.GPS_SIMULADOR_TESTE) === 'true',
     central: { nome: cfg.nome, cobranca: !!cfg.cobranca_ativa, mp: MP.configurado() && cfg.mp_ativo !== false, pix_chave: cfg.pix_chave, pix_nome: cfg.pix_nome },
     pacotes: pacotesComDesconto(cfg),
     compra: compra ? { ...compra, qr: compra.pix_copia_cola ? await QRCode.toString(compra.pix_copia_cola, { type: 'svg', margin: 1 }) : '' } : null,
