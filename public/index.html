@@ -115,6 +115,11 @@
         <div class="linha"><button>Salvar</button><button type="button" class="sec" id="cancelarMotorista">Cancelar</button></div>
         <p class="erro" id="erroMotorista"></p>
       </form>
+      <div class="cartao" id="centralMapaCard" style="margin:14px 0">
+        <div class="linha"><h3>🗺️ Motoristas no mapa</h3><span class="dica" id="centralMapaStatus" role="status">Carregando localizações...</span></div>
+        <div id="centralMapaMotoristas" style="height:370px;max-width:100%;border-radius:14px;background:#eaf0ee" aria-label="Mapa dos motoristas com GPS ativo"></div>
+        <p class="dica">Somente motoristas online com GPS recente aparecem no mapa. Atualização aproximada a cada 12 segundos.</p>
+      </div>
       <div id="compras"></div>
       <div id="pendentes"></div>
       <div id="listaMotoristas"></div>
@@ -204,6 +209,8 @@
     </section>
   </main>
 </div>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="painel.js"></script>
 </body>
 </html>
