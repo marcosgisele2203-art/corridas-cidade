@@ -379,3 +379,94 @@ a.entrada-cadeado { color: var(--cor-escura); font-weight: 700; text-decoration:
 }
 @media(max-width:340px) { .inicio-icone { width:43px; height:43px; font-size:22px; } .inicio-cartao { gap:10px; } .inicio-detalhes strong { font-size:21px; } }
 }
+
+/* Interface moderna do sistema: identidade Manu com foco na viagem. */
+@media screen {
+:root {--letra-marca:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;--fundo:#f5f6f8;--cartao:#fff;--texto:#17251f;--suave:#647169;--borda:#e4e9e6;--cor:#097d4c;--cor-escura:#05643c;--cor-clara:#eaf5ee}
+body {font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px}
+h1,h2,h3 {letter-spacing:-.035em;font-weight:750}
+button,a.botao {box-shadow:none;border-radius:14px;font-weight:650;min-height:48px}
+button:active {transform:translateY(1px);box-shadow:none}
+button.sec {box-shadow:none;background:#fff}
+input,select,textarea {background:#f6f8f7;border:1px solid #e1e7e3;font-size:16px}
+header {border-bottom:1px solid #e4e9e6;background:#fff;box-shadow:none!important}
+header::after {display:none}
+header .marca {font-size:21px;color:#17251f}
+header .marca img {width:38px;height:38px}
+header nav button {font-size:15px;box-shadow:none}
+.cartao,.kpi,.coluna {border-radius:18px;box-shadow:none!important}
+.kpi {border-top-width:3px}
+.kpi b {font-family:inherit;font-size:30px;letter-spacing:-.04em}
+.dica-manu {background:#fff;border-color:#e4e9e6;padding:14px 18px;gap:12px}
+.dica-manu img {width:40px;height:48px;margin:0;filter:none}
+.dica-manu b {font-size:18px;color:#17251f}
+.dica-manu span {font-size:14px;color:#647169}
+.status-online {border-left-width:4px}
+.status-online b {font-size:30px}
+.corrida-agora {border-left-width:4px}
+.pacote b {font-size:40px}
+.pacote strong {font-size:25px}
+.pacote-off {background:#17251f}
+.login-arte {display:none}
+.login-caixa {max-width:460px;grid-template-columns:1fr}
+.login-manu {width:64px;height:64px}
+.marca-grande {font-size:32px;color:#17251f;text-shadow:none}
+.entrada::before {background:#f5f6f8;filter:none}
+.entrada {color:#17251f}
+.entrada-manu {display:none}
+.entrada {grid-template-columns:1fr}
+.entrada-quadro {box-shadow:none;background:white;border:1px solid #e4e9e6}
+.entrada-topo h1 span {color:#097d4c}
+.pagina-inicio .inicio-vai {background:#f5f6f8;color:#17251f}
+.inicio-logo {color:#17251f;text-shadow:none}
+.inicio-selo,.inicio-rodape {color:#647169}
+.inicio-intro h1 {color:#17251f;text-shadow:none;font-size:clamp(38px,5vw,64px)}
+.inicio-intro p {color:#647169;font-weight:500}
+.inicio-balao {background:#eaf5ee;color:#097d4c}
+.inicio-tipos {background:#e8eeeb;color:#344b3c}
+.inicio-cartao {box-shadow:none;border:1px solid #e4e9e6}
+.inicio-detalhes strong {font-family:inherit;font-size:23px}
+.inicio-apresentacao img {max-height:170px}
+.passageiro {max-width:1120px;padding:24px;margin:auto}
+.passageiro>a:first-child {font-size:14px;text-decoration:none}
+.passageiro .marca-tela {margin:24px 0;gap:12px}
+.passageiro .marca-tela img {width:42px;height:54px}
+.passageiro .marca-tela small {font-size:11px;letter-spacing:.14em;font-weight:750}
+.passageiro .marca-tela h1 {font-size:36px}
+.passageiro .marca-tela .dica {margin:5px 0 0;font-size:14px}
+.passageiro .cartao {padding:28px;border:1px solid #e4e9e6}
+.passageiro #acesso,.passageiro #viagem {max-width:560px;margin:24px auto}
+.passageiro h2 {font-size:25px}
+.passageiro label {font-size:13px;font-weight:650;margin:12px 0}
+.passageiro input,.passageiro select {margin-top:7px;padding:15px;min-height:54px}
+.passageiro .aviso {background:#eaf5ee;border-radius:14px;font-size:14px}
+.passageiro #modoTeste {padding:10px 14px;margin:12px 0;font-size:12px}
+.passageiro #pedido {position:relative;width:420px;min-height:620px}
+.passageiro #mapaArea {position:absolute;left:calc(100% + 20px);top:0;width:calc(1080px - 440px);max-width:calc(100vw - 500px);background:#fff;border:1px solid #e4e9e6;border-radius:20px;overflow:hidden}
+.passageiro #mapa {height:520px!important;border-radius:0!important}
+.passageiro #mapaInstrucao {padding:0 18px;font-size:14px;font-weight:650}
+.passageiro #pontosMapa {padding:0 18px;font-size:12px;color:#647169}
+.passageiro .botoes {gap:8px;margin:14px 0}
+.passageiro .botoes button {background:#edf2ef;color:#254332;padding:9px 12px;font-size:12px;min-height:40px;border-radius:10px;flex:1}
+.passageiro #localAtual {flex-basis:100%;background:#eaf5ee;color:#097d4c}
+.passageiro #cotar,.passageiro #confirmar,.passageiro #enviar,.passageiro #novaViagem {width:100%}
+.passageiro #cancelarViagem {background:#fff1f0;color:#a42a25;width:100%}
+.passageiro #estado {font-size:17px;font-weight:650;padding:20px;line-height:1.7}
+.passageiro #detalheViagem {font-size:15px;color:#647169}
+.passageiro>p:last-child {text-align:center;font-size:14px}
+.passageiro #estimativa {margin-top:16px;padding:16px}
+.passageiro #resumo {font-size:18px;font-weight:750;color:#17251f}
+@media(max-width:800px) {
+.passageiro {padding:18px 14px 32px}
+.passageiro .marca-tela h1 {font-size:30px}
+.passageiro #pedido {width:100%;min-height:0;display:flex;flex-direction:column;padding:20px}
+.passageiro #pedido h2 {order:-3}
+.passageiro #mapaArea {position:static;width:auto;max-width:none;order:-2;margin:0 -20px 12px;border-radius:0;border-left:0;border-right:0}
+.passageiro #mapa {height:280px!important}
+.passageiro #acesso,.passageiro #viagem {margin:20px 0}
+.passageiro .cartao {padding:22px}
+header {gap:10px;padding:12px}
+header nav {overflow:auto;flex-wrap:nowrap;width:100%}
+header nav button {white-space:nowrap;font-size:13px;padding:10px}
+}
+}
