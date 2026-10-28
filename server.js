@@ -696,7 +696,24 @@ rota('GET', '/api/mensagens', true, async () => whats.enviados.slice(-50).revers
 /* Solicitação de viagem pelo site, com telefone confirmado por código. */
 const geoPassageiro = require('./lib/geo');
 const hashPassageiro = (t,c) => crypto.createHmac('sha256','passageiro:'+segredoMotorista).update(t+':'+c).digest('hex');
+function visitante(req) {
+  const m=/(?:^|;\s*)cp_visitante=(\d+)\.([a-f0-9]{32})\.(\d+)\.([a-f0-9]{64})/.exec(req.headers.cookie||'');
+  if(!m || Number(m[3])<Date.now()) return null;
+  const sig=hashPassageiro(m[1],m[2]+':'+m[3]);
+  if(m[4].length!==sig.length || !crypto.timingSafeEqual(Buffer.from(m[4]),Buffer.from(sig))) return null;
+  return {tel:m[1],id:m[2]};
+}
+rota('POST','/api/passageiro/visitante',false,async({req,res})=>{
+  limitar('visitante:'+ipDe(req),15,15*60_000);
+  const b=await lerCorpo(req),tel=telefoneBR(b.telefone), atual=visitante(req);
+  const id=atual && atual.tel===tel ? atual.id : crypto.randomBytes(16).toString('hex');
+  const exp=String(Date.now()+24*3600_000),sig=hashPassageiro(tel,id+':'+exp);
+  const secure=String(req.headers['x-forwarded-proto']||'').includes('https')?'; Secure':'';
+  res.setHeader('Set-Cookie',`cp_visitante=${tel}.${id}.${exp}.${sig}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${secure}`);
+  return {ok:true};
+});
 function sessaoPassageiro(req) {
+  const guest=visitante(req); if(guest) return guest.tel;
   const m=/(?:^|;\s*)cp_sessao=(\d+)\.(\d+)\.([\w-]+)/.exec(req.headers.cookie||'');
   if(!m || Number(m[2])<Date.now()) throw new Erro(401,'Confirme seu WhatsApp novamente.');
   const sig=hashPassageiro(m[1],m[2]);
@@ -743,7 +760,7 @@ rota('POST','/api/passageiro/cotacao',false,async({req})=>{
   const [o,d]=await Promise.all([b.origemPonto ? ponto(b.origemPonto) : geoPassageiro.buscarEndereco(origem,cfg),b.destinoPonto ? ponto(b.destinoPonto) : geoPassageiro.buscarEndereco(destino,cfg)]);
   if(!o || !d) throw new Erro(400, !o && !d ? 'Não encontramos a origem nem o destino. Marque os pontos no mapa.' : !o ? 'Não encontramos a origem. Marque o ponto no mapa.' : 'Não encontramos o destino. Marque o ponto no mapa.');
   const km=geoPassageiro.kmRota(o,d,cfg),valor=geoPassageiro.preco(km,cfg.precos[tipo]);
-  const payload={tel,nome,origem,destino,o,d,tipo,km,valor,exp:Date.now()+5*60_000,nonce:crypto.randomBytes(16).toString('hex')};
+  const payload={tel,nome,origem,destino,o,d,tipo,km,valor,exp:Date.now()+5*60_000,nonce:(visitante(req)?.id || '')+':'+crypto.randomBytes(16).toString('hex')};
   const encoded=Buffer.from(JSON.stringify(payload)).toString('base64url');
   return {km,valor,token:encoded+'.'+hashPassageiro(tel,encoded),aviso:'Distância e valor estimados.'};
 });
@@ -754,7 +771,7 @@ rota('POST','/api/passageiro/pedir',false,async({req})=>bot.rodar(async()=>{
   const sig=hashPassageiro(tel,parts[0]);
   if(sig.length!==parts[1].length||!crypto.timingSafeEqual(Buffer.from(sig),Buffer.from(parts[1]))) throw new Erro(400,'Cotação inválida.');
   let q;try{q=JSON.parse(Buffer.from(parts[0],'base64url').toString('utf8'))}catch{throw new Erro(400,'Cotação inválida.')}
-  if(q.tel!==tel||q.exp<Date.now()) throw new Erro(400,'Cotação expirada. Faça outra.');
+  if((visitante(req) && !q.nonce.startsWith(visitante(req).id+':')) || q.tel!==tel||q.exp<Date.now()) throw new Erro(400,'Cotação expirada. Faça outra.');
   const cfg=await lerConfig();if(!cfg.aceitando||!cfg.precos[q.tipo]?.ativo) throw new Erro(400,'Veículo indisponível.');
   const precoAtual=geoPassageiro.preco(q.km,cfg.precos[q.tipo]);if(precoAtual!==q.valor) throw new Erro(400,'O preço mudou. Faça outra cotação.');
   const {rows:[existing]}=await pool.query('SELECT corrida_id FROM passageiro_pedidos WHERE token=$1',[q.nonce]);
@@ -777,6 +794,11 @@ rota('GET','/api/passageiro/viagem/:id',false,async({req,p})=>{
   const tel=sessaoPassageiro(req),id=Number(p.id);
   const {rows:[c]}=await pool.query(`SELECT c.id,c.status,c.origem_texto,c.destino_texto,c.valor_estimado,c.valor_final,c.tipo,m.nome AS motorista_nome,m.carro,m.cor,m.placa
     FROM corridas c LEFT JOIN motoristas m ON m.id=c.motorista_id WHERE c.id=$1 AND c.passageiro_tel=$2`,[id,tel]);
+  const guest=visitante(req);
+  if(guest) {
+    const {rows}=await pool.query('SELECT 1 FROM passageiro_pedidos WHERE corrida_id=$1 AND token LIKE $2',[id,guest.id+':%']);
+    if(!rows.length) throw new Erro(404,'Viagem não encontrada neste aparelho.');
+  }
   if(!c) throw new Erro(404,'Viagem não encontrada.');return c;
 });
 
