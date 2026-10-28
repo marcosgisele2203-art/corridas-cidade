@@ -102,6 +102,32 @@ function irPara(nova) {
 }
 $('#sair').onclick = async () => { await api('POST', '/api/motorista/sair'); location.reload(); };
 
+const pontoCorrida=(c,t)=>c[t+'_lat']!=null&&c[t+'_lng']!=null&&Number.isFinite(Number(c[t+'_lat']))&&Number.isFinite(Number(c[t+'_lng']))?[Number(c[t+'_lat']),Number(c[t+'_lng'])]:null;
+function linkNavegar(c,t,completa=false){
+ const p=pontoCorrida(c,t),q=new URLSearchParams({api:'1',destination:p?p.join(','):c[t+'_texto'],travelmode:'driving'});
+ const o=pontoCorrida(c,'origem');if(completa&&o)q.set('origin',o.join(','));else q.set('dir_action','navigate');
+ return 'https://www.google.com/maps/dir/?'+q;
+}
+let mapaCorrida=null,assinaturaCorrida=null;
+const rotasMapa=new Map();
+async function desenharMapaCorrida(c){
+ if(mapaCorrida){mapaCorrida.remove();mapaCorrida=null}
+ const el=document.getElementById('mapaCorrida'),o=pontoCorrida(c,'origem'),d=pontoCorrida(c,'destino');
+ if(!el||!o||!d||typeof L==='undefined')return;
+ const map=L.map(el,{scrollWheelZoom:false});mapaCorrida=map;
+ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+ L.marker(o).addTo(map).bindPopup('Embarque');L.marker(d).addTo(map).bindPopup('Destino');
+ map.fitBounds([o,d],{padding:[30,30],maxZoom:16});
+ const key=o.join(',')+';'+d.join(',');
+ if(!rotasMapa.has(key)){
+  if(rotasMapa.size>30)rotasMapa.clear();
+  rotasMapa.set(key,fetch('https://router.project-osrm.org/route/v1/driving/'+o[1]+','+o[0]+';'+d[1]+','+d[0]+'?overview=full&geometries=geojson',{signal:AbortSignal.timeout(8000)}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(r=>{if(!r.routes?.[0]?.geometry)throw Error();return r.routes[0].geometry}).catch(()=>null));
+ }
+ const geometry=await rotasMapa.get(key);
+ if(!el.isConnected||mapaCorrida!==map)return;
+ if(geometry){const layer=L.geoJSON(geometry,{style:{color:'#097d4c',weight:5}}).addTo(map);map.fitBounds(layer.getBounds(),{padding:[30,30]});}
+ else {const aviso=document.createElement('p');aviso.className='dica';aviso.textContent='Trajeto indisponível. Use Ver rota para abrir a navegação.';el.after(aviso)}
+}
 async function carregar() {
   eu = await api('GET', '/api/motorista/eu');
   const m = eu.motorista;
@@ -122,7 +148,17 @@ async function carregar() {
   const {oferta} = await api('GET','/api/motorista/oferta');
   const c = eu.corrida || oferta;
   const acoes = eu.corrida ? (c.status === 'aceita' ? [['cheguei','Cheguei ao local'],['iniciar','Iniciar viagem']] : c.status === 'chegou' ? [['iniciar','Iniciar viagem']] : c.status === 'em_andamento' ? [['finalizar','Finalizar viagem']] : []) : oferta ? [['aceitar','Aceitar corrida']] : [];
+  const assinatura=JSON.stringify(c);
+  if(assinatura!==assinaturaCorrida){assinaturaCorrida=assinatura;
   $('#corridaAtual').innerHTML = c ? '<div class="cartao corrida-agora"><h3>Corrida #'+esc(c.id)+' · '+esc(c.status || 'Nova oferta')+'</h3><p>📍 '+esc(c.origem_texto)+' → 🏁 '+esc(c.destino_texto)+'</p><p>Estimativa: '+reais(c.valor_estimado)+'</p><div class="botoes">'+acoes.map(([acao,label])=>'<button data-acao="'+acao+'" data-corrida="'+esc(c.id)+'">'+label+'</button>').join(' ')+'</div><p id="erroAcao" role="alert"></p></div>' : '';
+if(c){
+ const bloco=$('#corridaAtual .corrida-agora'),nav=document.createElement('div');nav.className='botoes';
+ const itens=eu.corrida?[[c.status==='em_andamento'?'Ir ao destino':'Ir até o passageiro',c.status==='em_andamento'?'destino':'origem',false],['Ver rota','destino',true]]:[['Ver rota','destino',true]];
+ for(const [label,tipo,completa]of itens){const a=document.createElement('a');a.className='botao';a.textContent=label;a.href=linkNavegar(c,tipo,completa);a.target='_blank';a.rel='noopener noreferrer';nav.append(a)}
+ bloco.append(nav);
+ if(pontoCorrida(c,'origem')&&pontoCorrida(c,'destino')){const el=document.createElement('div');el.id='mapaCorrida';el.style.cssText='height:280px;margin-top:20px;border-radius:14px';bloco.append(el);desenharMapaCorrida(c).catch(()=>{})}
+}else if(mapaCorrida){mapaCorrida.remove();mapaCorrida=null}
+  }
   const t = eu.mes;
   $('#kpisMes').innerHTML = [
     ['Saldo de viagens', eu.central.cobranca ? m.saldo : '—'], ['Corridas feitas', t.finalizadas], ['Total das corridas', reais(t.ganhos)],
