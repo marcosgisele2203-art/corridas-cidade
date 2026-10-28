@@ -184,7 +184,7 @@ async function carregarAoVivo() {
   if (ultimosPedidos && somLigado && [...pedidos].some((id) => !ultimosPedidos.has(id))) tocar();
   ultimosPedidos = pedidos;
   const agora = new Set(ativas.map((v) => v.id));
-  if ([...idsAoVivo].some((id) => !agora.has(id))) carregarHistorico();
+  // O histórico é atualizado junto com o quadro, inclusive se a viagem terminou em outra aba.
   idsAoVivo = agora;
 }
 
@@ -221,9 +221,16 @@ let esperaBusca;
 ['#vDe', '#vAte', '#vStatus', '#vMotorista'].forEach((id) => $(id).onchange = carregarHistorico);
 $('#vBusca').oninput = () => { clearTimeout(esperaBusca); esperaBusca = setTimeout(carregarHistorico, 350); };
 
+let atualizandoCorridas = false;
 async function carregarCorridas() {
-  await carregarAoVivo();
-  if (!$('#historico').innerHTML) await carregarHistorico();
+  if (atualizandoCorridas) return;
+  atualizandoCorridas = true;
+  try {
+    await carregarAoVivo();
+    await carregarHistorico();
+  } finally {
+    atualizandoCorridas = false;
+  }
 }
 
 // passo a passo de uma viagem
@@ -654,5 +661,11 @@ async function iniciar() {
     irPara(AREAS.some((a) => a.aba === pedida) ? pedida : 'inicio');
   } catch { /* mostrarLogin já foi chamado */ }
 }
-setInterval(() => { if (!$('#app').hidden && aba === 'corridas' && !document.hidden) carregarAoVivo().catch(() => {}); }, 5000);
+setInterval(() => { if (!$('#app').hidden && aba === 'corridas' && !document.hidden) carregarCorridas().catch(() => {}); }, 5000);
 iniciar();
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && !$('#app').hidden && aba === 'corridas') carregarCorridas().catch(() => {});
+});
+window.addEventListener('focus', () => {
+  if (!document.hidden && !$('#app').hidden && aba === 'corridas') carregarCorridas().catch(() => {});
+});
