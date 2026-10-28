@@ -100,7 +100,7 @@ function irPara(nova) {
   if (aba === 'relatorio') carregarRelatorio();
   if (aba === 'cadastro') preencherCadastro();
 }
-$('#sair').onclick = async () => { await api('POST', '/api/motorista/sair'); location.reload(); };
+$('#sair').onclick = async () => { if (gpsWatch !== null) await pararGps(); await api('POST', '/api/motorista/sair'); location.reload(); };
 
 const pontoCorrida=(c,t)=>c[t+'_lat']!=null&&c[t+'_lng']!=null&&Number.isFinite(Number(c[t+'_lat']))&&Number.isFinite(Number(c[t+'_lng']))?[Number(c[t+'_lat']),Number(c[t+'_lng'])]:null;
 function linkNavegar(c,t,completa=false){
@@ -145,6 +145,8 @@ async function carregar() {
   b.hidden = !m.aprovado;
   b.textContent = m.online ? '🔴 Ficar offline' : '🟢 Ficar online';
   b.className = m.online ? 'perigo' : '';
+  $('#ativarGps').disabled = !m.online || gpsWatch !== null;
+  if (!m.online && gpsWatch !== null) pararGps().catch(() => {});
   const {oferta} = await api('GET','/api/motorista/oferta');
   const c = eu.corrida || oferta;
   const acoes = eu.corrida ? (c.status === 'aceita' ? [['cheguei','Cheguei ao local'],['iniciar','Iniciar viagem']] : c.status === 'chegou' ? [['iniciar','Iniciar viagem']] : c.status === 'em_andamento' ? [['finalizar','Finalizar viagem']] : []) : oferta ? [['aceitar','Aceitar corrida']] : [];
@@ -168,8 +170,53 @@ if(c){
 }
 $('#aviso').onclick = (e) => { if (e.target.dataset.ir) { e.preventDefault(); irPara(e.target.dataset.ir); } };
 $('#botaoOnline').onclick = async () => {
-  try { await api('POST', '/api/motorista/online', { online: !eu.motorista.online }); await carregar(); } catch (err) { alert(err.message); }
+  try { if (eu.motorista.online && gpsWatch !== null) await pararGps(); await api('POST', '/api/motorista/online', { online: !eu.motorista.online }); await carregar(); } catch (err) { alert(err.message); }
 };
+
+// ---- GPS do motorista: envio autenticado ao servidor somente com autorização explícita.
+let gpsWatch = null, gpsUltimoEnvio = 0, gpsEnviando = false;
+const gpsStatus = (msg) => { $('#gpsSituacao').textContent = msg; };
+function gpsBotoes(ativo) {
+  $('#ativarGps').disabled = ativo;
+  $('#pararGps').disabled = !ativo;
+}
+async function pararGps() {
+  if (gpsWatch !== null) { navigator.geolocation.clearWatch(gpsWatch); gpsWatch = null; }
+  gpsBotoes(false); gpsStatus('GPS desligado. Sua localização não está sendo compartilhada.');
+  gpsUltimoEnvio = 0;
+  try { await api('POST', '/api/motorista/gps', { ativo: false }); }
+  catch (err) { gpsStatus('GPS desligado neste aparelho; não foi possível confirmar a limpeza no servidor: ' + err.message); }
+}
+$('#ativarGps').onclick = () => {
+  if (!eu?.motorista?.online) return gpsStatus('Primeiro clique em Ficar online.');
+  if (!navigator.geolocation) return gpsStatus('Este navegador não suporta GPS.');
+  if (!window.isSecureContext) return gpsStatus('GPS requer HTTPS. Abra o aplicativo pelo endereço seguro.');
+  if (gpsWatch !== null) return;
+  gpsStatus('Solicitando permissão do GPS ao navegador...');
+  gpsBotoes(true);
+  gpsWatch = navigator.geolocation.watchPosition(async (pos) => {
+    if (!eu?.motorista?.online) { await pararGps(); return; }
+    const agora = Date.now();
+    if (gpsEnviando || agora - gpsUltimoEnvio < 8000) return;
+    gpsEnviando = true; gpsUltimoEnvio = agora;
+    try {
+      await api('POST', '/api/motorista/gps', {
+        ativo: true, lat: pos.coords.latitude, lng: pos.coords.longitude,
+        precisao: pos.coords.accuracy
+      });
+      gpsStatus('✅ Localização compartilhada. Precisão aproximada: ' + Math.round(pos.coords.accuracy) + ' metros.');
+    } catch (err) { gpsStatus('Não foi possível enviar sua localização: ' + err.message); }
+    finally { gpsEnviando = false; }
+  }, (err) => {
+    if (gpsWatch !== null) { navigator.geolocation.clearWatch(gpsWatch); gpsWatch = null; }
+    gpsBotoes(false);
+    const erros = { 1:'Permissão negada. Autorize a localização nas configurações do navegador.',
+      2:'Localização indisponível. Verifique o GPS do celular.',
+      3:'Tempo esgotado. Tente novamente ao ar livre.' };
+    gpsStatus(erros[err.code] || 'Não foi possível acessar o GPS.');
+  }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+};
+$('#pararGps').onclick = pararGps;
 
 // ---- comprar viagens
 let esperandoPix = null;
