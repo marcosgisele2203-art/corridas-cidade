@@ -790,6 +790,22 @@ rota('POST','/api/passageiro/pedir',false,async({req})=>bot.rodar(async()=>{
   await bot.despachar(ride.id);
   return {id:ride.id};
 }));
+rota('POST','/api/passageiro/viagem/:id/cancelar',false,async({req,p})=>{
+  const tel=sessaoPassageiro(req),id=Number(p.id),guest=visitante(req);
+  limitar('passageiro-cancelar:'+ipDe(req),30,60_000);
+  return bot.rodar(async()=>{
+    const {rows:[c]}=await pool.query('SELECT * FROM corridas WHERE id=$1 AND passageiro_tel=$2',[id,tel]);
+    if(!c) throw new Erro(404,'Viagem não encontrada.');
+    if(guest){
+      const {rows}=await pool.query('SELECT 1 FROM passageiro_pedidos WHERE corrida_id=$1 AND token LIKE $2',[id,guest.id+':%']);
+      if(!rows.length) throw new Erro(404,'Viagem não encontrada neste aparelho.');
+    }
+    if(c.status==='cancelada') return {ok:true};
+    if(!['procurando','aceita','chegou'].includes(c.status)) throw new Erro(409,'Esta viagem já começou ou terminou. Atualize a tela.');
+    await bot.cancelarPeloPassageiro(c);
+    return {ok:true};
+  });
+});
 rota('GET','/api/passageiro/viagem/:id',false,async({req,p})=>{
   const tel=sessaoPassageiro(req),id=Number(p.id);
   const {rows:[c]}=await pool.query(`SELECT c.id,c.status,c.origem_texto,c.destino_texto,c.valor_estimado,c.valor_final,c.tipo,m.nome AS motorista_nome,m.carro,m.cor,m.placa
