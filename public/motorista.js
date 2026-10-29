@@ -3,7 +3,7 @@ const $ = (s) => document.querySelector(s);
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const reais = (v) => (v == null ? '—' : 'R$ ' + Number(v).toFixed(2).replace('.', ','));
 const hoje = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-const TIPOS = { moto: '🏍️ Moto', carro: '🚗 Carro', van: '🚐 Van', caminhao: '🚚 Caminhão' };
+const TIPOS = { moto: 'Moto', carro: 'Carro', van: 'Van', caminhao: 'Caminhão' };
 const MODELO = { moto: 'Honda Titan 160', carro: 'VW Gol', van: 'Sprinter', caminhao: 'Mercedes 710 baú' };
 
 async function api(metodo, caminho, corpo) {
@@ -100,8 +100,34 @@ function irPara(nova) {
   if (aba === 'relatorio') carregarRelatorio();
   if (aba === 'cadastro') preencherCadastro();
 }
-$('#sair').onclick = async () => { await api('POST', '/api/motorista/sair'); location.reload(); };
+$('#sair').onclick = async () => { if (gpsWatch !== null) await pararGps(); await api('POST', '/api/motorista/sair'); location.reload(); };
 
+const pontoCorrida=(c,t)=>c[t+'_lat']!=null&&c[t+'_lng']!=null&&Number.isFinite(Number(c[t+'_lat']))&&Number.isFinite(Number(c[t+'_lng']))?[Number(c[t+'_lat']),Number(c[t+'_lng'])]:null;
+function linkNavegar(c,t,completa=false){
+ const p=pontoCorrida(c,t),q=new URLSearchParams({api:'1',destination:p?p.join(','):c[t+'_texto'],travelmode:'driving'});
+ const o=pontoCorrida(c,'origem');if(completa&&o)q.set('origin',o.join(','));else q.set('dir_action','navigate');
+ return 'https://www.google.com/maps/dir/?'+q;
+}
+let mapaCorrida=null,assinaturaCorrida=null;
+const rotasMapa=new Map();
+async function desenharMapaCorrida(c){
+ if(mapaCorrida){mapaCorrida.remove();mapaCorrida=null}
+ const el=document.getElementById('mapaCorrida'),o=pontoCorrida(c,'origem'),d=pontoCorrida(c,'destino');
+ if(!el||!o||!d||typeof L==='undefined')return;
+ const map=L.map(el,{scrollWheelZoom:false});mapaCorrida=map;
+ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+ L.marker(o).addTo(map).bindPopup('Embarque');L.marker(d).addTo(map).bindPopup('Destino');
+ map.fitBounds([o,d],{padding:[30,30],maxZoom:16});
+ const key=o.join(',')+';'+d.join(',');
+ if(!rotasMapa.has(key)){
+  if(rotasMapa.size>30)rotasMapa.clear();
+  rotasMapa.set(key,fetch('https://router.project-osrm.org/route/v1/driving/'+o[1]+','+o[0]+';'+d[1]+','+d[0]+'?overview=full&geometries=geojson',{signal:AbortSignal.timeout(8000)}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(r=>{if(!r.routes?.[0]?.geometry)throw Error();return r.routes[0].geometry}).catch(()=>null));
+ }
+ const geometry=await rotasMapa.get(key);
+ if(!el.isConnected||mapaCorrida!==map)return;
+ if(geometry){const layer=L.geoJSON(geometry,{style:{color:'#097d4c',weight:5}}).addTo(map);map.fitBounds(layer.getBounds(),{padding:[30,30]});}
+ else {const aviso=document.createElement('p');aviso.className='dica';aviso.textContent='Trajeto indisponível. Use Ver rota para abrir a navegação.';el.after(aviso)}
+}
 async function carregar() {
   eu = await api('GET', '/api/motorista/eu');
   const m = eu.motorista;
@@ -119,8 +145,22 @@ async function carregar() {
   b.hidden = !m.aprovado;
   b.textContent = m.online ? '🔴 Ficar offline' : '🟢 Ficar online';
   b.className = m.online ? 'perigo' : '';
-  $('#corridaAtual').innerHTML = eu.corrida ? `<div class="cartao corrida-agora">🛣️ <b>Corrida #${eu.corrida.id} em andamento</b> com ${esc(eu.corrida.passageiro_nome || 'passageiro')}<br>
-    <small>📍 ${esc(eu.corrida.origem_texto)} → 🏁 ${esc(eu.corrida.destino_texto)} · use o WhatsApp: CHEGUEI, INICIAR, FINALIZAR</small></div>` : '';
+  $('#ativarGps').disabled = !m.online || gpsWatch !== null;
+  if (!m.online && gpsWatch !== null) pararGps().catch(() => {});
+  const {oferta} = await api('GET','/api/motorista/oferta');
+  const c = eu.corrida || oferta;
+  const acoes = eu.corrida ? (c.status === 'aceita' ? [['cheguei','Cheguei ao local'],['iniciar','Iniciar viagem']] : c.status === 'chegou' ? [['iniciar','Iniciar viagem']] : c.status === 'em_andamento' ? [['finalizar','Finalizar viagem']] : []) : oferta ? [['aceitar','Aceitar corrida']] : [];
+  const assinatura=JSON.stringify(c);
+  if(assinatura!==assinaturaCorrida){assinaturaCorrida=assinatura;
+  $('#corridaAtual').innerHTML = c ? '<div class="cartao corrida-agora"><h3>Corrida #'+esc(c.id)+' · '+esc(c.status || 'Nova oferta')+'</h3><p>📍 '+esc(c.origem_texto)+' → 🏁 '+esc(c.destino_texto)+'</p><p>Estimativa: '+reais(c.valor_estimado)+'</p><div class="botoes">'+acoes.map(([acao,label])=>'<button data-acao="'+acao+'" data-corrida="'+esc(c.id)+'">'+label+'</button>').join(' ')+'</div><p id="erroAcao" role="alert"></p></div>' : '';
+if(c){
+ const bloco=$('#corridaAtual .corrida-agora'),nav=document.createElement('div');nav.className='botoes';
+ const itens=eu.corrida?[[c.status==='em_andamento'?'Ir ao destino':'Ir até o passageiro',c.status==='em_andamento'?'destino':'origem',false],['Ver rota','destino',true]]:[['Ver rota','destino',true]];
+ for(const [label,tipo,completa]of itens){const a=document.createElement('a');a.className='botao';a.textContent=label;a.href=linkNavegar(c,tipo,completa);a.target='_blank';a.rel='noopener noreferrer';nav.append(a)}
+ bloco.append(nav);
+ if(pontoCorrida(c,'origem')&&pontoCorrida(c,'destino')){const el=document.createElement('div');el.id='mapaCorrida';el.style.cssText='height:280px;margin-top:20px;border-radius:14px';bloco.append(el);desenharMapaCorrida(c).catch(()=>{})}
+}else if(mapaCorrida){mapaCorrida.remove();mapaCorrida=null}
+  }
   const t = eu.mes;
   $('#kpisMes').innerHTML = [
     ['Saldo de viagens', eu.central.cobranca ? m.saldo : '—'], ['Corridas feitas', t.finalizadas], ['Total das corridas', reais(t.ganhos)],
@@ -130,8 +170,53 @@ async function carregar() {
 }
 $('#aviso').onclick = (e) => { if (e.target.dataset.ir) { e.preventDefault(); irPara(e.target.dataset.ir); } };
 $('#botaoOnline').onclick = async () => {
-  try { await api('POST', '/api/motorista/online', { online: !eu.motorista.online }); await carregar(); } catch (err) { alert(err.message); }
+  try { if (eu.motorista.online && gpsWatch !== null) await pararGps(); await api('POST', '/api/motorista/online', { online: !eu.motorista.online }); await carregar(); } catch (err) { alert(err.message); }
 };
+
+// ---- GPS do motorista: envio autenticado ao servidor somente com autorização explícita.
+let gpsWatch = null, gpsUltimoEnvio = 0, gpsEnviando = false;
+const gpsStatus = (msg) => { $('#gpsSituacao').textContent = msg; };
+function gpsBotoes(ativo) {
+  $('#ativarGps').disabled = ativo;
+  $('#pararGps').disabled = !ativo;
+}
+async function pararGps() {
+  if (gpsWatch !== null) { navigator.geolocation.clearWatch(gpsWatch); gpsWatch = null; }
+  gpsBotoes(false); gpsStatus('GPS desligado. Sua localização não está sendo compartilhada.');
+  gpsUltimoEnvio = 0;
+  try { await api('POST', '/api/motorista/gps', { ativo: false }); }
+  catch (err) { gpsStatus('GPS desligado neste aparelho; não foi possível confirmar a limpeza no servidor: ' + err.message); }
+}
+$('#ativarGps').onclick = () => {
+  if (!eu?.motorista?.online) return gpsStatus('Primeiro clique em Ficar online.');
+  if (!navigator.geolocation) return gpsStatus('Este navegador não suporta GPS.');
+  if (!window.isSecureContext) return gpsStatus('GPS requer HTTPS. Abra o aplicativo pelo endereço seguro.');
+  if (gpsWatch !== null) return;
+  gpsStatus('Solicitando permissão do GPS ao navegador...');
+  gpsBotoes(true);
+  gpsWatch = navigator.geolocation.watchPosition(async (pos) => {
+    if (!eu?.motorista?.online) { await pararGps(); return; }
+    const agora = Date.now();
+    if (gpsEnviando || agora - gpsUltimoEnvio < 8000) return;
+    gpsEnviando = true; gpsUltimoEnvio = agora;
+    try {
+      await api('POST', '/api/motorista/gps', {
+        ativo: true, lat: pos.coords.latitude, lng: pos.coords.longitude,
+        precisao: pos.coords.accuracy
+      });
+      gpsStatus('✅ Localização compartilhada. Precisão aproximada: ' + Math.round(pos.coords.accuracy) + ' metros.');
+    } catch (err) { gpsStatus('Não foi possível enviar sua localização: ' + err.message); }
+    finally { gpsEnviando = false; }
+  }, (err) => {
+    if (gpsWatch !== null) { navigator.geolocation.clearWatch(gpsWatch); gpsWatch = null; }
+    gpsBotoes(false);
+    const erros = { 1:'Permissão negada. Autorize a localização nas configurações do navegador.',
+      2:'Localização indisponível. Verifique o GPS do celular.',
+      3:'Tempo esgotado. Tente novamente ao ar livre.' };
+    gpsStatus(erros[err.code] || 'Não foi possível acessar o GPS.');
+  }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+};
+$('#pararGps').onclick = pararGps;
 
 // ---- comprar viagens
 let esperandoPix = null;
@@ -205,7 +290,11 @@ $('#relDe').onchange = $('#relAte').onchange = () => carregarRelatorio();
 $('#imprimir').onclick = () => window.print();
 async function carregarRelatorio() {
   if (!$('#relDe').value) { $('#relDe').value = hoje().slice(0, 8) + '01'; $('#relAte').value = hoje(); }
-  const r = await api('GET', `/api/motorista/relatorio?de=${$('#relDe').value}&ate=${$('#relAte').value}`);
+  const de = $('#relDe').value, ate = $('#relAte').value;
+  const r = await api('GET', `/api/motorista/relatorio?de=${de}&ate=${ate}`);
+  const dataRelatorio = (data) => data.split('-').reverse().join('/');
+  $('#identificacaoRelatorio').textContent = 'Motorista: ' + r.motorista.nome +
+    ' · Período: ' + dataRelatorio(de) + ' a ' + dataRelatorio(ate);
   const t = r.totais, v = r.viagens;
   $('#kpisRel').innerHTML = [
     ['Corridas feitas', t.finalizadas], ['Canceladas', t.canceladas], ['Total das corridas', reais(t.ganhos)],
@@ -251,3 +340,15 @@ async function iniciar() {
 // mantém saldo e situação em dia (ex.: viagem usada pelo WhatsApp)
 setInterval(() => { if (!$('#area').hidden && !document.hidden && aba === 'inicio') carregar().catch(() => {}); }, 30000);
 iniciar();
+
+let agindo = false;
+$('#corridaAtual').onclick = async e => {
+  const b = e.target.closest('[data-acao]');
+  if (!b || agindo) return;
+  if (b.dataset.acao === 'finalizar' && !confirm('Finalizar esta viagem pelo valor estimado?')) return;
+  agindo = true; b.disabled = true;
+  try { await api('POST','/api/motorista/corrida/'+b.dataset.corrida+'/acao',{acao:b.dataset.acao}); await carregar(); }
+  catch(err) { alert(err.message); await carregar().catch(()=>{}); }
+  finally { agindo = false; b.disabled = false; }
+};
+setInterval(()=>{if(!agindo && !$('#area').hidden && !document.hidden && aba === 'inicio') carregar().catch(()=>{});},5000);

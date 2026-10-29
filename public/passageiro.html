@@ -1,0 +1,89 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pedir viagem · Vai com Manu</title><link rel="stylesheet" href="/painel.css">
+<style>.passageiro{max-width:680px;margin:auto;padding:20px 16px 48px}.passageiro a{color:var(--cor-escura)}.marca-tela{display:flex;align-items:center;gap:16px;margin:24px 0}.marca-tela img{height:100px;width:74px;object-fit:contain}.marca-tela h1{margin:0;font-size:32px;line-height:1.1}.passageiro .cartao{padding:22px}.passageiro label{display:block;font-weight:800;margin:14px 0}.passageiro .botoes{display:flex;flex-wrap:wrap;gap:12px;margin-top:18px}.passageiro a.botao{padding:12px 20px}.passageiro button:disabled{opacity:.6;cursor:not-allowed}.aviso{background:#e3f6ea;padding:14px;border-radius:12px}.erro{color:#a52020}</style><style>@media screen {
+.passageiro {max-width:1120px;padding:24px;margin:auto}
+.passageiro>a:first-child {font-size:14px;text-decoration:none}
+.passageiro .marca-tela {margin:24px 0;gap:12px}
+.passageiro .marca-tela img {width:42px;height:54px}
+.passageiro .marca-tela small {font-size:11px;letter-spacing:.14em;font-weight:750}
+.passageiro .marca-tela h1 {font-size:36px}
+.passageiro .marca-tela .dica {margin:5px 0 0;font-size:14px}
+.passageiro .cartao {padding:28px;border:1px solid #e4e9e6}
+.passageiro #acesso,.passageiro #viagem {max-width:560px;margin:24px auto}
+.passageiro h2 {font-size:25px}
+.passageiro label {font-size:13px;font-weight:650;margin:12px 0}
+.passageiro input,.passageiro select {margin-top:7px;padding:15px;min-height:54px}
+.passageiro .aviso {background:#eaf5ee;border-radius:14px;font-size:14px}
+.passageiro #modoTeste {padding:10px 14px;margin:12px 0;font-size:12px}
+.passageiro #pedido {width:100%;max-width:760px;margin:24px auto;min-height:0}
+.passageiro #mapaArea {position:static;width:100%;max-width:none;margin:16px 0 20px;background:#fff;border:1px solid #e4e9e6;border-radius:16px;overflow:hidden}
+.passageiro #mapa {height:360px!important;border-radius:0!important}
+.passageiro #mapaInstrucao {padding:0 18px;font-size:14px;font-weight:650}
+.passageiro #pontosMapa {padding:0 18px;font-size:12px;color:#647169}
+.passageiro .botoes {gap:8px;margin:14px 0}
+.passageiro .botoes button {background:#edf2ef;color:#254332;padding:9px 12px;font-size:12px;min-height:40px;border-radius:10px;flex:1}
+.passageiro #localAtual {flex-basis:100%;background:#eaf5ee;color:#097d4c}
+.passageiro #cotar,.passageiro #confirmar,.passageiro #enviar,.passageiro #novaViagem {width:100%}
+.passageiro #cancelarViagem {background:#fff1f0;color:#a42a25;width:100%}
+.passageiro #estado {font-size:17px;font-weight:650;padding:20px;line-height:1.7}
+.passageiro #detalheViagem {font-size:15px;color:#647169}
+.passageiro>p:last-child {text-align:center;font-size:14px}
+.passageiro #estimativa {margin-top:16px;padding:16px}
+.passageiro #resumo {font-size:18px;font-weight:750;color:#17251f}
+@media(max-width:800px) {
+.passageiro {padding:18px 14px 32px}
+.passageiro .marca-tela h1 {font-size:30px}
+.passageiro #pedido {width:100%;min-height:0;display:flex;flex-direction:column;padding:20px}
+.passageiro #pedido h2 {order:0}
+.passageiro #mapaArea {position:static;width:auto;max-width:none;order:0;margin:16px 0 20px;border-radius:14px}
+.passageiro #mapa {height:280px!important}
+.passageiro #acesso,.passageiro #viagem {margin:20px 0}
+.passageiro .cartao {padding:22px}
+header {gap:10px;padding:12px}
+header nav {overflow:auto;flex-wrap:nowrap;width:100%}
+header nav button {white-space:nowrap;font-size:13px;padding:10px}
+}
+}
+</style><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""></head><body><main class="passageiro">
+<a href="/">← Voltar ao início</a><div class="marca-tela"><img src="/img/manu/manu-celular.webp" alt=""><div><small>VAI COM MANU</small><h1>Para onde vamos?</h1><p class="dica">Peça sua viagem pelo site ou pelo WhatsApp.</p></div></div>
+<p id="modoTeste" class="aviso" hidden>Ambiente de teste: use o número fictício 00 00000-0000. Nenhuma mensagem será enviada.</p><section class="cartao" id="acesso"><h2>Vamos começar</h2><p>Informe seu WhatsApp para contato durante a viagem. Não precisa de código.</p><label>WhatsApp com DDD<input id="telefone" type="tel" autocomplete="tel" inputmode="tel" placeholder="(67) 99999-9999"></label><button id="enviar" type="button">Continuar</button><div id="codigoArea" hidden><label>Código recebido<input id="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></label><button id="entrar" type="button">Confirmar código</button></div></section>
+<section class="cartao" id="pedido" hidden><h2>Monte sua viagem</h2><label>Seu nome<input id="nome" autocomplete="name" maxlength="100"></label><label>Onde vamos buscar você?<input id="origem" maxlength="180" placeholder="Rua, número e bairro"></label><label>Para onde você vai?<input id="destino" maxlength="180" placeholder="Rua, número e bairro"></label><label>Complemento do embarque<input id="complemento" maxlength="80" placeholder="Número, portão ou referência"></label><label>Escolha o veículo<select id="tipo"><option value="moto"> Moto</option><option value="carro"> Carro</option><option value="van"> Van</option><option value="caminhao"> Frete</option></select></label><div class="botoes"><button id="escolherOrigem" type="button">Marcar embarque</button><button id="escolherDestino" type="button">Marcar destino</button><button id="localAtual" type="button">Usar minha localização</button></div><div id="mapaArea" hidden><p id="mapaInstrucao">Toque no mapa para escolher o ponto.</p><div id="mapa" style="height:300px;border-radius:12px"></div><p id="pontosMapa"></p></div><button id="cotar" type="button">Ver estimativa</button><div id="estimativa" class="aviso" hidden><p id="resumo"></p><p>A distância é estimada em linha reta com um fator de ajuste; não é uma rota real. O valor também é estimado.</p><button id="confirmar" type="button">Pedir corrida</button></div></section>
+<section class="cartao" id="viagem" hidden><h2>Sua viagem</h2><p id="estado" class="aviso"></p><p id="detalheViagem"></p><button id="cancelarViagem" type="button" hidden>Cancelar viagem</button><button id="novaViagem" type="button" hidden>Pedir outra viagem</button></section>
+<p id="erro" class="erro" role="alert"></p><p><a id="whatsapp" href="/">Pedir pelo WhatsApp</a></p></main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script><script>
+const $=id=>document.getElementById(id);let cotacao=null,timer=null,viagemAtual=null;
+async function api(url,body){const r=await fetch(url,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});const d=await r.json();if(!r.ok)throw Error(d.erro||'Não foi possível concluir.');return d}
+async function executar(button,fn){$('erro').textContent='';button.disabled=true;try{await fn()}catch(e){$('erro').textContent=e.message}finally{button.disabled=false}}
+$('enviar').onclick=()=>executar($('enviar'),async()=>{
+  await api('/api/passageiro/visitante',{telefone:$('telefone').value});
+  $('acesso').hidden=true;
+  const id=localStorage.getItem('viagemPassageiro');
+  if(id){try{$('viagem').hidden=false;await atualizar(id);timer=setInterval(()=>atualizar(id).catch(()=>{}),10000)}catch(e){$('viagem').hidden=true;$('pedido').hidden=false;localStorage.removeItem('viagemPassageiro')}}
+  else $('pedido').hidden=false;
+  if(!$('pedido').hidden) abrirMapa('origem');
+});
+let mapa=null, selecionando='origem', pontos={origem:null,destino:null}, marcadores={};
+function limparCotacao(){cotacao=null;$('estimativa').hidden=true}
+let esperaEndereco;
+function buscarNomePonto(tipo,lat,lng){
+ const ponto=pontos[tipo];clearTimeout(esperaEndereco);
+ esperaEndereco=setTimeout(async()=>{
+  try{const r=await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat='+lat+'&lon='+lng+'&accept-language=pt-BR');if(!r.ok)return;const d=await r.json();if(pontos[tipo]!==ponto)return;
+  const a=d.address||{},nome=[a.road||a.pedestrian||a.suburb,a.house_number,a.neighbourhood||a.suburb,a.city||a.town||a.village].filter(Boolean).join(', ');
+  if(nome){$(tipo).value=nome;limparCotacao()}}catch{}
+ },1100);
+}
+function marcar(tipo,lat,lng){pontos[tipo]={lat,lng};if(marcadores[tipo])mapa.removeLayer(marcadores[tipo]);marcadores[tipo]=L.marker([lat,lng]).addTo(mapa).bindPopup(tipo==='origem'?'Origem':'Destino').openPopup();$(tipo).value=(tipo==='origem'?'Embarque':'Destino')+' no mapa ('+lat.toFixed(5)+', '+lng.toFixed(5)+')';buscarNomePonto(tipo,lat,lng);$('pontosMapa').textContent='Origem: '+(pontos.origem?'marcada':'não marcada')+' · Destino: '+(pontos.destino?'marcado':'não marcado');limparCotacao()}
+function abrirMapa(tipo){if(typeof L==='undefined')throw Error('Não foi possível carregar o mapa. Confira a internet.');selecionando=tipo;$('mapaArea').hidden=false;$('mapaInstrucao').textContent='Toque no mapa para marcar '+(tipo==='origem'?'a origem':'o destino')+'.';if(!mapa){mapa=L.map('mapa').setView([-20.24,-56.38],13);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(mapa);mapa.on('click',e=>marcar(selecionando,e.latlng.lat,e.latlng.lng))}setTimeout(()=>mapa.invalidateSize(),100)}
+$('escolherOrigem').onclick=()=>executar($('escolherOrigem'),async()=>abrirMapa('origem'));
+$('escolherDestino').onclick=()=>executar($('escolherDestino'),async()=>abrirMapa('destino'));
+$('localAtual').onclick=()=>executar($('localAtual'),async()=>{abrirMapa('origem');if(!navigator.geolocation)throw Error('Localização não disponível neste aparelho.');const p=await new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(resolve,()=>reject(Error('Não foi possível obter sua localização. Permita o acesso ou marque no mapa.')),{enableHighAccuracy:true,timeout:15000}));mapa.setView([p.coords.latitude,p.coords.longitude],17);marcar('origem',p.coords.latitude,p.coords.longitude)});
+['origem','destino'].forEach(id=>$(id).addEventListener('input',()=>{pontos[id]=null;if(mapa&&marcadores[id]){mapa.removeLayer(marcadores[id]);delete marcadores[id]}}));
+['nome','origem','destino','tipo','complemento'].forEach(id=>$(id).addEventListener('input',()=>{cotacao=null;$('estimativa').hidden=true}));
+$('cotar').onclick=()=>executar($('cotar'),async()=>{cotacao=await api('/api/passageiro/cotacao',{nome:$('nome').value,origem:[$('origem').value,$('complemento').value.trim()].filter(Boolean).join(' · '),destino:$('destino').value,tipo:$('tipo').value,origemPonto:pontos.origem,destinoPonto:pontos.destino});$('resumo').textContent='Distância aproximada: '+cotacao.km+' km · Valor estimado: '+Number(cotacao.valor).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});$('estimativa').hidden=false});
+$('confirmar').onclick=()=>executar($('confirmar'),async()=>{if(!cotacao)throw Error('Faça uma nova estimativa.');const d=await api('/api/passageiro/pedir',{token:cotacao.token});$('pedido').hidden=true;$('viagem').hidden=false;localStorage.setItem('viagemPassageiro',String(d.id));timer=setInterval(()=>atualizar(d.id).catch(()=>{}),10000);await atualizar(d.id)});
+async function atualizar(id){const d=await api('/api/passageiro/viagem/'+encodeURIComponent(id));viagemAtual=d.id;$('cancelarViagem').hidden=!['procurando','aceita','chegou'].includes(d.status);const nomes={procurando:'Procurando motorista',aceita:'Motorista a caminho',chegou:'Motorista chegou',em_andamento:'Viagem em andamento',finalizada:'Viagem finalizada',cancelada:'Viagem cancelada',sem_motorista:'Nenhum motorista disponível'};$('estado').textContent='Viagem #'+d.id+' · '+(nomes[d.status]||d.status)+(d.motorista_nome?' · '+d.motorista_nome+' · '+[d.carro,d.cor,d.placa].filter(Boolean).join(' '):'');if(['finalizada','cancelada','sem_motorista'].includes(d.status)){clearInterval(timer);$('novaViagem').hidden=false;$('detalheViagem').textContent=d.origem_texto+' → '+d.destino_texto+(d.status==='finalizada'?' · Valor: ':' · Estimativa: ')+Number(d.valor_final??d.valor_estimado).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}}
+$('cancelarViagem').onclick=()=>{if(!confirm('Deseja cancelar esta viagem?'))return;executar($('cancelarViagem'),async()=>{const id=viagemAtual;try{await api('/api/passageiro/viagem/'+encodeURIComponent(id)+'/cancelar',{})}finally{await atualizar(id)}})};
+$('novaViagem').onclick=()=>{clearInterval(timer);localStorage.removeItem('viagemPassageiro');$('viagem').hidden=true;$('pedido').hidden=false;$('novaViagem').hidden=true;limparCotacao();abrirMapa('origem')};
+fetch('/api/passageiro/modo').then(r=>r.json()).then(d=>{if(d.teste){$('modoTeste').hidden=false;$('telefone').value='00000000000'}}).catch(()=>{});
+fetch('/api/publico/inicio').then(r=>r.json()).then(d=>{if(Array.isArray(d.tipos))[...$('tipo').options].forEach(o=>{if(!d.tipos.includes(o.value))o.remove()});if(d.passageiro){$('whatsapp').href=d.passageiro;$('whatsapp').target='_blank';$('whatsapp').rel='noopener noreferrer'}else $('whatsapp').removeAttribute('href')}).catch(()=>$('whatsapp').removeAttribute('href'));
+</script></body></html>

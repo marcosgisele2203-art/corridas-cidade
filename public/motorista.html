@@ -11,13 +11,13 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@400;600;700;800&display=swap">
 <link rel="stylesheet" href="painel.css">
-</head>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"></head>
 <body>
 
 <!-- entrar ou se cadastrar -->
 <div id="entrar" class="entrada" hidden>
   <div class="entrada-manu">
-    <div class="balao"><b>Oi, motorista!</b><span>Bora trabalhar? 🚘<br>Entre ou faça seu cadastro!</span></div>
+    <div class="balao"><b>Oi, motorista!</b><span>Bora trabalhar? <br>Entre ou faça seu cadastro!</span></div>
     <img src="img/manu/manu-joinha.webp" alt="Manu fazendo joinha">
   </div>
   <section class="entrada-quadro">
@@ -48,10 +48,10 @@
       </div>
       <label>Seu veículo</label>
       <div class="tipos-veiculo" id="tiposVeiculo">
-        <button type="button" data-tipo="moto">🏍️<span>Moto</span></button>
-        <button type="button" data-tipo="carro" class="escolhido">🚗<span>Carro</span></button>
-        <button type="button" data-tipo="van">🚐<span>Van</span></button>
-        <button type="button" data-tipo="caminhao">🚚<span>Caminhão</span></button>
+        <button type="button" data-tipo="moto"><svg class="icone-veiculo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="17" r="3"/><circle cx="19" cy="17" r="3"/><path d="m5 17 5-8 5 8H5m5-8h6l3 8M14 5h3l2 6M8 9H5"/></svg><span>Moto</span></button>
+        <button type="button" data-tipo="carro" class="escolhido"><svg class="icone-veiculo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 10 2-5h10l2 5M3 10h18v8H3zM5 18v2m14-2v2M6 14h2m8 0h2"/></svg><span>Carro</span></button>
+        <button type="button" data-tipo="van"><svg class="icone-veiculo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h13l5 7v7H3zM3 12h18M8 5v7m5-7v7M6 19v2m12-2v2M6 16h2m8 0h2"/></svg><span>Van</span></button>
+        <button type="button" data-tipo="caminhao"><svg class="icone-veiculo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h12v12H2zM14 10h4l4 4v3h-8"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg><span>Caminhão</span></button>
       </div>
       <input type="hidden" name="tipo" value="carro">
       <div class="grade">
@@ -74,17 +74,26 @@
       <button data-aba="inicio" class="ativa">🏠 Início</button>
       <button data-aba="comprar">🎟️ Comprar viagens</button>
       <button data-aba="relatorio">📊 Meu relatório</button>
-      <button data-aba="cadastro">🚘 Meu cadastro</button>
+      <button data-aba="cadastro"> Meu cadastro</button>
     </nav>
     <button id="sair" class="sec">Sair</button>
   </header>
   <main>
     <section id="aba-inicio">
-      <div class="dica-manu"><img src="img/manu/manu-joinha.webp" alt=""><div><b id="ola">Olá!</b><span>Fique online para receber corridas. Elas chegam no seu WhatsApp e você responde <strong>1</strong> para aceitar. 🚀</span></div></div>
+      <div class="dica-manu"><img src="img/manu/manu-joinha.webp" alt=""><div><b id="ola">Olá!</b><span>Fique online para receber corridas. As ofertas aparecem aqui. Aceite e acompanhe a viagem pelos botões. 🚀</span></div></div>
       <div id="aviso"></div>
       <div class="cartao status-online">
         <div><small>Sua situação</small><b id="situacao">—</b><span class="dica" id="situacaoDica"></span></div>
         <button id="botaoOnline">🟢 Ficar online</button>
+      </div>
+      <div class="cartao" id="painelGps" style="margin-top:14px">
+        <strong>📍 GPS do motorista</strong>
+        <p class="dica" id="gpsSituacao" role="status" aria-live="polite">GPS desligado. Ative somente quando quiser compartilhar sua localização.</p>
+        <div class="botoes">
+          <button type="button" id="ativarGps">📍 Ativar GPS</button>
+          <button type="button" class="sec" id="pararGps" disabled>Parar GPS</button>
+        </div>
+        <small class="dica">Compartilhamento enquanto esta página estiver aberta e você estiver online. O navegador solicitará sua autorização.</small>
       </div>
       <div id="corridaAtual"></div>
       <h3>Este mês</h3>
@@ -108,12 +117,13 @@
           <button class="sec mini nao-imprimir" id="imprimir">🖨️ Imprimir / PDF</button>
         </span>
       </div>
+      <p id="identificacaoRelatorio"></p>
       <div class="kpis" id="kpisRel"></div>
       <div id="tabelaRel"></div>
     </section>
 
     <section id="aba-cadastro" hidden>
-      <div class="dica-manu"><img src="img/manu/manu-joinha.webp" alt=""><div><b>Seus dados</b><span>Mantenha o modelo, a cor e a placa certinhos: é assim que o passageiro reconhece você. 🚘</span></div></div>
+      <div class="dica-manu"><img src="img/manu/manu-joinha.webp" alt=""><div><b>Seus dados</b><span>Mantenha o modelo, a cor e a placa certinhos: é assim que o passageiro reconhece você. </span></div></div>
       <form id="formEu" class="cartao">
         <div class="grade">
           <label>Nome<input name="nome" disabled></label>
@@ -131,6 +141,6 @@
     </section>
   </main>
 </div>
-<script src="motorista.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script src="motorista.js"></script><script src="simulador-gps.js"></script>
 </body>
 </html>

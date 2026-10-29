@@ -24,6 +24,7 @@ const QRCode = require('qrcode');
 const PORT = Number(process.env.PORT) || 3000;
 // tira espaços e aspas que às vezes vêm junto quando a variável é colada no Easypanel
 const limparVar = (v) => String(v || '').trim().replace(/^(['"])(.*)\1$/, '$2').trim();
+const MODO_TESTE_SITE = limparVar(process.env.MODO_TESTE_SITE) === 'true';
 const WEBHOOK_TOKEN = limparVar(process.env.WEBHOOK_TOKEN);
 const ADMIN_SENHA = limparVar(process.env.ADMIN_SENHA);
 const PUBLIC = path.join(__dirname, 'public');
@@ -525,21 +526,23 @@ async function motoristaPeloTelefone(v) {
 }
 
 rota('POST', '/api/motorista/codigo', false, async ({ req }) => {
+  if (MODO_TESTE_SITE && !logado(req)) throw new Erro(401, 'Para testar o motorista, entre primeiro no painel administrativo neste navegador.');
   limitar('codigo:' + ipDe(req), 6, 15 * 60_000);
   const b = await lerCorpo(req);
   const m = await motoristaPeloTelefone(b.telefone);
   if (!m) throw new Erro(404, 'Não achamos motorista com esse WhatsApp. Faça seu cadastro na aba ao lado.');
   limitar('codigo-m:' + m.id, 3, 15 * 60_000);
-  const codigo = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
+  const codigo = MODO_TESTE_SITE ? '123456' : String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
   await pool.query(`INSERT INTO motorista_codigos (motorista_id, codigo_hash, expira_em) VALUES ($1, $2, now() + interval '10 minutes')
                     ON CONFLICT (motorista_id) DO UPDATE SET codigo_hash = EXCLUDED.codigo_hash, expira_em = EXCLUDED.expira_em, tentativas = 0`,
     [m.id, hashCodigo(m.id, codigo)]);
   const cfg = await lerConfig();
-  whats.texto(m.contato || m.telefone, `🔐 Seu código para entrar na área do motorista da ${cfg.nome}: *${codigo}*\n\nVale 10 minutos. Não passe para ninguém.`);
+  if (!MODO_TESTE_SITE) whats.texto(m.contato || m.telefone, `🔐 Seu código para entrar na área do motorista da ${cfg.nome}: *${codigo}*\n\nVale 10 minutos. Não passe para ninguém.`);
   return { ok: true, final: m.telefone.slice(-4) };
 });
 
 rota('POST', '/api/motorista/entrar', false, async ({ req, res }) => {
+  if (MODO_TESTE_SITE && !logado(req)) throw new Erro(401, 'Para testar o motorista, entre primeiro no painel administrativo neste navegador.');
   limitar('entrar:' + ipDe(req), 15, 15 * 60_000);
   const b = await lerCorpo(req);
   const m = await motoristaPeloTelefone(b.telefone);
@@ -598,12 +601,13 @@ rota('GET', '/api/motorista/eu', false, async ({ req }) => {
   const { rows: [compra] } = await pool.query(
     "SELECT id, quantidade, valor, mp_id, pix_copia_cola, pix_expira, comprovante, criado_em FROM compras WHERE motorista_id = $1 AND status = 'pendente' ORDER BY id DESC LIMIT 1", [m.id]);
   const { rows: [atual] } = await pool.query(
-    "SELECT id, status, origem_texto, destino_texto, passageiro_nome, valor_estimado FROM corridas WHERE motorista_id = $1 AND status IN ('aceita', 'chegou', 'em_andamento') LIMIT 1", [m.id]);
+    "SELECT id, status, origem_texto, destino_texto, origem_lat, origem_lng, destino_lat, destino_lng, passageiro_nome, valor_estimado FROM corridas WHERE motorista_id = $1 AND status IN ('aceita', 'chegou', 'em_andamento') LIMIT 1", [m.id]);
   const { de, ate } = relatorio.mesAtual();
   const mes = await relatorio.montar(m.id, de, ate);
   return {
     motorista: { id: m.id, nome: m.nome, telefone: m.telefone, tipo: m.tipo, carro: m.carro, cor: m.cor, placa: m.placa,
       aprovado: m.aprovado, online: m.online, saldo: m.creditos, veiculo: veiculo(m) },
+    simulador_gps: limparVar(process.env.GPS_SIMULADOR_TESTE) === 'true',
     central: { nome: cfg.nome, cobranca: !!cfg.cobranca_ativa, mp: MP.configurado() && cfg.mp_ativo !== false, pix_chave: cfg.pix_chave, pix_nome: cfg.pix_nome },
     pacotes: pacotesComDesconto(cfg),
     compra: compra ? { ...compra, qr: compra.pix_copia_cola ? await QRCode.toString(compra.pix_copia_cola, { type: 'svg', margin: 1 }) : '' } : null,
@@ -612,6 +616,17 @@ rota('GET', '/api/motorista/eu', false, async ({ req }) => {
   };
 });
 
+rota('GET', '/api/motorista/oferta', false, async ({req}) => {
+  const m = await exigirMotorista(req);
+  const {rows} = await pool.query("SELECT id, origem_texto, destino_texto, origem_lat, origem_lng, destino_lat, destino_lng, valor_estimado, oferta_expira FROM corridas WHERE status = 'procurando' AND oferta_motorista = $1 AND oferta_expira > now() LIMIT 1", [m.id]);
+  return {oferta:rows[0] || null};
+});
+rota('POST', '/api/motorista/corrida/:id/acao', false, async ({req,p}) => {
+  const m = await exigirMotorista(req), b = await lerCorpo(req);
+  limitar('acao-m:'+m.id, 60, 60_000);
+  try { return await bot.acaoSite(m.id, Number(p.id), b.acao); }
+  catch(e) { if(e.status === 409) throw new Erro(409,e.message); throw e; }
+});
 rota('POST', '/api/motorista/online', false, async ({ req }) => {
   const m = await exigirMotorista(req);
   if (!m.aprovado) throw new Erro(400, 'Seu cadastro ainda está em análise.');
@@ -626,6 +641,24 @@ rota('POST', '/api/motorista/online', false, async ({ req }) => {
     }
     return { online: !!b.online };
   });
+});
+
+// GPS do motorista: coordenadas vinculadas à sessão autenticada e aceitas somente online.
+rota('POST', '/api/motorista/gps', false, async ({ req }) => {
+  const m = await exigirMotorista(req);
+  limitar('gps:' + m.id, 180, 60_000);
+  const b = await lerCorpo(req);
+  if (b.ativo === false) {
+    await pool.query('UPDATE motoristas SET lat = NULL, lng = NULL, local_em = NULL WHERE id = $1', [m.id]);
+    return { ok: true, ativo: false };
+  }
+  if (!m.online || !m.aprovado) throw new Erro(409, 'Fique online e tenha o cadastro aprovado antes de ativar o GPS.');
+  const lat = Number(b.lat), lng = Number(b.lng), precisao = Number(b.precisao);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180 ||
+      !Number.isFinite(precisao) || precisao < 0 || precisao > 5000) throw new Erro(400, 'Localização inválida ou sem precisão suficiente.');
+  await pool.query('UPDATE motoristas SET lat = $2, lng = $3, local_em = now() WHERE id = $1 AND online AND aprovado',
+    [m.id, lat, lng]);
+  return { ok: true, ativo: true };
 });
 
 rota('PUT', '/api/motorista/eu', false, async ({ req }) => {
@@ -678,6 +711,132 @@ rota('GET', '/api/motorista/relatorio', false, async ({ req, url }) => {
 
 rota('GET', '/api/mensagens', true, async () => whats.enviados.slice(-50).reverse());
 
+
+/* Solicitação de viagem pelo site, com telefone confirmado por código. */
+const geoPassageiro = require('./lib/geo');
+const hashPassageiro = (t,c) => crypto.createHmac('sha256','passageiro:'+segredoMotorista).update(t+':'+c).digest('hex');
+function visitante(req) {
+  const m=/(?:^|;\s*)cp_visitante=(\d+)\.([a-f0-9]{32})\.(\d+)\.([a-f0-9]{64})/.exec(req.headers.cookie||'');
+  if(!m || Number(m[3])<Date.now()) return null;
+  const sig=hashPassageiro(m[1],m[2]+':'+m[3]);
+  if(m[4].length!==sig.length || !crypto.timingSafeEqual(Buffer.from(m[4]),Buffer.from(sig))) return null;
+  return {tel:m[1],id:m[2]};
+}
+rota('POST','/api/passageiro/visitante',false,async({req,res})=>{
+  limitar('visitante:'+ipDe(req),15,15*60_000);
+  const b=await lerCorpo(req),tel=telefoneBR(b.telefone), atual=visitante(req);
+  const id=atual && atual.tel===tel ? atual.id : crypto.randomBytes(16).toString('hex');
+  const exp=String(Date.now()+24*3600_000),sig=hashPassageiro(tel,id+':'+exp);
+  const secure=String(req.headers['x-forwarded-proto']||'').includes('https')?'; Secure':'';
+  res.setHeader('Set-Cookie',`cp_visitante=${tel}.${id}.${exp}.${sig}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${secure}`);
+  return {ok:true};
+});
+function sessaoPassageiro(req) {
+  const guest=visitante(req); if(guest) return guest.tel;
+  const m=/(?:^|;\s*)cp_sessao=(\d+)\.(\d+)\.([\w-]+)/.exec(req.headers.cookie||'');
+  if(!m || Number(m[2])<Date.now()) throw new Erro(401,'Confirme seu WhatsApp novamente.');
+  const sig=hashPassageiro(m[1],m[2]);
+  if(m[3].length!==sig.length || !crypto.timingSafeEqual(Buffer.from(m[3]),Buffer.from(sig))) throw new Erro(401,'Sessão inválida.');
+  return m[1];
+}
+rota('GET','/api/passageiro/modo',false,async()=>({teste:MODO_TESTE_SITE}));
+rota('POST','/api/passageiro/codigo',false,async({req})=>{
+  limitar('pc-ip:'+ipDe(req),6,15*60_000);
+  const b=await lerCorpo(req), tel=telefoneBR(b.telefone);
+  limitar('pc-tel:'+tel,3,15*60_000);
+  if(MODO_TESTE_SITE && tel !== '5500000000000') throw new Erro(400,'No teste, use o número fictício indicado na tela.');
+  if(!MODO_TESTE_SITE && (!whats.EVO.url || !whats.EVO.instancia || !whats.EVO.chave)) throw new Erro(503,'O WhatsApp da central está indisponível.');
+  const code=MODO_TESTE_SITE ? '123456' : String(crypto.randomInt(0,1000000)).padStart(6,'0');
+  await pool.query(`INSERT INTO passageiro_codigos(telefone,codigo_hash,expira_em) VALUES($1,$2,now()+interval '10 minutes')
+    ON CONFLICT(telefone) DO UPDATE SET codigo_hash=excluded.codigo_hash,expira_em=excluded.expira_em,tentativas=0`,[tel,hashPassageiro(tel,code)]);
+  if(!MODO_TESTE_SITE) whats.texto(tel,`🔐 Seu código de acesso à Vai com Manu: *${code}*. Válido por 10 minutos. Não compartilhe.`);
+  return {ok:true};
+});
+rota('POST','/api/passageiro/entrar',false,async({req,res})=>{
+  limitar('pe-ip:'+ipDe(req),15,15*60_000);
+  const b=await lerCorpo(req),tel=telefoneBR(b.telefone), code=soDigitos(b.codigo);
+  const {rows:[c]}=await pool.query("UPDATE passageiro_codigos SET tentativas=tentativas+1 WHERE telefone=$1 AND expira_em>now() AND tentativas<5 RETURNING codigo_hash",[tel]);
+  if(!c||code.length!==6) throw new Erro(400,'Código inválido ou expirado.');
+  const a=Buffer.from(hashPassageiro(tel,code)),z=Buffer.from(c.codigo_hash);
+  if(a.length!==z.length||!crypto.timingSafeEqual(a,z)) throw new Erro(400,'Código inválido.');
+  await pool.query('DELETE FROM passageiro_codigos WHERE telefone=$1',[tel]);
+  const expiry=String(Date.now()+24*3600_000), sig=hashPassageiro(tel,expiry);
+  const secure=String(req.headers['x-forwarded-proto']||'').includes('https')?'; Secure':'';
+  res.setHeader('Set-Cookie',`cp_sessao=${tel}.${expiry}.${sig}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${secure}`);
+  return {ok:true};
+});
+rota('POST','/api/passageiro/cotacao',false,async({req})=>{
+  limitar('cotacao:'+ipDe(req),12,15*60_000);
+  const tel=sessaoPassageiro(req), b=await lerCorpo(req),cfg=await lerConfig();
+  const nome=texto(b.nome,100),origem=texto(b.origem,180),destino=texto(b.destino,180),tipo=texto(b.tipo,20);
+  if(!cfg.aceitando) throw new Erro(400,'A central não está aceitando corridas agora.');
+  if(nome.length<2||origem.length<4||destino.length<4||!ORDEM.includes(tipo)||!cfg.precos[tipo].ativo) throw new Erro(400,'Confira nome, endereços e veículo.');
+  function ponto(v) {
+    if (!v || typeof v.lat !== 'number' || typeof v.lng !== 'number' || !Number.isFinite(v.lat) || !Number.isFinite(v.lng) || Math.abs(v.lat)>90 || Math.abs(v.lng)>180) return null;
+    return {lat:v.lat,lng:v.lng};
+  }
+  if ((b.origemPonto && !ponto(b.origemPonto)) || (b.destinoPonto && !ponto(b.destinoPonto))) throw new Erro(400,'Ponto do mapa inválido.');
+  const [o,d]=await Promise.all([b.origemPonto ? ponto(b.origemPonto) : geoPassageiro.buscarEndereco(origem,cfg),b.destinoPonto ? ponto(b.destinoPonto) : geoPassageiro.buscarEndereco(destino,cfg)]);
+  if(!o || !d) throw new Erro(400, !o && !d ? 'Não encontramos a origem nem o destino. Marque os pontos no mapa.' : !o ? 'Não encontramos a origem. Marque o ponto no mapa.' : 'Não encontramos o destino. Marque o ponto no mapa.');
+  const km=geoPassageiro.kmRota(o,d,cfg),valor=geoPassageiro.preco(km,cfg.precos[tipo]);
+  const payload={tel,nome,origem,destino,o,d,tipo,km,valor,exp:Date.now()+5*60_000,nonce:(visitante(req)?.id || '')+':'+crypto.randomBytes(16).toString('hex')};
+  const encoded=Buffer.from(JSON.stringify(payload)).toString('base64url');
+  return {km,valor,token:encoded+'.'+hashPassageiro(tel,encoded),aviso:'Distância e valor estimados.'};
+});
+rota('POST','/api/passageiro/pedir',false,async({req})=>bot.rodar(async()=>{
+  limitar('pedir:'+ipDe(req),10,15*60_000);
+  const tel=sessaoPassageiro(req),b=await lerCorpo(req),parts=String(b.token||'').split('.');
+  if(parts.length!==2||parts[0].length>5000) throw new Erro(400,'Faça uma nova cotação.');
+  const sig=hashPassageiro(tel,parts[0]);
+  if(sig.length!==parts[1].length||!crypto.timingSafeEqual(Buffer.from(sig),Buffer.from(parts[1]))) throw new Erro(400,'Cotação inválida.');
+  let q;try{q=JSON.parse(Buffer.from(parts[0],'base64url').toString('utf8'))}catch{throw new Erro(400,'Cotação inválida.')}
+  if((visitante(req) && !q.nonce.startsWith(visitante(req).id+':')) || q.tel!==tel||q.exp<Date.now()) throw new Erro(400,'Cotação expirada. Faça outra.');
+  const cfg=await lerConfig();if(!cfg.aceitando||!cfg.precos[q.tipo]?.ativo) throw new Erro(400,'Veículo indisponível.');
+  const precoAtual=geoPassageiro.preco(q.km,cfg.precos[q.tipo]);if(precoAtual!==q.valor) throw new Erro(400,'O preço mudou. Faça outra cotação.');
+  const {rows:[existing]}=await pool.query('SELECT corrida_id FROM passageiro_pedidos WHERE token=$1',[q.nonce]);
+  if(existing) return {id:existing.corrida_id};
+  const {rows:[active]}=await pool.query("SELECT id FROM corridas WHERE passageiro_tel=$1 AND status IN ('procurando','aceita','chegou','em_andamento') LIMIT 1",[tel]);
+  if(active) throw new Erro(409,'Você já tem uma corrida em andamento.');
+  const client=await pool.connect();let ride;
+  try{
+    await client.query('BEGIN');
+    const result=await client.query(`INSERT INTO corridas(passageiro_tel,passageiro_contato,passageiro_nome,origem_texto,origem_lat,origem_lng,destino_texto,destino_lat,destino_lng,km,valor_estimado,tipo)
+    VALUES($1,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,[tel,q.nome,q.origem,q.o.lat,q.o.lng,q.destino,q.d.lat,q.d.lng,q.km,q.valor,q.tipo]);
+    ride=result.rows[0];await client.query('INSERT INTO passageiro_pedidos(token,corrida_id) VALUES($1,$2)',[q.nonce,ride.id]);
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
+  whats.texto(tel,`🔎 Corrida #${ride.id} solicitada pelo site. Procurando motorista. Para cancelar, envie CANCELAR.`);
+  await bot.despachar(ride.id);
+  return {id:ride.id};
+}));
+rota('POST','/api/passageiro/viagem/:id/cancelar',false,async({req,p})=>{
+  const tel=sessaoPassageiro(req),id=Number(p.id),guest=visitante(req);
+  limitar('passageiro-cancelar:'+ipDe(req),30,60_000);
+  return bot.rodar(async()=>{
+    const {rows:[c]}=await pool.query('SELECT * FROM corridas WHERE id=$1 AND passageiro_tel=$2',[id,tel]);
+    if(!c) throw new Erro(404,'Viagem não encontrada.');
+    if(guest){
+      const {rows}=await pool.query('SELECT 1 FROM passageiro_pedidos WHERE corrida_id=$1 AND token LIKE $2',[id,guest.id+':%']);
+      if(!rows.length) throw new Erro(404,'Viagem não encontrada neste aparelho.');
+    }
+    if(c.status==='cancelada') return {ok:true};
+    if(!['procurando','aceita','chegou'].includes(c.status)) throw new Erro(409,'Esta viagem já começou ou terminou. Atualize a tela.');
+    await bot.cancelarPeloPassageiro(c);
+    return {ok:true};
+  });
+});
+rota('GET','/api/passageiro/viagem/:id',false,async({req,p})=>{
+  const tel=sessaoPassageiro(req),id=Number(p.id);
+  const {rows:[c]}=await pool.query(`SELECT c.id,c.status,c.origem_texto,c.destino_texto,c.valor_estimado,c.valor_final,c.tipo,m.nome AS motorista_nome,m.carro,m.cor,m.placa
+    FROM corridas c LEFT JOIN motoristas m ON m.id=c.motorista_id WHERE c.id=$1 AND c.passageiro_tel=$2`,[id,tel]);
+  const guest=visitante(req);
+  if(guest) {
+    const {rows}=await pool.query('SELECT 1 FROM passageiro_pedidos WHERE corrida_id=$1 AND token LIKE $2',[id,guest.id+':%']);
+    if(!rows.length) throw new Erro(404,'Viagem não encontrada neste aparelho.');
+  }
+  if(!c) throw new Erro(404,'Viagem não encontrada.');return c;
+});
+
 // ---------------------------------------------------------------- arquivos do painel
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml',
@@ -704,7 +863,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, resultado);
     }
     if (req.method === 'GET') {
-      const pagina = { '/': 'inicio.html', '/painel': 'index.html', '/motorista': 'motorista.html' }[url.pathname.replace(/\/+$/, '') || '/'];
+      const pagina = { '/': 'inicio.html', '/painel': 'index.html', '/motorista': 'motorista.html', '/passageiro': 'passageiro.html' }[url.pathname.replace(/\/+$/, '') || '/'];
       if (pagina) return arquivo(res, pagina) || json(res, 404, { erro: 'Não encontrado' });
       if (arquivo(res, url.pathname.slice(1))) return;
     }
@@ -716,6 +875,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 (async () => {
+  if (MODO_TESTE_SITE && (whats.EVO.url || whats.EVO.instancia || whats.EVO.chave || MP.configurado())) throw new Error('Modo de teste exige Evolution e Mercado Pago desativados.');
   await migrar();
   await prepararSegredoMotorista();
   setInterval(() => bot.varrer().catch((e) => console.error('Erro ao varrer chamadas:', e)), 3000).unref();
