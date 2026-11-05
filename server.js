@@ -710,6 +710,67 @@ rota('GET', '/api/motorista/relatorio', false, async ({ req, url }) => {
 
 rota('GET', '/api/mensagens', true, async () => whats.enviados.slice(-50).reverse());
 
+// Acompanhamento voluntário: token aleatório, armazenado apenas como hash.
+// A emissão e revogação são exclusivas do administrador autenticado.
+const statusAcompanhaveis = ['aceita','chegou','em_andamento'];
+const hashAcompanhamento = (token) => crypto.createHash('sha256').update(token).digest('hex');
+rota('POST', '/api/viagens/:id/acompanhamento', true, async ({ p }) => {
+  const id = Number(p.id);
+  if (!Number.isSafeInteger(id) || id < 1) throw new Erro(400,'Corrida inválida.');
+  const { rows: [c] } = await pool.query(
+    "SELECT id, status, motorista_id FROM corridas WHERE id = $1", [id]);
+  if (!c || !statusAcompanhaveis.includes(c.status) || !c.motorista_id)
+    throw new Erro(409,'Somente viagens aceitas e em andamento podem receber link de acompanhamento.');
+  // Gerar novo link invalida os anteriores dessa mesma viagem.
+  const token = crypto.randomBytes(32).toString('base64url');
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    // Serialize a emissão por corrida, evitando dois links válidos em chamadas simultâneas.
+    await client.query('SELECT id FROM corridas WHERE id = $1 FOR UPDATE', [id]);
+    const {rows:[corridaAtual]}=await client.query('SELECT status,motorista_id FROM corridas WHERE id=$1',[id]);
+    if (!corridaAtual || !statusAcompanhaveis.includes(corridaAtual.status) || !corridaAtual.motorista_id)
+      throw new Erro(409,'A viagem não está mais ativa.');
+    await client.query('UPDATE acompanhamento_links SET revogado_em = now() WHERE corrida_id = $1 AND revogado_em IS NULL', [id]);
+    await client.query("INSERT INTO acompanhamento_links(corrida_id,token_hash,expira_em) VALUES ($1,$2,now() + interval '60 minutes')",
+      [id,hashAcompanhamento(token)]);
+    await client.query('COMMIT');
+  } catch(e) { await client.query('ROLLBACK'); throw e; } finally { client.release(); }
+  return { url: '/acompanhar.html#token='+token, expira_em: new Date(Date.now()+3600000).toISOString() };
+});
+rota('POST','/api/viagens/:id/acompanhamento/revogar',true,async ({ p })=>{
+  const id=Number(p.id);
+  if(!Number.isSafeInteger(id)||id<1) throw new Erro(400,'Corrida inválida.');
+  await pool.query('UPDATE acompanhamento_links SET revogado_em = now() WHERE corrida_id = $1 AND revogado_em IS NULL',[id]);
+  return {ok:true};
+});
+// Sem sessão administrativa: apenas dados necessários para seguir a corrida correspondente.
+// Token vem no corpo POST, não aparece na URL enviada ao servidor ou nos logs de acesso.
+rota('POST','/api/publico/acompanhamento',false,async ({ req })=>{
+  limitar('acomp:'+ipDe(req),120,60_000);
+  const b=await lerCorpo(req,1024);
+  const token=String(b.token||'');
+  if(!/^[A-Za-z0-9_-]{43}$/.test(token)) throw new Erro(404,'Acompanhamento indisponível.');
+  const {rows:[c]}=await pool.query(`
+    SELECT c.id,c.status,c.tipo,c.origem_texto,c.destino_texto,
+           m.carro,m.cor,m.placa,m.lat,m.lng,m.local_em
+    FROM acompanhamento_links a
+    JOIN corridas c ON c.id=a.corrida_id
+    JOIN motoristas m ON m.id=c.motorista_id
+    WHERE a.token_hash=$1 AND a.revogado_em IS NULL AND a.expira_em > now()
+    LIMIT 1`,[hashAcompanhamento(token)]);
+  if(!c||!statusAcompanhaveis.includes(c.status)) throw new Erro(410,'O acompanhamento terminou ou expirou.');
+  const gpsRecente= c.local_em && Date.now()-new Date(c.local_em).getTime()<120000
+     && Number.isFinite(c.lat)&&Number.isFinite(c.lng);
+  return {
+    corrida:c.id,status:c.status,tipo:c.tipo,
+    origem:c.origem_texto,destino:c.destino_texto,
+    veiculo:[c.carro,c.cor].filter(Boolean).join(' '),placa:c.placa,
+    gps_recente:!!gpsRecente,
+    posicao:gpsRecente?{lat:c.lat,lng:c.lng,atualizado_em:c.local_em}:null
+  };
+});
+
 // ---------------------------------------------------------------- arquivos do painel
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml',
