@@ -139,5 +139,5 @@ $('compartilhar').onclick=async()=>{
 $('pararCompartilhar').onclick=stopShare;
 // Evita manter compartilhamento quando a aba é ocultada.
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&shared)stopShare();});
-window.addEventListener('pagehide',()=>{if(shared){navigator.sendBeacon('/api/motorista/localizacao/parar','');}stop();});
+window.addEventListener('pagehide',stop);
 })();
