@@ -723,13 +723,19 @@ rota('POST', '/api/viagens/:id/acompanhamento', true, async ({ p }) => {
     throw new Erro(409,'Somente viagens aceitas e em andamento podem receber link de acompanhamento.');
   // Gerar novo link invalida os anteriores dessa mesma viagem.
   const token = crypto.randomBytes(32).toString('base64url');
-  await pool.query('BEGIN');
+  const client = await pool.connect();
   try {
-    await pool.query('UPDATE acompanhamento_links SET revogado_em = now() WHERE corrida_id = $1 AND revogado_em IS NULL', [id]);
-    await pool.query("INSERT INTO acompanhamento_links(corrida_id,token_hash,expira_em) VALUES ($1,$2,now() + interval '60 minutes')",
+    await client.query('BEGIN');
+    // Serialize a emissão por corrida, evitando dois links válidos em chamadas simultâneas.
+    await client.query('SELECT id FROM corridas WHERE id = $1 FOR UPDATE', [id]);
+    const {rows:[corridaAtual]}=await client.query('SELECT status,motorista_id FROM corridas WHERE id=$1',[id]);
+    if (!corridaAtual || !statusAcompanhaveis.includes(corridaAtual.status) || !corridaAtual.motorista_id)
+      throw new Erro(409,'A viagem não está mais ativa.');
+    await client.query('UPDATE acompanhamento_links SET revogado_em = now() WHERE corrida_id = $1 AND revogado_em IS NULL', [id]);
+    await client.query("INSERT INTO acompanhamento_links(corrida_id,token_hash,expira_em) VALUES ($1,$2,now() + interval '60 minutes')",
       [id,hashAcompanhamento(token)]);
-    await pool.query('COMMIT');
-  } catch(e) { await pool.query('ROLLBACK'); throw e; }
+    await client.query('COMMIT');
+  } catch(e) { await client.query('ROLLBACK'); throw e; } finally { client.release(); }
   return { url: '/acompanhar.html#token='+token, expira_em: new Date(Date.now()+3600000).toISOString() };
 });
 rota('POST','/api/viagens/:id/acompanhamento/revogar',true,async ({ p })=>{
