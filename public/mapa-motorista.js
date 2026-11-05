@@ -4,20 +4,45 @@
 const $ = id => document.getElementById(id);
 const CENTRO = [-56.378,-20.240]; // Miranda-MS (posição inicial aproximada)
 let map, gpsMarker, markerA, markerB, origem, destino, watchId=null, simulation=false, runId=0;
+let shared=false, lastSent=0, sending=false;
 const status = msg => { $('status').textContent=msg; };
 const blank = () => ({type:'FeatureCollection',features:[]});
 const controls = state => ['gps','simular','limpar'].forEach(id => $(id).disabled=!state);
 $('token').value = localStorage.getItem('vai-manu-mapbox-public-token') || '';
+async function stopShare(){
+ shared=false; $('compartilhar').disabled=false; $('pararCompartilhar').disabled=true;
+ $('compartilhamentoStatus').textContent='Compartilhamento desligado.';
+ try { await fetch('/api/motorista/localizacao',{method:'DELETE',credentials:'same-origin'}); }catch{}
+}
+async function sendLocation(lng,lat){
+ if(!shared || simulation || sending || Date.now()-lastSent<12000) return;
+ sending=true;
+ try{
+  const r=await fetch('/api/motorista/localizacao',{method:'POST',credentials:'same-origin',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({lat,lng})});
+  if(!r.ok){
+    const d=await r.json().catch(()=>({}));
+    shared=false;$('compartilhar').disabled=false;$('pararCompartilhar').disabled=true;
+    $('compartilhamentoStatus').textContent='Compartilhamento interrompido: '+(d.erro||'Erro HTTP '+r.status);
+  }else{
+    lastSent=Date.now();
+    $('compartilhamentoStatus').textContent='📡 Compartilhando GPS real com a central. Último envio: '+new Date().toLocaleTimeString('pt-BR');
+  }
+ }catch(e){$('compartilhamentoStatus').textContent='Falha de rede: '+e.message;}
+ finally{sending=false;}
+}
 function stop(){
  if(watchId!==null) navigator.geolocation.clearWatch(watchId);
  watchId=null; simulation=false; $('parar').disabled=true;
+ if(shared) stopShare();
  status('Localização interrompida. Nada é enviado ao servidor.');
 }
 function gpsPosition(lng,lat,accuracy,kind){
  if(!gpsMarker) gpsMarker = new mapboxgl.Marker({color:'#267bde'}).setLngLat([lng,lat]).addTo(map);
  else gpsMarker.setLngLat([lng,lat]);
  map.easeTo({center:[lng,lat],zoom:15});
- status(kind+': posição exibida apenas neste navegador'+(Number.isFinite(accuracy)?' (precisão estimada '+Math.round(accuracy)+' m)':'')+'.');
+ status(kind+': posição exibida no mapa'+(Number.isFinite(accuracy)?' (precisão estimada '+Math.round(accuracy)+' m)':'')+'.');
+ if(kind==='GPS') sendLocation(lng,lat);
 }
 function clearRoute(){
  ++runId;
@@ -71,6 +96,7 @@ $('carregar').onclick=()=>{
    map.addSource('rota',{type:'geojson',data:blank()});
    map.addLayer({id:'rota-linha',type:'line',source:'rota',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#087b59','line-width':6,'line-opacity':0.86}});
    map.on('click',clickMap); controls(true);
+   $('compartilhar').disabled=false;
    $('resumo').textContent='Clique no mapa para escolher a origem.';
    status('Mapa carregado. Você pode ativar GPS ou usar o simulador.');
   });
@@ -98,5 +124,25 @@ $('simular').onclick=()=>{
 $('parar').onclick=stop;
 $('limpar').onclick=clearRoute;
 $('perfil').onchange=()=>{if(origem&&destino)route();};
+$('compartilhar').onclick=async()=>{
+ if(simulation){$('compartilhamentoStatus').textContent='Simulador não pode compartilhar localização.';return;}
+ if(watchId===null){$('compartilhamentoStatus').textContent='Ative o GPS real antes de compartilhar.';return;}
+ try{
+   const r=await fetch('/api/motorista/eu',{credentials:'same-origin'});
+   if(!r.ok) throw Error('Entre no painel do motorista no servidor da central (não no servidor estático).');
+   const d=await r.json();
+   if(!d.motorista?.aprovado||!d.motorista?.online) throw Error('Motorista precisa estar aprovado e online.');
+   shared=true;lastSent=0;$('compartilhar').disabled=true;$('pararCompartilhar').disabled=false;
+   $('compartilhamentoStatus').textContent='Compartilhamento ativado. Obtendo posição atual…';
+   navigator.geolocation.getCurrentPosition(
+     p=>sendLocation(p.coords.longitude,p.coords.latitude),
+     e=>{$('compartilhamentoStatus').textContent='GPS ativo, mas ainda sem envio inicial: '+e.message;},
+     {enableHighAccuracy:true,maximumAge:5000,timeout:15000}
+   );
+ }catch(e){$('compartilhamentoStatus').textContent=e.message;}
+};
+$('pararCompartilhar').onclick=stopShare;
+// Alternar abas não encerra o consentimento. O navegador pode pausar o GPS em segundo plano.
+// O usuário pode interromper pelo botão; ao fechar/sair desta página o compartilhamento termina.
 window.addEventListener('pagehide',stop);
 })();

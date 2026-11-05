@@ -23,8 +23,10 @@ main{max-width:1150px;margin:auto;padding:16px}.painel{background:white;border:1
 <button class="sec" id="gps" disabled>📍 Ativar GPS</button>
 <button class="sec" id="simular" disabled>🧪 Simulador</button>
 <button class="sec" id="parar" disabled>Parar localização</button>
+<button id="compartilhar" class="sec" disabled>📡 Compartilhar GPS com a central</button>
+<button id="pararCompartilhar" class="sec" disabled>🔒 Parar compartilhamento</button>
 </div>
-<div id="status" role="status" aria-live="polite">Configure seu token para iniciar.</div>
+<div id="status" role="status" aria-live="polite">Configure seu token para iniciar.</div><p class="hint" id="compartilhamentoStatus" role="status">Compartilhamento desligado. Exige login de motorista, aprovação, estado online, HTTPS e conexão com o servidor da central. O simulador nunca compartilha localização.</p>
 </section>
 <section class="painel">
 <div class="controles">

@@ -612,6 +612,38 @@ rota('GET', '/api/motorista/eu', false, async ({ req }) => {
   };
 });
 
+// Localização voluntária: somente motorista autenticado, aprovado e online.
+// Sem aceitar ID de motorista enviado pelo navegador (identidade vem do cookie assinado).
+rota('POST', '/api/motorista/localizacao', false, async ({ req }) => {
+  const m = await exigirMotorista(req);
+  if (!m.aprovado || !m.online) throw new Erro(403, 'A localização só pode ser enviada quando você estiver aprovado e online.');
+  const b = await lerCorpo(req, 2048);
+  const lat = Number(b.lat), lng = Number(b.lng);
+  if (b.lat == null || b.lng == null || !Number.isFinite(lat) || !Number.isFinite(lng)
+      || lat < -90 || lat > 90 || lng < -180 || lng > 180) throw new Erro(400, 'Coordenadas inválidas.');
+  await pool.query('UPDATE motoristas SET lat = $2, lng = $3, local_em = now() WHERE id = $1 AND online AND aprovado AND ativo',
+    [m.id, lat, lng]);
+  return { ok: true, atualizado_em: new Date().toISOString() };
+});
+
+// O próprio motorista interrompe o compartilhamento, removendo a última posição.
+rota('DELETE', '/api/motorista/localizacao', false, async ({ req }) => {
+  const m = await exigirMotorista(req);
+  await pool.query('UPDATE motoristas SET lat = NULL, lng = NULL, local_em = NULL WHERE id = $1', [m.id]);
+  return { ok: true };
+});
+
+// Visão protegida da central: apenas posições recentes de motoristas ativos e online.
+rota('GET', '/api/central/gps', true, async () => {
+  const { rows } = await pool.query(`SELECT id, nome, tipo, carro, placa, lat, lng, local_em,
+      (SELECT c.id FROM corridas c WHERE c.motorista_id = m.id AND c.status IN ('aceita','chegou','em_andamento') LIMIT 1) AS corrida_atual
+    FROM motoristas m
+    WHERE ativo AND aprovado AND online AND lat BETWEEN -90 AND 90 AND lng BETWEEN -180 AND 180
+      AND local_em > now() - interval '2 minutes'
+    ORDER BY local_em DESC LIMIT 200`);
+  return { motoristas: rows, atualizado_em: new Date().toISOString() };
+});
+
 rota('POST', '/api/motorista/online', false, async ({ req }) => {
   const m = await exigirMotorista(req);
   if (!m.aprovado) throw new Erro(400, 'Seu cadastro ainda está em análise.');
