@@ -251,7 +251,8 @@ async function abrirViagem(id) {
     </div>
     <p>📍 <b>Saída:</b> ${esc(v.origem_texto)}<br>🏁 <b>Destino:</b> ${esc(v.destino_texto)}</p>
     <ol class="linha-tempo">${passos.map(([t, ic, txt]) => `<li><span class="lt-icone">${ic}</span><div>${txt}<small>${dataHora(t)}</small></div></li>`).join('')}</ol>
-    ${ATIVAS.includes(v.status) ? `<button class="perigo" data-cancelar="${v.id}">Cancelar esta viagem</button>` : ''}`;
+    ${ATIVAS.includes(v.status) ? `<button class="perigo" data-cancelar="${v.id}">Cancelar esta viagem</button>` : ''}
+    ${['aceita','chegou','em_andamento'].includes(v.status) ? `<div class="linha"><button class="sec mini" data-acompanhar="${v.id}">🔗 Criar link de acompanhamento</button><button class="sec mini" data-revogar="${v.id}">🔒 Revogar link</button></div>` : ''}`;
   d.showModal();
   $('#fecharViagem').onclick = () => d.close();
 }
@@ -259,6 +260,26 @@ async function abrirViagem(id) {
 // cliques: abrir viagem, cancelar
 document.querySelector('#aba-corridas').addEventListener('click', async (e) => {
   if (e.target.closest('a')) return;
+  const acompanhar=e.target.dataset.acompanhar;
+  const revogar=e.target.dataset.revogar;
+  if(acompanhar){
+    if(!confirm('Criar novo link válido por até 60 minutos? Links anteriores desta corrida serão revogados.'))return;
+    try{
+      const data=await api('POST','/api/viagens/'+Number(acompanhar)+'/acompanhamento');
+      const url=new URL(data.url,location.origin).href;
+      if(navigator.clipboard?.writeText){
+        await navigator.clipboard.writeText(url);
+        alert('Link privado copiado. Envie somente ao passageiro autorizado. Não compartilhe em grupos.');
+      }else prompt('Copie este link privado e envie somente ao passageiro autorizado:',url);
+    }catch(err){alert('Não foi possível criar o link: '+err.message);}
+    return;
+  }
+  if(revogar){
+    if(!confirm('Revogar o acompanhamento desta corrida?'))return;
+    try{await api('POST','/api/viagens/'+Number(revogar)+'/acompanhamento/revogar');alert('Link de acompanhamento revogado.');}
+    catch(err){alert('Não foi possível revogar: '+err.message);}
+    return;
+  }
   const cancelar = e.target.dataset.cancelar;
   if (cancelar) {
     if (!confirm(`Cancelar a viagem #${cancelar}? O passageiro e o motorista serão avisados.`)) return;
