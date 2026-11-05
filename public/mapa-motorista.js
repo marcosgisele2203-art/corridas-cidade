@@ -133,11 +133,16 @@ $('compartilhar').onclick=async()=>{
    const d=await r.json();
    if(!d.motorista?.aprovado||!d.motorista?.online) throw Error('Motorista precisa estar aprovado e online.');
    shared=true;lastSent=0;$('compartilhar').disabled=true;$('pararCompartilhar').disabled=false;
-   $('compartilhamentoStatus').textContent='Compartilhamento ativado. Aguardando atualização real do GPS…';
+   $('compartilhamentoStatus').textContent='Compartilhamento ativado. Obtendo posição atual…';
+   navigator.geolocation.getCurrentPosition(
+     p=>sendLocation(p.coords.longitude,p.coords.latitude),
+     e=>{$('compartilhamentoStatus').textContent='GPS ativo, mas ainda sem envio inicial: '+e.message;},
+     {enableHighAccuracy:true,maximumAge:5000,timeout:15000}
+   );
  }catch(e){$('compartilhamentoStatus').textContent=e.message;}
 };
 $('pararCompartilhar').onclick=stopShare;
-// Evita manter compartilhamento quando a aba é ocultada.
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&shared)stopShare();});
+// Alternar abas não encerra o consentimento. O navegador pode pausar o GPS em segundo plano.
+// O usuário pode interromper pelo botão; ao fechar/sair desta página o compartilhamento termina.
 window.addEventListener('pagehide',stop);
 })();
