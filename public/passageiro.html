@@ -7,6 +7,8 @@
   <meta name="description" content="Planeje sua próxima viagem com a Vai de Manu.">
   <title>Vai de Manu · Sua próxima viagem</title>
   <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="manifest" href="/passageiro.webmanifest">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="/passageiro.css">
 </head>
@@ -110,5 +112,13 @@
   </div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="/passageiro.js?v=20261105-7"></script>
+  <script>
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw-passageiro.js', { scope: '/passageiro.html' })
+          .catch(() => { /* instalação permanece opcional; navegação online continua funcionando */ });
+      });
+    }
+  </script>
 </body>
 </html>
