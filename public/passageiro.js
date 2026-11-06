@@ -210,6 +210,62 @@
             // A busca original permanece disponível mesmo se Photon falhar.
           }
         }
+        // Os nomes das ruas no mapa OSM nem sempre aparecem nos índices de geocodificação.
+        // Consulta pontual aos nomes cadastrados perto de Miranda, somente após as duas buscas falharem.
+        if (!results.length && term.length >= 5) {
+          const simplified = term.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/^(rua|avenida|av\\.?|travessa)\s+/i, '')
+            .trim().replace(/[^\\p{L}\\p{N} -]/gu, '');
+          // Limita o termo usado na expressão de pesquisa a letras, números e espaços.
+          const keyword = simplified.split(/\s+/).filter((w) => w.length >= 4).slice(-1)[0];
+          if (keyword) {
+            const overpassQuery = '[out:json][timeout:10];' +
+              'way["highway"]["name"~"' + keyword + '",i]' +
+              '(-20.31,-56.45,-20.17,-56.29);out geom 20;';
+            const fallbackController = new AbortController();
+            const onAbort = () => fallbackController.abort();
+            controller.signal.addEventListener('abort', onAbort, { once: true });
+            const fallbackTimer = setTimeout(() => fallbackController.abort(), 11000);
+            try {
+              const response = await fetch('https://overpass.kumi.systems/api/interpreter', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ data: overpassQuery }),
+                signal: fallbackController.signal
+              });
+              if (response.ok) {
+                const data = await response.json();
+                const clean = (value) => String(value || '').normalize('NFD')
+                  .replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                const fragment = clean(simplified);
+                results = (Array.isArray(data.elements) ? data.elements : [])
+                  .filter((way) => {
+                    const name = way.tags?.name;
+                    const geometry = way.geometry;
+                    return name && clean(name).includes(fragment) &&
+                      Array.isArray(geometry) && geometry.length > 0;
+                  })
+                  .slice(0, 8)
+                  .map((way) => {
+                    const point = way.geometry[Math.floor(way.geometry.length / 2)];
+                    return {
+                      geometry: { coordinates: [point.lon, point.lat] },
+                      properties: {
+                        name: way.tags.name, feature_type: 'street',
+                        context: { place: { name: 'Miranda' } }
+                      }
+                    };
+                  });
+              }
+            } catch (error) {
+              if (controller.signal.aborted) throw error;
+              // Sem bloquear a escolha manual pelo mapa.
+            } finally {
+              clearTimeout(fallbackTimer);
+              controller.signal.removeEventListener('abort', onAbort);
+            }
+          }
+        }
         if (request !== suggestionRequests[kind] || !list) return;
         list.replaceChildren();
         const used = new Set();
