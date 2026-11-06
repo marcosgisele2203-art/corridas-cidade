@@ -489,6 +489,14 @@ rota('GET', '/api/publico/inicio', false, async () => {
   return { nome: cfg.nome, cidade: cfg.cidade, aceitando: cfg.aceitando, numero,
     passageiro: numero ? linkWhats(numero, 'Oi! Quero uma corrida') : '', tipos: ORDEM.filter((t) => cfg.precos[t].ativo) };
 });
+rota('GET', '/api/publico/tarifas', false, async () => {
+  const cfg = await lerConfig();
+  return Object.fromEntries(ORDEM.filter((t) => cfg.precos[t].ativo).map((t) => [t, {
+    taxa_base: cfg.precos[t].taxa_base,
+    por_km: cfg.precos[t].por_km,
+    minimo: cfg.precos[t].minimo,
+  }]));
+});
 rota('GET', '/api/publico/cores', false, async () => Object.fromEntries(ORDEM.map((t) => [t, coresDo(t)])));
 
 // ---------------------------------------------------------------- área do motorista (entra com código no WhatsApp)

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f8f6">
+  <meta name="description" content="Planeje sua próxima viagem com a Vai de Manu.">
+  <title>Vai de Manu · Sua próxima viagem</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="/passageiro.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Vai de Manu, página inicial">
+        <img src="/manu.png" alt="" class="brand-avatar">
+        <span class="brand-name">vai de <strong>manu</strong></span>
+      </a>
+      <div class="topbar-meta">
+        <span class="service-indicator"><span></span> Sua cidade, do seu jeito</span>
+        <span class="city-label">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.4"/></svg>
+          Miranda, MS
+        </span>
+      </div>
+    </header>
+
+    <main class="ride-layout">
+      <section class="booking-panel" aria-labelledby="page-title">
+        <div class="panel-eyebrow"><span class="eyebrow-line"></span> VAI COM VOCÊ</div>
+        <h1 id="page-title">Qual é o seu<br><span>próximo destino?</span></h1>
+        <p class="intro-copy">Escolha seu ponto de partida e para onde vamos.</p>
+
+        <div class="route-fields">
+          <div class="route-rail" aria-hidden="true"><span class="rail-origin"></span><span class="rail-line"></span><span class="rail-destination"></span></div>
+          <div class="field-stack">
+            <label class="location-field" for="origem">
+              <span class="field-caption">PONTO DE PARTIDA</span>
+              <input id="origem" name="origem" type="text" autocomplete="street-address" placeholder="Onde vamos buscar você?" aria-describedby="map-hint">
+              <button class="gps-button" type="button" id="usar-gps" aria-label="Usar minha localização atual como origem" title="Usar minha localização atual">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg>
+              </button>
+            </label>
+            <label class="location-field destination-field" for="destino">
+              <span class="field-caption">DESTINO</span>
+              <input id="destino" name="destino" type="text" autocomplete="off" placeholder="Para onde você vai?">
+            </label>
+          </div>
+        </div>
+
+        <p class="map-hint" id="map-hint">Toque no mapa para marcar A e depois B. Arraste os marcadores para ajustar.</p>
+
+        <div class="section-heading">
+          <div>
+            <h2>Escolha sua viagem</h2>
+            <p>Qual combina com você hoje?</p>
+          </div>
+          <span class="selection-note">SELECIONE 1</span>
+        </div>
+        <div class="vehicle-options" role="group" aria-label="Tipo de veículo">
+          <button class="vehicle-card is-selected" type="button" data-vehicle="carro" aria-pressed="true">
+            <span class="vehicle-icon" aria-hidden="true">🚘</span>
+            <span class="vehicle-copy"><strong>Carro</strong><small>Conforto para ir mais longe</small></span>
+            <span class="radio-mark" aria-hidden="true"></span>
+          </button>
+          <button class="vehicle-card" type="button" data-vehicle="moto" aria-pressed="false">
+            <span class="vehicle-icon moto-icon" aria-hidden="true">🏍️</span>
+            <span class="vehicle-copy"><strong>Moto</strong><small>Agilidade para o seu dia</small></span>
+            <span class="radio-mark" aria-hidden="true"></span>
+          </button>
+        </div>
+
+        <div class="action-area">
+          <button class="continue-button" id="continuar" type="button" disabled>
+            <span>Ver prévia da viagem</span>
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+          </button>
+          <p class="privacy-note">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/></svg>
+            Sua localização só é usada quando você autoriza.
+          </p>
+          <p class="status-message" id="mensagem" role="status" aria-live="polite"></p>
+        </div>
+        <div class="preview-card" id="previa" hidden aria-live="polite"></div>
+        <div class="panel-signoff"><span>Feito com carinho</span><span class="signoff-heart">♥</span><span>pela Manu</span></div>
+      </section>
+
+      <section class="map-panel" aria-label="Mapa para escolher pontos da viagem">
+        <div id="mapa" role="application" aria-label="Mapa interativo de Miranda, Mato Grosso do Sul"></div>
+        <div class="map-top-card">
+          <span class="map-live-dot" aria-hidden="true"></span>
+          <span><strong>Miranda</strong><small>Seu próximo embarque começa aqui</small></span>
+        </div>
+        <div class="map-control-hint">
+          <span class="hint-pin" aria-hidden="true">⌖</span>
+          <span id="map-status">Escolha os pontos da sua viagem</span>
+        </div>
+        <button class="locate-map-button" id="centralizar" type="button" aria-label="Centralizar mapa em Miranda" title="Centralizar mapa">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v3m0 12v3M3 12h3m12 0h3"/><circle cx="12" cy="12" r="6"/></svg>
+        </button>
+      </section>
+    </main>
+  </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/passageiro.js"></script>
+</body>
+</html>
