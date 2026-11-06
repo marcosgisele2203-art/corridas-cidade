@@ -95,9 +95,17 @@
     continuar.disabled = true;
     continuar.querySelector('span').textContent = 'Calculando rota…';
     mapaStatus.textContent = 'Calculando trajeto pelas ruas…';
+    showPreview('Calculando sua prévia', [
+      'Consultando a rota entre os pontos A e B. Isso pode levar alguns segundos.',
+      'Nenhuma corrida foi enviada.'
+    ]);
+    // A prévia fica abaixo do botão: apresente feedback visível logo após o clique.
+    previa.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
     const coordinates = `${origemPoint.lng},${origemPoint.lat};${destinoPoint.lng},${destinoPoint.lat}`;
     const url = `https://router.project-osrm.org/route/v1/driving/${coordinates}?overview=full&geometries=geojson&steps=false`;
+    // Evita ficar indefinidamente sem resposta quando a rede bloqueia o roteador.
+    const timeout = setTimeout(() => routeAbortController?.abort(), 12000);
     try {
       const [routeResponse, tariffsResult] = await Promise.allSettled([
         fetch(url, { signal: routeAbortController.signal }),
@@ -140,13 +148,21 @@
       ], fare === null);
       mapaStatus.textContent = 'Rota pelas ruas exibida · arraste A ou B para alterar';
     } catch (error) {
-      if (requestId !== routeRequestId || error.name === 'AbortError') return;
-      showPreview('Prévia indisponível', [
-        error.message || 'Não foi possível calcular a rota. Tente novamente.',
-        'Nenhuma corrida foi enviada.'
+      if (requestId !== routeRequestId) return;
+      const timeoutError = error.name === 'AbortError';
+      const details = timeoutError
+        ? 'O serviço de rotas não respondeu a tempo. Verifique sua internet e tente novamente.'
+        : error instanceof TypeError
+          ? 'Não foi possível conectar ao serviço de rotas. A rede pode estar bloqueando o acesso.'
+          : error.message || 'Não foi possível calcular a rota. Tente novamente.';
+      showPreview('Rota indisponível', [
+        details,
+        'O trajeto, o tempo e o preço não foram estimados. Nenhuma corrida foi enviada.'
       ], true);
-      mapaStatus.textContent = 'Não foi possível calcular a rota';
+      mapaStatus.textContent = 'Rota indisponível · confira o aviso na prévia';
+      previa.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } finally {
+      clearTimeout(timeout);
       if (requestId === routeRequestId) {
         routeAbortController = null;
         updateContinueButton();
