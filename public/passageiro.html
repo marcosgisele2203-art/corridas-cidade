@@ -49,7 +49,11 @@
           </div>
         </div>
 
-        <p class="map-hint" id="map-hint">Toque no mapa para marcar A e depois B. Arraste os marcadores para ajustar.</p>
+        <p class="map-hint" id="map-hint">Toque no mapa para marcar A e depois B. Rua e bairro serão identificados automaticamente quando disponíveis.</p>
+        <div class="address-tools">
+          <button type="button" id="configurar-enderecos" class="address-token-button">Configurar mapa para identificar endereços</button>
+          <p id="endereco-status" class="address-notice" role="status" aria-live="polite"></p>
+        </div>
 
         <div class="section-heading">
           <div>
@@ -103,6 +107,6 @@
     </main>
   </div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="/passageiro.js?v=20261105-2"></script>
+  <script src="/passageiro.js?v=20261105-3"></script>
 </body>
 </html>
