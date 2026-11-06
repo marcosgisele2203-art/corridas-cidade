@@ -37,21 +37,23 @@
           <div class="field-stack">
             <label class="location-field" for="origem">
               <span class="field-caption">PONTO DE PARTIDA</span>
-              <input id="origem" name="origem" type="text" autocomplete="street-address" placeholder="Onde vamos buscar você?" aria-describedby="map-hint">
+              <input id="origem" name="origem" type="text" autocomplete="off" aria-controls="sugestoes-origem" aria-autocomplete="list" placeholder="Onde vamos buscar você?" aria-describedby="map-hint">
               <button class="gps-button" type="button" id="usar-gps" aria-label="Usar minha localização atual como origem" title="Usar minha localização atual">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg>
               </button>
             </label>
+            <div id="sugestoes-origem" class="address-suggestions" role="listbox" aria-label="Endereços encontrados para origem" hidden></div>
             <label class="location-field destination-field" for="destino">
               <span class="field-caption">DESTINO</span>
-              <input id="destino" name="destino" type="text" autocomplete="off" placeholder="Para onde você vai?">
+              <input id="destino" name="destino" type="text" autocomplete="off" aria-controls="sugestoes-destino" aria-autocomplete="list" placeholder="Para onde você vai?">
             </label>
+            <div id="sugestoes-destino" class="address-suggestions" role="listbox" aria-label="Endereços encontrados para destino" hidden></div>
           </div>
         </div>
 
-        <p class="map-hint" id="map-hint">Toque no mapa para marcar A e depois B. Rua e bairro serão identificados automaticamente quando disponíveis.</p>
+        <p class="map-hint" id="map-hint">Digite uma rua para ver sugestões de Miranda, ou marque A e B no mapa. Confira o bairro, quando disponível.</p>
         <div class="address-tools">
-          <button type="button" id="configurar-enderecos" class="address-token-button">Configurar mapa para identificar endereços</button>
+          <button type="button" id="configurar-enderecos" class="address-token-button">Configurações de endereço</button>
           <p id="endereco-status" class="address-notice" role="status" aria-live="polite"></p>
         </div>
 
@@ -107,6 +109,6 @@
     </main>
   </div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="/passageiro.js?v=20261105-3"></script>
+  <script src="/passageiro.js?v=20261105-4"></script>
 </body>
 </html>
