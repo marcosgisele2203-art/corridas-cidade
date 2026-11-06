@@ -160,3 +160,12 @@ h1,h2,p { margin-top: 0; }
 .address-token-button:focus-visible { outline: 2px solid #08764f; outline-offset: 2px; }
 .address-notice { margin: 6px 0 0; color: #5d7468; font-size: 10px; line-height: 1.5; }
 .address-notice:empty { display: none; }
+
+/* Busca de origem e destino por texto, integrada à identidade visual. */
+.address-suggestions { display: grid; gap: 3px; margin: -1px 0 10px; padding: 5px; border: 1px solid #dbe8e0; border-radius: 11px; background: #fff; box-shadow: 0 8px 20px #173b2812; }
+.address-suggestions[hidden] { display: none; }
+.address-option { width: 100%; border: 0; border-radius: 7px; background: transparent; color: #193c2d; font: inherit; font-size: 11px; line-height: 1.5; padding: 10px; text-align: left; cursor: pointer; }
+.address-option:hover,.address-option:focus-visible { outline: none; background: #eef8f2; }
+.address-tools { margin-top: -10px; }
+.address-token-button { border: 0; padding: 7px 2px; background: transparent; text-decoration: underline; text-underline-offset: 3px; font-size: 10px; font-weight: 600; }
+.address-token-button:hover { background: transparent; color: #095b40; }
