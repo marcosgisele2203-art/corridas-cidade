@@ -65,8 +65,8 @@
     previa.hidden = false;
   };
 
-  const loadTariffs = async () => {
-    const response = await fetch('/api/publico/tarifas', { cache: 'no-store' });
+  const loadTariffs = async (signal) => {
+    const response = await fetch('/api/publico/tarifas', { cache: 'no-store', signal });
     if (!response.ok) throw new Error('Tarifas da central indisponíveis.');
     const tariffs = await response.json();
     if (!tariffs || typeof tariffs !== 'object' || Array.isArray(tariffs)) {
@@ -90,6 +90,7 @@
     clearRoute();
     const requestId = routeRequestId;
     routeAbortController = new AbortController();
+    const controller = routeAbortController;
     previa.hidden = true;
     mensagem.textContent = '';
     continuar.disabled = true;
@@ -105,11 +106,11 @@
     const coordinates = `${origemPoint.lng},${origemPoint.lat};${destinoPoint.lng},${destinoPoint.lat}`;
     const url = `https://router.project-osrm.org/route/v1/driving/${coordinates}?overview=full&geometries=geojson&steps=false`;
     // Evita ficar indefinidamente sem resposta quando a rede bloqueia o roteador.
-    const timeout = setTimeout(() => routeAbortController?.abort(), 12000);
+    const timeout = setTimeout(() => controller.abort(), 12000);
     try {
       const [routeResponse, tariffsResult] = await Promise.allSettled([
-        fetch(url, { signal: routeAbortController.signal }),
-        loadTariffs()
+        fetch(url, { signal: controller.signal }),
+        loadTariffs(controller.signal)
       ]);
       if (requestId !== routeRequestId) return;
       if (routeResponse.status !== 'fulfilled') throw routeResponse.reason;
@@ -164,7 +165,7 @@
     } finally {
       clearTimeout(timeout);
       if (requestId === routeRequestId) {
-        routeAbortController = null;
+        if (routeAbortController === controller) routeAbortController = null;
         updateContinueButton();
         continuar.querySelector('span').textContent = 'Ver prévia da viagem';
       }
