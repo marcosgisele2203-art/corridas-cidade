@@ -22,6 +22,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   // Navegações sempre usam a versão online; não armazenamos páginas com dados de viagem.
   if (request.mode === 'navigate') {
+    if (url.pathname !== '/passageiro.html') return;
     event.respondWith(fetch(request).catch(() => caches.match('/offline-passageiro.html')));
     return;
   }
