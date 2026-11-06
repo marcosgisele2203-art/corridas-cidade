@@ -48,6 +48,16 @@
     button:focus-visible,a:focus-visible { outline:3px solid #dbac35; outline-offset:4px; }
     @media(max-width:600px) { .hub { padding:26px 20px 110px; } .hub-welcome { gap:10px; } .hub-avatar { width:52px; height:52px; border-radius:18px; } .hub-hero { padding:26px 22px; border-radius:24px; } .hub-services { gap:10px; } .hub-service { padding:18px 12px; border-radius:18px; } .hub-service strong { font-size:16px; } .hub-symbol { width:44px; height:44px; margin-bottom:16px; } .hub-service small { font-size:11px; } }
     @media(prefers-reduced-motion:reduce) { .hub-service { transition:none; } }
+    .flow-address-title { font-size:17px; margin:26px 0 18px; }
+    .payment-options { border:0; padding:0; margin:26px 0; min-width:0; }
+    .payment-options legend { font-weight:700; font-size:17px; margin-bottom:8px; }
+    .payment-options p,.payment-options small { color:#64776c; font-size:12px; line-height:1.6; }
+    .payment-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
+    .payment-grid label { display:flex; align-items:center; justify-content:center; gap:6px; padding:14px 6px; border:1px solid #dce7df; border-radius:12px; cursor:pointer; font-size:12px; }
+    .payment-grid label:has(input:checked) { border-color:var(--green); background:#eaf5ef; color:var(--green-dark); }
+    .payment-grid input { margin:0; accent-color:var(--green); }
+    .hub-symbol svg { width:36px; height:36px; color:#14543e; }
+    .vehicle-icon svg { width:34px; height:34px; color:#14543e; }
   </style>
 </head>
 <body>
@@ -75,12 +85,12 @@
       <section class="hub-hero" aria-labelledby="hub-hero-title">
         <span class="hub-kicker">Vai com você</span><h2 id="hub-hero-title">Seu próximo destino<br>começa aqui.</h2>
         <p>De carro ou de moto, planeje seu caminho pela cidade em poucos toques.</p>
-        <button type="button" class="hub-search" data-hub-ride="carro"><span>⌕ &nbsp; Para onde vamos?</span><span aria-hidden="true">→</span></button>
+        <button type="button" class="hub-search" data-hub-choose><span>Escolher Carro ou Moto</span><span aria-hidden="true">→</span></button>
       </section>
-      <section aria-labelledby="hub-services-title"><h2 class="hub-section-title" id="hub-services-title">Como você quer ir?</h2>
+      <section aria-labelledby="hub-services-title"><h2 class="hub-section-title" id="hub-services-title" tabindex="-1">Primeiro, como você quer ir?</h2>
         <div class="hub-services">
-          <button type="button" class="hub-service" data-hub-ride="carro"><span class="hub-symbol" aria-hidden="true">🚘</span><strong>Carro</strong><small>Conforto no caminho</small></button>
-          <button type="button" class="hub-service" data-hub-ride="moto"><span class="hub-symbol" aria-hidden="true">🏍️</span><strong>Moto</strong><small>Praticidade no seu dia</small></button>
+          <button type="button" class="hub-service" data-hub-ride="carro"><span class="hub-symbol" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 21 4-10h20l4 10M8 22h32v15H8zM5 20l4 2m30 0 4-2M14 28h5m10 0h5M14 33h20M11 37v4h5v-4m16 0v4h5v-4"/><path d="M15 16h18"/></svg></span><strong>Carro</strong><small>Conforto no caminho</small></button>
+          <button type="button" class="hub-service" data-hub-ride="moto"><span class="hub-symbol" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="33" r="8"/><circle cx="37" cy="33" r="8"/><path d="m11 33 9-15h9l8 15M16 25h13l-8 8H11m18-15-3-7h-6m8 3h8l3 5h-9M15 18H9m8 4-4-4"/></svg></span><strong>Moto</strong><small>Praticidade no seu dia</small></button>
           <button type="button" class="hub-service" data-hub-help><span class="hub-symbol" aria-hidden="true">♡</span><strong>Ajuda</strong><small>Veja como funciona</small></button>
         </div>
       </section>
@@ -90,9 +100,30 @@
     <main class="ride-layout" id="hub-ride" hidden>
       <section class="booking-panel" aria-labelledby="page-title">
         <div class="panel-eyebrow"><span class="eyebrow-line"></span> VAI COM VOCÊ</div>
-        <h1 id="page-title">Qual é o seu<br><span>próximo destino?</span></h1>
-        <p class="intro-copy">Escolha seu ponto de partida e para onde vamos.</p>
+        <h1 id="page-title">Sua viagem,<br><span>do seu jeito.</span></h1>
+        <p class="intro-copy">Veículo, endereços e pagamento. Tudo pronto para planejar.</p>
 
+        <div class="section-heading">
+          <div>
+            <h2>1. Escolha seu veículo</h2>
+            <p>Carro ou Moto: você escolhe como ir.</p>
+          </div>
+          <span class="selection-note">SELECIONE 1</span>
+        </div>
+        <div class="vehicle-options" role="group" aria-label="Tipo de veículo">
+          <button class="vehicle-card is-selected" type="button" data-vehicle="carro" aria-pressed="true">
+            <span class="vehicle-icon" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 21 4-10h20l4 10M8 22h32v15H8zM5 20l4 2m30 0 4-2M14 28h5m10 0h5M14 33h20M11 37v4h5v-4m16 0v4h5v-4"/><path d="M15 16h18"/></svg></span>
+            <span class="vehicle-copy"><strong>Carro</strong><small>Conforto para ir mais longe</small></span>
+            <span class="radio-mark" aria-hidden="true"></span>
+          </button>
+          <button class="vehicle-card" type="button" data-vehicle="moto" aria-pressed="false">
+            <span class="vehicle-icon moto-icon" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="33" r="8"/><circle cx="37" cy="33" r="8"/><path d="m11 33 9-15h9l8 15M16 25h13l-8 8H11m18-15-3-7h-6m8 3h8l3 5h-9M15 18H9m8 4-4-4"/></svg></span>
+            <span class="vehicle-copy"><strong>Moto</strong><small>Agilidade para o seu dia</small></span>
+            <span class="radio-mark" aria-hidden="true"></span>
+          </button>
+        </div>
+
+        <h2 class="flow-address-title">2. Informe os endereços</h2>
         <div class="route-fields">
           <div class="route-rail" aria-hidden="true"><span class="rail-origin"></span><span class="rail-line"></span><span class="rail-destination"></span></div>
           <div class="field-stack">
@@ -118,25 +149,16 @@
           <p id="endereco-status" class="address-notice" role="status" aria-live="polite"></p>
         </div>
 
-        <div class="section-heading">
-          <div>
-            <h2>Escolha sua viagem</h2>
-            <p>Qual combina com você hoje?</p>
+        <fieldset class="payment-options">
+          <legend>3. Como você vai pagar?</legend>
+          <p>Escolha a forma de pagamento para esta viagem.</p>
+          <div class="payment-grid">
+            <label><input type="radio" name="pagamento" value="dinheiro" required><span>Dinheiro</span></label>
+            <label><input type="radio" name="pagamento" value="cartao" required><span>Cartão</span></label>
+            <label><input type="radio" name="pagamento" value="pix" required><span>Pix</span></label>
           </div>
-          <span class="selection-note">SELECIONE 1</span>
-        </div>
-        <div class="vehicle-options" role="group" aria-label="Tipo de veículo">
-          <button class="vehicle-card is-selected" type="button" data-vehicle="carro" aria-pressed="true">
-            <span class="vehicle-icon" aria-hidden="true">🚘</span>
-            <span class="vehicle-copy"><strong>Carro</strong><small>Conforto para ir mais longe</small></span>
-            <span class="radio-mark" aria-hidden="true"></span>
-          </button>
-          <button class="vehicle-card" type="button" data-vehicle="moto" aria-pressed="false">
-            <span class="vehicle-icon moto-icon" aria-hidden="true">🏍️</span>
-            <span class="vehicle-copy"><strong>Moto</strong><small>Agilidade para o seu dia</small></span>
-            <span class="radio-mark" aria-hidden="true"></span>
-          </button>
-        </div>
+          <small>A escolha informa sua preferência. Nenhum pagamento é cobrado nesta prévia.</small>
+        </fieldset>
 
         <div class="action-area">
           <button class="continue-button" id="continuar" type="button" disabled>
@@ -174,7 +196,7 @@
     <button type="button" id="hub-nav-ride"><span aria-hidden="true">↗</span>Viajar</button>
     <button type="button" data-hub-help><span aria-hidden="true">♡</span>Ajuda</button>
   </nav>
-  <dialog class="hub-dialog" id="hub-help" aria-labelledby="hub-help-title"><h2 id="hub-help-title">Vamos com a Manu?</h2><p>1. Escolha Carro ou Moto.<br>2. Informe a partida e o destino, ou marque os pontos no mapa.<br>3. Toque em “Ver prévia da viagem” para conferir a estimativa.</p><p>Esta versão de teste permite planejar a viagem. A prévia não solicita uma corrida nem envia mensagens.</p><form method="dialog"><button>Entendi</button></form></dialog>
+  <dialog class="hub-dialog" id="hub-help" aria-labelledby="hub-help-title"><h2 id="hub-help-title">Vamos com a Manu?</h2><p>1. Escolha Carro ou Moto.<br>2. Informe a partida e o destino, ou marque os pontos no mapa.<br>3. Escolha Dinheiro, Cartão ou Pix.<br>4. Toque em “Ver prévia da viagem” para conferir a estimativa.</p><p>Esta versão de teste permite planejar a viagem. A prévia não solicita uma corrida nem envia mensagens.</p><form method="dialog"><button>Entendi</button></form></dialog>
   <script>
     (() => {
       const home = document.getElementById('hub-home');
@@ -182,7 +204,15 @@
       const back = document.getElementById('hub-back');
       const navHome = document.getElementById('hub-nav-home');
       const navRide = document.getElementById('hub-nav-ride');
+      let selectedVehicle = null;
+      function chooseVehicle() {
+        showHome();
+        document.getElementById('hub-services-title').scrollIntoView({ block: 'center' });
+        document.getElementById('hub-services-title').focus({ preventScroll: true });
+      }
       function showRide(vehicle) {
+        if (vehicle) selectedVehicle = vehicle;
+        if (!selectedVehicle) { chooseVehicle(); return; }
         home.hidden = true; ride.hidden = false; back.hidden = false;
         document.body.classList.add('hub-trip');
         navHome.removeAttribute('aria-current'); navRide.setAttribute('aria-current', 'page');
@@ -201,11 +231,12 @@
       document.querySelectorAll('[data-hub-help]').forEach(button => button.addEventListener('click', () => document.getElementById('hub-help').showModal()));
       back.addEventListener('click', showHome); navHome.addEventListener('click', showHome);
       navRide.addEventListener('click', () => showRide());
+      document.querySelector('[data-hub-choose]').addEventListener('click', chooseVehicle);
       document.querySelector('.brand').href = '/passageiro.html';
     })();
   </script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="/passageiro.js?v=20261105-7"></script>
+  <script src="/passageiro.js?v=20261106-flow-payment"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol === 'https:') {
       window.addEventListener('load', () => {
