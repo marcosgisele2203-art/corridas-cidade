@@ -163,6 +163,53 @@
         let results = await search(contextual);
         if (request !== suggestionRequests[kind]) return;
         if (!results.length && contextual !== term) results = await search(term);
+        // Fallback OpenStreetMap/Photon quando o índice Mapbox não cobre uma rua local.
+        // API pública de demonstração: uso limitado e sem garantia de disponibilidade.
+        if (!results.length) {
+          const query = /^rua\b/i.test(term) ? term : 'Rua ' + term;
+          const photonParams = new URLSearchParams({
+            q: query, lat: '-20.240', lon: '-56.378', limit: '12', lang: 'pt'
+          });
+          try {
+            const photonResponse = await fetch('https://photon.komoot.io/api/?' + photonParams, {
+              signal: controller.signal
+            });
+            if (photonResponse.ok) {
+              const photonData = await photonResponse.json();
+              const clean = (v) => String(v || '').normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+              const searchWords = clean(term).replace(/^(rua|avenida|av|travessa)\s+/, '');
+              results = (Array.isArray(photonData.features) ? photonData.features : [])
+                .filter((feature) => {
+                  const coords = feature.geometry?.coordinates;
+                  const props = feature.properties || {};
+                  const streetName = String(props.name || props.street || '');
+                  return Array.isArray(coords) && Number.isFinite(coords[0]) &&
+                    Number.isFinite(coords[1]) &&
+                    Math.abs(coords[0] + 56.378) <= 0.12 &&
+                    Math.abs(coords[1] + 20.240) <= 0.12 &&
+                    clean(streetName).includes(searchWords);
+                })
+                .map((feature) => {
+                  const props = feature.properties || {};
+                  return {
+                    geometry: feature.geometry,
+                    properties: {
+                      name: props.name || props.street,
+                      feature_type: 'street',
+                      context: {
+                        neighborhood: props.district ? { name: props.district } : undefined,
+                        place: { name: props.city || 'Miranda' }
+                      }
+                    }
+                  };
+                });
+            }
+          } catch (fallbackError) {
+            if (fallbackError.name === 'AbortError') throw fallbackError;
+            // A busca original permanece disponível mesmo se Photon falhar.
+          }
+        }
         if (request !== suggestionRequests[kind] || !list) return;
         list.replaceChildren();
         const used = new Set();
