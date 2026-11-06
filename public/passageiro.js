@@ -10,6 +10,8 @@
   const previa = $('previa');
   const mapaStatus = $('map-status');
   let veiculo = 'carro';
+  const paymentInputs = [...document.querySelectorAll('input[name="pagamento"]')];
+  const paymentLabel = () => ({ dinheiro: 'Dinheiro', cartao: 'Cartão', pix: 'Pix' })[paymentInputs.find(input => input.checked)?.value] || '';
   let origemMarker = null;
   let destinoMarker = null;
   let currentLocationMarker = null;
@@ -334,7 +336,7 @@
 
 
   const updateContinueButton = () => {
-    continuar.disabled = !origemPoint || !destinoPoint;
+    continuar.disabled = !origemPoint || !destinoPoint || !paymentLabel();
   };
 
   const pointLabel = (latlng) =>
@@ -392,6 +394,10 @@
   };
 
   const routePreview = async () => {
+    if (!paymentLabel()) {
+      mensagem.textContent = 'Escolha Dinheiro, Cartão ou Pix antes de ver a prévia.';
+      return;
+    }
     if (!origemPoint || !destinoPoint || !map) {
       mensagem.textContent = 'Marque a origem A e o destino B no mapa para calcular a rota.';
       return;
@@ -455,6 +461,7 @@
         `Distância pelas ruas: ${distance}`,
         `Tempo estimado: ${time}`,
         fareText,
+        `Forma de pagamento: ${paymentLabel()}`,
         'Estimativa, não é uma corrida. Nenhuma corrida foi enviada.'
       ], fare === null);
       mapaStatus.textContent = 'Rota pelas ruas exibida · arraste A ou B para alterar';
@@ -551,6 +558,14 @@
       else previa.hidden = true;
     });
   });
+
+  paymentInputs.forEach(input => input.addEventListener('change', () => {
+    clearRoute();
+    routePreviewRequested = false;
+    mensagem.textContent = '';
+    previa.hidden = true;
+    updateContinueButton();
+  }));
 
   [origemInput, destinoInput].forEach((input) => {
     input.addEventListener('input', () => {
