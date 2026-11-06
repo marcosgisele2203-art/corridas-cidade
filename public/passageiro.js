@@ -22,6 +22,85 @@
   let routePreviewRequested = false;
   let routeRequestId = 0;
   let routeAbortController = null;
+  // Token público usado também nos painéis de mapas da mesma origem.
+  const MAPBOX_TOKEN_KEY = 'vai-manu-mapbox-public-token';
+  const addressRequests = { origin: 0, destination: 0 };
+  const addressControllers = { origin: null, destination: null };
+  const addressNotice = $('endereco-status');
+  const configButton = $('configurar-enderecos');
+  const validMapboxToken = (token) => /^pk\.[A-Za-z0-9._-]{10,}$/.test(token || '');
+  const mapboxToken = () => localStorage.getItem(MAPBOX_TOKEN_KEY) || '';
+  const addressHint = (message) => { if (addressNotice) addressNotice.textContent = message; };
+  const findStreetAndNeighborhood = (features) => {
+    // Sem inferir números de imóveis vizinhos ao ponto escolhido.
+    const street = features.find((f) => f?.properties?.feature_type === 'street');
+    const address = features.find((f) => f?.properties?.feature_type === 'address');
+    const neighborhood = features.find((f) => f?.properties?.feature_type === 'neighborhood');
+    const locality = features.find((f) => f?.properties?.feature_type === 'locality');
+    const context = (street || address || features[0])?.properties?.context || {};
+    const road = street?.properties?.name || address?.properties?.context?.street?.name ||
+      context.street?.name || '';
+    const district = neighborhood?.properties?.name || context.neighborhood?.name ||
+      locality?.properties?.name || context.locality?.name || '';
+    return { road: String(road).trim(), district: String(district).trim() };
+  };
+  const reverseAddress = async (kind, point) => {
+    const input = kind === 'origin' ? origemInput : destinoInput;
+    const request = ++addressRequests[kind];
+    if (addressControllers[kind]) addressControllers[kind].abort();
+    addressControllers[kind] = null;
+    const token = mapboxToken();
+    if (!validMapboxToken(token)) {
+      addressHint('Para identificar ruas e bairros automaticamente, configure seu token público do Mapbox.');
+      return;
+    }
+    const controller = new AbortController();
+    addressControllers[kind] = controller;
+    input.value = 'Identificando rua e bairro…';
+    addressHint('Consultando o endereço aproximado no Mapbox…');
+    try {
+      const params = new URLSearchParams({
+        longitude: String(point.lng), latitude: String(point.lat),
+        language: 'pt', country: 'br', access_token: token
+      });
+      const response = await fetch('https://api.mapbox.com/search/geocode/v6/reverse?' + params, {
+        signal: controller.signal
+      });
+      if (!response.ok) throw new Error('Serviço de endereços indisponível (HTTP ' + response.status + ').');
+      const data = await response.json();
+      if (request !== addressRequests[kind]) return;
+      const { road, district } = findStreetAndNeighborhood(Array.isArray(data.features) ? data.features : []);
+      if (!road && !district) {
+        input.value = pointLabel(point);
+        addressHint('Rua e bairro não encontrados neste ponto. Arraste o marcador ou confira o endereço.');
+        return;
+      }
+      input.value = [
+        road || 'Rua não identificada',
+        district ? 'Bairro ' + district : 'Bairro não identificado'
+      ].join(' · ');
+      addressHint('Endereço aproximado: confira rua e bairro antes de solicitar a corrida.');
+    } catch (error) {
+      if (request !== addressRequests[kind] || error.name === 'AbortError') return;
+      input.value = pointLabel(point);
+      addressHint('Não foi possível identificar a rua e o bairro. Verifique a conexão ou o token Mapbox.');
+    } finally {
+      if (addressControllers[kind] === controller) addressControllers[kind] = null;
+    }
+  };
+  if (configButton) configButton.addEventListener('click', () => {
+    const token = window.prompt('Cole somente seu token PÚBLICO do Mapbox (começa com pk.). Nunca use token secreto (sk.).', mapboxToken());
+    if (token === null) return;
+    if (!validMapboxToken(token.trim())) {
+      addressHint('Token inválido. Use apenas um token público Mapbox iniciado por pk.');
+      return;
+    }
+    localStorage.setItem(MAPBOX_TOKEN_KEY, token.trim());
+    addressHint('Mapbox configurado neste navegador. Identificando os pontos do mapa…');
+    if (origemPoint) reverseAddress('origin', origemPoint);
+    if (destinoPoint) reverseAddress('destination', destinoPoint);
+  });
+
 
   const updateContinueButton = () => {
     continuar.disabled = !origemPoint || !destinoPoint;
@@ -187,6 +266,7 @@
     if (isOrigin) origemPoint = latlng;
     else destinoPoint = latlng;
     input.value = pointLabel(latlng);
+    reverseAddress(kind, latlng);
     updateContinueButton();
     mensagem.textContent = '';
     clearRoute();
@@ -243,6 +323,9 @@
       else destinoMarker = null;
       if (isOrigin) origemPoint = null;
       else destinoPoint = null;
+      const kind = isOrigin ? 'origin' : 'destination';
+      addressRequests[kind]++;
+      if (addressControllers[kind]) addressControllers[kind].abort();
       clearRoute();
       nextMapPoint = isOrigin ? 'origin' : 'destination';
       mensagem.textContent = '';
@@ -279,7 +362,7 @@
       destinoInput.value = '';
       nextMapPoint = 'destination';
       setPoint('origin', point);
-      origemInput.value = 'Minha localização atual';
+      // O retorno da geocodificação preencherá rua e bairro, sem substituir por texto genérico.
       mensagem.textContent = `Localização encontrada${Number.isFinite(accuracy) ? ` · precisão aproximada de ${Math.round(accuracy)} m` : ''}.`;
       previa.hidden = true;
       if (currentLocationMarker) currentLocationMarker.remove();
