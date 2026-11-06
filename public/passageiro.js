@@ -118,47 +118,59 @@
   };
   const suggestAddresses = (kind, text) => {
     cancelSuggestions(kind);
-    const input = kind === 'origin' ? origemInput : destinoInput;
     const term = String(text).trim();
     if (term.length < 3) return;
+    const list = suggestionLists[kind];
     const token = mapboxToken();
     if (!validMapboxToken(token)) {
-      addressHint('Configure o Mapbox em Configurações de endereço para pesquisar ruas.');
+      addressHint('Configure o token público Mapbox em Configurações de endereço para pesquisar.');
       return;
     }
     const request = suggestionRequests[kind];
+    if (list) {
+      list.replaceChildren();
+      list.hidden = false;
+      const loading = document.createElement('div');
+      loading.className = 'address-option address-option-info';
+      loading.textContent = 'Buscando endereços de Miranda…';
+      list.append(loading);
+    }
     suggestionTimers[kind] = setTimeout(async () => {
       const controller = new AbortController();
       suggestionControllers[kind] = controller;
-      const params = new URLSearchParams({
-        q: term, language: 'pt', country: 'br', limit: '6',
-        proximity: '-56.378,-20.240', types: 'street,address,neighborhood,place',
-        access_token: token
-      });
-      try {
+      const search = async (query) => {
+        const params = new URLSearchParams({
+          q: query, language: 'pt', country: 'br', limit: '10',
+          proximity: '-56.378,-20.240', types: 'street,address,neighborhood',
+          access_token: token
+        });
         const response = await fetch('https://api.mapbox.com/search/geocode/v6/forward?' + params, {
           signal: controller.signal
         });
-        if (!response.ok) throw new Error('A busca de endereços está temporariamente indisponível.');
+        if (!response.ok) throw new Error('Busca indisponível (HTTP ' + response.status + ').');
         const data = await response.json();
-        if (request !== suggestionRequests[kind]) return;
-        const results = (Array.isArray(data.features) ? data.features : []).filter((feature) => {
+        const features = Array.isArray(data.features) ? data.features : [];
+        return features.filter((feature) => {
           const coords = feature.geometry?.coordinates;
-          // Restringir sugestões a Miranda e arredores (aprox. 40 km), sem inventar ruas.
           return Array.isArray(coords) && Number.isFinite(coords[0]) && Number.isFinite(coords[1]) &&
             Math.abs(coords[0] + 56.378) <= 0.42 && Math.abs(coords[1] + 20.240) <= 0.36;
         });
-        const list = suggestionLists[kind];
-        if (!list) return;
+      };
+      try {
+        // "Alegria" isolado encontra muitos lugares fora da cidade.
+        // Priorizar a cidade, com fallback para a busca original.
+        const contextual = /miranda/i.test(term) ? term : term + ', Miranda, Mato Grosso do Sul';
+        let results = await search(contextual);
+        if (request !== suggestionRequests[kind]) return;
+        if (!results.length && contextual !== term) results = await search(term);
+        if (request !== suggestionRequests[kind] || !list) return;
         list.replaceChildren();
-        if (!results.length) {
-          addressHint('Nenhuma sugestão próxima a Miranda. Marque o ponto diretamente no mapa.');
-          return;
-        }
+        const used = new Set();
         results.forEach((feature) => {
           const coords = feature.geometry.coordinates;
           const label = placeLabel(feature);
-          if (!label) return;
+          if (!label || used.has(label)) return;
+          used.add(label);
           const option = document.createElement('button');
           option.type = 'button';
           option.className = 'address-option';
@@ -174,17 +186,31 @@
                   padding: [70, 70], maxZoom: 16
                 });
               }
-            } else {
-              input.value = label;
             }
           });
           list.append(option);
         });
-        list.hidden = list.childElementCount === 0;
-        addressHint('Selecione uma sugestão para marcar o endereço no mapa.');
+        if (!list.childElementCount) {
+          const empty = document.createElement('div');
+          empty.className = 'address-option address-option-info';
+          empty.textContent = 'Não encontrei essa rua em Miranda. Você pode marcar o destino no mapa.';
+          list.append(empty);
+          addressHint('Nenhuma sugestão confirmada. Confira o nome ou marque o ponto no mapa.');
+        } else {
+          addressHint('Selecione uma sugestão abaixo do campo.');
+        }
+        list.hidden = false;
       } catch (error) {
         if (request !== suggestionRequests[kind] || error.name === 'AbortError') return;
-        addressHint('Não foi possível pesquisar agora. Você ainda pode marcar o local no mapa.');
+        if (list) {
+          list.replaceChildren();
+          const notice = document.createElement('div');
+          notice.className = 'address-option address-option-info';
+          notice.textContent = 'Não foi possível consultar os endereços agora.';
+          list.append(notice);
+          list.hidden = false;
+        }
+        addressHint('Falha na busca. Tente novamente ou selecione o ponto no mapa.');
       } finally {
         if (suggestionControllers[kind] === controller) suggestionControllers[kind] = null;
       }
