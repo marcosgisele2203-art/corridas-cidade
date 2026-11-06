@@ -28,6 +28,10 @@
   const addressControllers = { origin: null, destination: null };
   const addressNotice = $('endereco-status');
   const configButton = $('configurar-enderecos');
+  const suggestionLists = { origin: $('sugestoes-origem'), destination: $('sugestoes-destino') };
+  const suggestionTimers = { origin: null, destination: null };
+  const suggestionControllers = { origin: null, destination: null };
+  const suggestionRequests = { origin: 0, destination: 0 };
   const validMapboxToken = (token) => /^pk\.[A-Za-z0-9._-]{10,}$/.test(token || '');
   const mapboxToken = () => localStorage.getItem(MAPBOX_TOKEN_KEY) || '';
   const addressHint = (message) => { if (addressNotice) addressNotice.textContent = message; };
@@ -87,6 +91,104 @@
     } finally {
       if (addressControllers[kind] === controller) addressControllers[kind] = null;
     }
+  };
+  const closeSuggestions = (kind) => {
+    const list = suggestionLists[kind];
+    if (!list) return;
+    list.replaceChildren();
+    list.hidden = true;
+  };
+  const cancelSuggestions = (kind) => {
+    suggestionRequests[kind]++;
+    clearTimeout(suggestionTimers[kind]);
+    if (suggestionControllers[kind]) suggestionControllers[kind].abort();
+    suggestionControllers[kind] = null;
+    closeSuggestions(kind);
+  };
+  const placeLabel = (feature) => {
+    const properties = feature.properties || {};
+    const ctx = properties.context || {};
+    const street = properties.feature_type === 'street' ? properties.name :
+      ctx.street?.name || properties.name || '';
+    const neighborhood = ctx.neighborhood?.name ||
+      (properties.feature_type === 'neighborhood' ? properties.name : '');
+    const city = ctx.place?.name || '';
+    const segments = [street, neighborhood && !String(street).includes(neighborhood) ? 'Bairro ' + neighborhood : '', city];
+    return segments.filter(Boolean).join(' · ') || properties.full_address || '';
+  };
+  const suggestAddresses = (kind, text) => {
+    cancelSuggestions(kind);
+    const input = kind === 'origin' ? origemInput : destinoInput;
+    const term = String(text).trim();
+    if (term.length < 3) return;
+    const token = mapboxToken();
+    if (!validMapboxToken(token)) {
+      addressHint('Configure o Mapbox em Configurações de endereço para pesquisar ruas.');
+      return;
+    }
+    const request = suggestionRequests[kind];
+    suggestionTimers[kind] = setTimeout(async () => {
+      const controller = new AbortController();
+      suggestionControllers[kind] = controller;
+      const params = new URLSearchParams({
+        q: term, language: 'pt', country: 'br', limit: '6',
+        proximity: '-56.378,-20.240', types: 'street,address,neighborhood,place',
+        access_token: token
+      });
+      try {
+        const response = await fetch('https://api.mapbox.com/search/geocode/v6/forward?' + params, {
+          signal: controller.signal
+        });
+        if (!response.ok) throw new Error('A busca de endereços está temporariamente indisponível.');
+        const data = await response.json();
+        if (request !== suggestionRequests[kind]) return;
+        const results = (Array.isArray(data.features) ? data.features : []).filter((feature) => {
+          const coords = feature.geometry?.coordinates;
+          // Restringir sugestões a Miranda e arredores (aprox. 40 km), sem inventar ruas.
+          return Array.isArray(coords) && Number.isFinite(coords[0]) && Number.isFinite(coords[1]) &&
+            Math.abs(coords[0] + 56.378) <= 0.42 && Math.abs(coords[1] + 20.240) <= 0.36;
+        });
+        const list = suggestionLists[kind];
+        if (!list) return;
+        list.replaceChildren();
+        if (!results.length) {
+          addressHint('Nenhuma sugestão próxima a Miranda. Marque o ponto diretamente no mapa.');
+          return;
+        }
+        results.forEach((feature) => {
+          const coords = feature.geometry.coordinates;
+          const label = placeLabel(feature);
+          if (!label) return;
+          const option = document.createElement('button');
+          option.type = 'button';
+          option.className = 'address-option';
+          option.setAttribute('role', 'option');
+          option.textContent = label;
+          option.addEventListener('click', () => {
+            cancelSuggestions(kind);
+            if (map) {
+              setPoint(kind, L.latLng(coords[1], coords[0]), label);
+              map.setView([coords[1], coords[0]], 16);
+              if (origemPoint && destinoPoint) {
+                map.fitBounds(L.latLngBounds(origemPoint, destinoPoint), {
+                  padding: [70, 70], maxZoom: 16
+                });
+              }
+            } else {
+              input.value = label;
+            }
+          });
+          list.append(option);
+        });
+        list.hidden = list.childElementCount === 0;
+        addressHint('Selecione uma sugestão para marcar o endereço no mapa.');
+      } catch (error) {
+        if (request !== suggestionRequests[kind] || error.name === 'AbortError') return;
+        addressHint('Não foi possível pesquisar agora. Você ainda pode marcar o local no mapa.');
+      } finally {
+        if (suggestionControllers[kind] === controller) suggestionControllers[kind] = null;
+      }
+    }, 350);
   };
   if (configButton) configButton.addEventListener('click', () => {
     const token = window.prompt('Cole somente seu token PÚBLICO do Mapbox (começa com pk.). Nunca use token secreto (sk.).', mapboxToken());
@@ -251,7 +353,7 @@
     }
   };
 
-  const setPoint = (kind, latlng) => {
+  const setPoint = (kind, latlng, selectedAddress = null) => {
     const isOrigin = kind === 'origin';
     const input = isOrigin ? origemInput : destinoInput;
     const oldMarker = isOrigin ? origemMarker : destinoMarker;
@@ -265,8 +367,15 @@
     else destinoMarker = marker;
     if (isOrigin) origemPoint = latlng;
     else destinoPoint = latlng;
-    input.value = pointLabel(latlng);
-    reverseAddress(kind, latlng);
+    input.value = selectedAddress || pointLabel(latlng);
+    cancelSuggestions(kind);
+    if (selectedAddress) {
+      addressRequests[kind]++;
+      if (addressControllers[kind]) addressControllers[kind].abort();
+      addressHint('Endereço selecionado na busca. Confira o ponto marcado no mapa.');
+    } else {
+      reverseAddress(kind, latlng);
+    }
     updateContinueButton();
     mensagem.textContent = '';
     clearRoute();
@@ -334,6 +443,17 @@
       mapaStatus.textContent = isOrigin
         ? 'Toque no mapa para marcar a origem A'
         : 'Toque no mapa para marcar o destino B';
+      suggestAddresses(kind, input.value);
+    });
+  });
+
+  [ ['origin', origemInput], ['destination', destinoInput] ].forEach(([kind, input]) => {
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') cancelSuggestions(kind);
+      if (event.key === 'Enter') {
+        const first = suggestionLists[kind]?.querySelector('.address-option');
+        if (first) { event.preventDefault(); first.click(); }
+      }
     });
   });
 
