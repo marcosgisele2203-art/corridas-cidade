@@ -152,3 +152,11 @@ h1,h2,p { margin-top: 0; }
 @media (prefers-reduced-motion: reduce) {
   *,*::before,*::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+
+/* Geocodificação reversa: controle discreto e aviso de endereço aproximado. */
+.address-tools { margin: 3px 0 14px 29px; }
+.address-token-button { border: 1px solid #d4e8de; border-radius: 9px; padding: 8px 10px; background: #f4faf6; color: #08764f; font: inherit; font-size: 11px; cursor: pointer; }
+.address-token-button:hover { background: #e6f4ec; }
+.address-token-button:focus-visible { outline: 2px solid #08764f; outline-offset: 2px; }
+.address-notice { margin: 6px 0 0; color: #5d7468; font-size: 10px; line-height: 1.5; }
+.address-notice:empty { display: none; }
