@@ -214,8 +214,8 @@
         // Consulta pontual aos nomes cadastrados perto de Miranda, somente após as duas buscas falharem.
         if (!results.length && term.length >= 5) {
           const simplified = term.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-            .replace(/^(rua|avenida|av\\.?|travessa)\s+/i, '')
-            .trim().replace(/[^\\p{L}\\p{N} -]/gu, '');
+            .replace(/^(rua|avenida|av[.]?|travessa)\s+/i, '')
+            .trim().replace(/[^a-zA-Z0-9À-ÿ -]/g, '');
           // Limita o termo usado na expressão de pesquisa a letras, números e espaços.
           const keyword = simplified.split(/\s+/).filter((w) => w.length >= 4).slice(-1)[0];
           if (keyword) {
