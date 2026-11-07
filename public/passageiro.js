@@ -10,21 +10,21 @@
   const previa = $('previa');
   const mapaStatus = $('map-status');
   let veiculo = 'carro';
-  const pickupFields = ['rua', 'numero', 'bairro', 'referencia'].map(name => $('embarque-' + name));
-  const pickupConfirmed = $('embarque-confirmado');
-  const pickupNotice = $('embarque-aviso');
-  const pickupValues = () => pickupFields.map(input => input.value.trim());
-  const hasPickupDetails = () => pickupValues().some(Boolean);
-  const pickupReady = () => !hasPickupDetails() || pickupConfirmed.checked;
-  const pickupLines = () => {
-    const labels = ['Rua de embarque', 'Número', 'Bairro', 'Referência'];
-    return pickupValues().flatMap((value, index) => value ? [labels[index] + ': ' + value] : []);
+  const dropoffFields = ['rua', 'numero', 'bairro', 'referencia'].map(name => $('desembarque-' + name));
+  const dropoffConfirmed = $('desembarque-confirmado');
+  const dropoffNotice = $('desembarque-aviso');
+  const dropoffValues = () => dropoffFields.map(input => input.value.trim());
+  const hasDropoffDetails = () => dropoffValues().some(Boolean);
+  const dropoffReady = () => !hasDropoffDetails() || dropoffConfirmed.checked;
+  const dropoffLines = () => {
+    const labels = ['Rua de desembarque', 'Número', 'Bairro', 'Referência'];
+    return dropoffValues().flatMap((value, index) => value ? [labels[index] + ': ' + value] : []);
   };
-  const updatePickupMarker = () => {
-    if (!origemMarker) return;
+  const updateDropoffMarker = () => {
+    if (!destinoMarker) return;
     const content = document.createElement('div');
-    content.textContent = ['Embarque A', ...pickupLines(), hasPickupDetails() ? (pickupConfirmed.checked ? 'Endereço conferido pelo passageiro' : 'Confira se o endereço corresponde a este ponto') : 'Ponto marcado no mapa'].join(' · ');
-    origemMarker.bindPopup(content);
+    content.textContent = ['Desembarque B', ...dropoffLines(), hasDropoffDetails() ? (dropoffConfirmed.checked ? 'Endereço conferido pelo passageiro' : 'Confira se o endereço corresponde a este ponto') : 'Ponto marcado no mapa'].join(' · ');
+    destinoMarker.bindPopup(content);
   };
 
   const paymentInputs = [...document.querySelectorAll('input[name="pagamento"]')];
@@ -353,7 +353,7 @@
 
 
   const updateContinueButton = () => {
-    continuar.disabled = !origemPoint || !destinoPoint || !paymentLabel() || !pickupReady();
+    continuar.disabled = !origemPoint || !destinoPoint || !paymentLabel() || !dropoffReady();
   };
 
   const pointLabel = (latlng) =>
@@ -411,8 +411,8 @@
   };
 
   const routePreview = async () => {
-    if (!pickupReady()) {
-      mensagem.textContent = 'Confira o ponto A no mapa e confirme o endereço de embarque.';
+    if (!dropoffReady()) {
+      mensagem.textContent = 'Confira o ponto B no mapa e confirme o endereço de desembarque.';
       return;
     }
     if (!paymentLabel()) {
@@ -483,7 +483,7 @@
         `Tempo estimado: ${time}`,
         fareText,
         `Forma de pagamento: ${paymentLabel()}`,
-        ...pickupLines(),
+        ...dropoffLines(),
         'Estimativa, não é uma corrida. Nenhuma corrida foi enviada.'
       ], fare === null);
       mapaStatus.textContent = 'Rota pelas ruas exibida · arraste A ou B para alterar';
@@ -523,13 +523,13 @@
     });
     if (isOrigin) origemMarker = marker;
     else destinoMarker = marker;
-    if (isOrigin) {
-      origemPoint = latlng;
-      pickupConfirmed.checked = false;
-      pickupNotice.textContent = hasPickupDetails() ? 'O ponto de embarque mudou. Confira o endereço e confirme novamente.' : '';
-      updatePickupMarker();
+    if (isOrigin) origemPoint = latlng;
+    else {
+      destinoPoint = latlng;
+      dropoffConfirmed.checked = false;
+      dropoffNotice.textContent = hasDropoffDetails() ? 'O ponto de desembarque mudou. Confira o endereço e confirme novamente.' : '';
+      updateDropoffMarker();
     }
-    else destinoPoint = latlng;
     input.value = selectedAddress || pointLabel(latlng);
     cancelSuggestions(kind);
     if (selectedAddress) {
@@ -586,18 +586,18 @@
     });
   });
 
-  const pickupChanged = (edited) => {
-    if (edited) pickupConfirmed.checked = false;
+  const dropoffChanged = (edited) => {
+    if (edited) dropoffConfirmed.checked = false;
     clearRoute();
     routePreviewRequested = false;
     previa.hidden = true;
-    pickupNotice.textContent = hasPickupDetails() && !pickupConfirmed.checked
-      ? 'Confira o ponto A e marque a confirmação antes de ver a prévia.' : '';
-    updatePickupMarker();
+    dropoffNotice.textContent = hasDropoffDetails() && !dropoffConfirmed.checked
+      ? 'Confira o ponto B e marque a confirmação antes de ver a prévia.' : '';
+    updateDropoffMarker();
     updateContinueButton();
   };
-  pickupFields.forEach(input => input.addEventListener('input', () => pickupChanged(true)));
-  pickupConfirmed.addEventListener('change', () => pickupChanged(false));
+  dropoffFields.forEach(input => input.addEventListener('input', () => dropoffChanged(true)));
+  dropoffConfirmed.addEventListener('change', () => dropoffChanged(false));
 
   paymentInputs.forEach(input => input.addEventListener('change', () => {
     clearRoute();
@@ -614,12 +614,12 @@
       if (marker) marker.remove();
       if (isOrigin) origemMarker = null;
       else destinoMarker = null;
-      if (isOrigin) {
-        origemPoint = null;
-        pickupConfirmed.checked = false;
-        pickupNotice.textContent = hasPickupDetails() ? 'Selecione o novo ponto A e confirme o endereço de embarque.' : '';
+      if (isOrigin) origemPoint = null;
+      else {
+        destinoPoint = null;
+        dropoffConfirmed.checked = false;
+        dropoffNotice.textContent = hasDropoffDetails() ? 'Selecione o novo ponto B e confirme o endereço de desembarque.' : '';
       }
-      else destinoPoint = null;
       const kind = isOrigin ? 'origin' : 'destination';
       addressRequests[kind]++;
       if (addressControllers[kind]) addressControllers[kind].abort();
