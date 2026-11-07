@@ -67,6 +67,10 @@
     .dropoff-grid input:focus-visible { outline:2px solid var(--green); outline-offset:2px; }
     .dropoff-confirm { display:flex; gap:9px; align-items:flex-start; font-size:12px; line-height:1.6; }
     .dropoff-confirm input { margin-top:3px; flex-shrink:0; accent-color:var(--green); }
+    .dropoff-details summary { cursor:pointer; font-size:13px; font-weight:600; color:var(--green-dark); }
+    .dropoff-grid { margin-top:16px; }
+    .simple-map-actions { display:grid; grid-template-columns:1fr; gap:8px; margin:16px 0; }
+    .simple-map-actions button { background:#edf6f0; color:var(--green-dark); border:1px solid #cfe3d7; padding:13px; border-radius:12px; cursor:pointer; font-size:13px; font-weight:600; }
   </style>
 </head>
 <body>
@@ -137,7 +141,7 @@
           <div class="route-rail" aria-hidden="true"><span class="rail-origin"></span><span class="rail-line"></span><span class="rail-destination"></span></div>
           <div class="field-stack">
             <label class="location-field" for="origem">
-              <span class="field-caption">PONTO DE PARTIDA</span>
+              <span class="field-caption">ONDE VAMOS BUSCAR VOCÊ?</span>
               <input id="origem" name="origem" type="text" autocomplete="off" aria-controls="sugestoes-origem" aria-autocomplete="list" placeholder="Onde vamos buscar você?" aria-describedby="map-hint">
               <button class="gps-button" type="button" id="usar-gps" aria-label="Usar minha localização atual como origem" title="Usar minha localização atual">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg>
@@ -145,32 +149,30 @@
             </label>
             <div id="sugestoes-origem" class="address-suggestions" role="listbox" aria-label="Endereços encontrados para origem" hidden></div>
             <label class="location-field destination-field" for="destino">
-              <span class="field-caption">DESTINO</span>
-              <input id="destino" name="destino" type="text" autocomplete="off" aria-controls="sugestoes-destino" aria-autocomplete="list" placeholder="Para onde você vai?">
+              <span class="field-caption">PARA ONDE VOCÊ VAI?</span>
+              <input id="destino" name="destino" type="text" autocomplete="off" aria-controls="sugestoes-destino" aria-autocomplete="list" placeholder="Digite a rua, número ou local">
             </label>
             <div id="sugestoes-destino" class="address-suggestions" role="listbox" aria-label="Endereços encontrados para destino" hidden></div>
           </div>
         </div>
 
-        <p class="map-hint" id="map-hint">Digite uma rua para ver sugestões de Miranda, ou marque A e B no mapa. Confira o bairro, quando disponível.</p>
+        <div class="simple-map-actions">
+          <button type="button" id="localizar-embarque">Usar minha localização</button>
+          <button type="button" id="escolher-destino-mapa">Escolher destino no mapa</button>
+        </div>
+        <p class="map-hint" id="map-hint">Use sua localização para a partida. Para o destino, escolha uma sugestão da busca ou toque no mapa.</p>
         <div class="address-tools">
-          <button type="button" id="configurar-enderecos" class="address-token-button">Configurações de endereço</button>
+          <button type="button" id="configurar-enderecos" hidden class="address-token-button">Configurações de endereço</button>
           <p id="endereco-status" class="address-notice" role="status" aria-live="polite"></p>
         </div>
 
-        <fieldset class="dropoff-details">
-          <legend>Complete o endereço de desembarque (destino)</legend>
-          <p>Se a rua ou o bairro não aparecerem, informe abaixo. Escolha o destino na busca ou marque o ponto B no mapa.</p>
+        <details class="dropoff-details">
+          <summary>Adicionar bairro ou referência (opcional)</summary>
           <div class="dropoff-grid">
-            <label for="desembarque-rua">Rua<input id="desembarque-rua" type="text" maxlength="160" autocomplete="off" placeholder="Ex.: Rua das Flores"></label>
-            <label for="desembarque-numero">Número<input id="desembarque-numero" type="text" maxlength="20" autocomplete="off" placeholder="123 ou s/n"></label>
-            <label for="desembarque-bairro">Bairro<input id="desembarque-bairro" type="text" maxlength="100" autocomplete="off" placeholder="Nome do bairro"></label>
-            <label for="desembarque-referencia">Ponto de referência<input id="desembarque-referencia" type="text" maxlength="200" autocomplete="off" placeholder="Ex.: portão azul, perto da praça"></label>
+            <label for="desembarque-bairro">Bairro do destino<input id="desembarque-bairro" type="text" maxlength="100" autocomplete="off" placeholder="Ex.: Centro"></label>
+            <label for="desembarque-referencia">Referência do destino<input id="desembarque-referencia" type="text" maxlength="200" autocomplete="off" placeholder="Ex.: em frente ao Mercado Barbosa"></label>
           </div>
-          <p>Esses dados complementam o ponto B; digitar aqui não move o pino no mapa.</p>
-          <label class="dropoff-confirm" for="desembarque-confirmado"><input id="desembarque-confirmado" type="checkbox">Conferi o ponto B no mapa e ele corresponde ao endereço informado.</label>
-          <p id="desembarque-aviso" role="status" aria-live="polite"></p>
-        </fieldset>
+        </details>
 
         <fieldset class="payment-options">
           <legend>3. Como você vai pagar?</legend>
@@ -259,7 +261,7 @@
     })();
   </script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="/passageiro.js?v=20261107-dropoff-details"></script>
+  <script src="/passageiro.js?v=20261107-simple-destination"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol === 'https:') {
       window.addEventListener('load', () => {
