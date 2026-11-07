@@ -567,17 +567,14 @@
     map.on('click', mapClick);
   }
 
-  document.querySelectorAll('[data-vehicle]').forEach((button) => {
-    button.addEventListener('click', () => {
-      veiculo = button.dataset.vehicle;
-      document.querySelectorAll('[data-vehicle]').forEach((option) => {
-        const selected = option === button;
-        option.classList.toggle('is-selected', selected);
-        option.setAttribute('aria-pressed', String(selected));
-      });
-      if (routePreviewRequested && origemPoint && destinoPoint) routePreview();
-      else previa.hidden = true;
-    });
+  document.addEventListener('vehicle-selected', (event) => {
+    if (!['carro', 'moto'].includes(event.detail)) return;
+    if (veiculo === event.detail) return;
+    veiculo = event.detail;
+    clearRoute();
+    routePreviewRequested = false;
+    previa.hidden = true;
+    updateContinueButton();
   });
 
   const dropoffChanged = () => {
