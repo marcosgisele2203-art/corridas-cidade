@@ -112,31 +112,9 @@
     <button type="button" class="hub-back" id="hub-back" hidden>← Voltar ao início</button>
     <main class="ride-layout" id="hub-ride" hidden>
       <section class="booking-panel" aria-labelledby="page-title">
-        <div class="panel-eyebrow"><span class="eyebrow-line"></span> VAI COM VOCÊ</div>
-        <h1 id="page-title">Sua viagem,<br><span>do seu jeito.</span></h1>
-        <p class="intro-copy">Veículo, endereços e pagamento. Tudo pronto para planejar.</p>
+        <h1 id="page-title">2. Informe os endereços</h1>
+        <p class="intro-copy" id="veiculo-escolhido">Informe a partida e o destino da viagem.</p>
 
-        <div class="section-heading">
-          <div>
-            <h2>1. Escolha seu veículo</h2>
-            <p>Carro ou Moto: você escolhe como ir.</p>
-          </div>
-          <span class="selection-note">SELECIONE 1</span>
-        </div>
-        <div class="vehicle-options" role="group" aria-label="Tipo de veículo">
-          <button class="vehicle-card is-selected" type="button" data-vehicle="carro" aria-pressed="true">
-            <span class="vehicle-icon" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 21 4-10h20l4 10M8 22h32v15H8zM5 20l4 2m30 0 4-2M14 28h5m10 0h5M14 33h20M11 37v4h5v-4m16 0v4h5v-4"/><path d="M15 16h18"/></svg></span>
-            <span class="vehicle-copy"><strong>Carro</strong><small>Conforto para ir mais longe</small></span>
-            <span class="radio-mark" aria-hidden="true"></span>
-          </button>
-          <button class="vehicle-card" type="button" data-vehicle="moto" aria-pressed="false">
-            <span class="vehicle-icon moto-icon" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="33" r="8"/><circle cx="37" cy="33" r="8"/><path d="m11 33 9-15h9l8 15M16 25h13l-8 8H11m18-15-3-7h-6m8 3h8l3 5h-9M15 18H9m8 4-4-4"/></svg></span>
-            <span class="vehicle-copy"><strong>Moto</strong><small>Agilidade para o seu dia</small></span>
-            <span class="radio-mark" aria-hidden="true"></span>
-          </button>
-        </div>
-
-        <h2 class="flow-address-title">2. Informe os endereços</h2>
         <div class="route-fields">
           <div class="route-rail" aria-hidden="true"><span class="rail-origin"></span><span class="rail-line"></span><span class="rail-destination"></span></div>
           <div class="field-stack">
@@ -241,7 +219,8 @@
         home.hidden = true; ride.hidden = false; back.hidden = false;
         document.body.classList.add('hub-trip');
         navHome.removeAttribute('aria-current'); navRide.setAttribute('aria-current', 'page');
-        if (vehicle) document.querySelector('.vehicle-card[data-vehicle="' + vehicle + '"]').click();
+        document.dispatchEvent(new CustomEvent('vehicle-selected', { detail: selectedVehicle }));
+        document.getElementById('veiculo-escolhido').textContent = 'Viagem de ' + (selectedVehicle === 'moto' ? 'Moto' : 'Carro') + '. Informe a partida e o destino.';
         window.dispatchEvent(new Event('resize'));
         window.scrollTo(0, 0);
         document.getElementById('origem').focus({ preventScroll: true });
@@ -261,7 +240,7 @@
     })();
   </script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="/passageiro.js?v=20261107-simple-destination"></script>
+  <script src="/passageiro.js?v=20261107-address-step"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol === 'https:') {
       window.addEventListener('load', () => {
