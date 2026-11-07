@@ -688,6 +688,82 @@
     if (map) map.invalidateSize();
   });
 
+  // Ditado opcional do navegador: o resultado entra na busca normal de destino.
+  const speechButton = $('falar-destino');
+  const speechStatus = $('voz-status');
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let speech = null;
+  let listening = false;
+  let receivedSpeech = false;
+  let speechFailed = false;
+  const resetSpeechButton = () => {
+    listening = false;
+    speechButton.textContent = 'Falar endereço';
+    speechButton.setAttribute('aria-pressed', 'false');
+  };
+  if (!SpeechRecognition || !window.isSecureContext) {
+    speechButton.disabled = true;
+    speechStatus.textContent = 'Ditado indisponível neste navegador. Digite o endereço ou escolha no mapa.';
+  } else {
+    speech = new SpeechRecognition();
+    speech.lang = 'pt-BR';
+    speech.continuous = false;
+    speech.interimResults = false;
+    speech.onstart = () => {
+      listening = true;
+      speechButton.textContent = 'Parar de ouvir';
+      speechButton.setAttribute('aria-pressed', 'true');
+      speechStatus.textContent = 'Estou ouvindo. Diga a rua, o número e o bairro do destino.';
+    };
+    speech.onresult = (event) => {
+      const text = String(event.results?.[0]?.[0]?.transcript || '').trim();
+      if (!text) return;
+      receivedSpeech = true;
+      destinoInput.value = text.slice(0, 300);
+      destinoInput.dispatchEvent(new Event('input', { bubbles: true }));
+      speechStatus.textContent = 'Confira o texto e escolha uma sugestão da busca. Se o local não aparecer, escolha no mapa.';
+      destinoInput.focus({ preventScroll: true });
+    };
+    speech.onerror = (event) => {
+      speechFailed = true;
+      const messages = {
+        'not-allowed': 'Permita o microfone no navegador para falar o endereço.',
+        'service-not-allowed': 'O ditado não está disponível neste navegador.',
+        'audio-capture': 'Microfone não encontrado. Digite o endereço ou escolha no mapa.',
+        'no-speech': 'Não ouvi o endereço. Toque em Falar endereço e tente novamente.',
+        'network': 'Não foi possível reconhecer a fala. Confira a conexão ou digite o endereço.',
+        'aborted': 'Ditado encerrado. Você pode digitar o endereço ou tentar novamente.'
+      };
+      speechStatus.textContent = messages[event.error] || 'Não foi possível reconhecer a fala. Digite o endereço ou tente novamente.';
+      resetSpeechButton();
+    };
+    speech.onend = () => {
+      if (!receivedSpeech && !speechFailed) speechStatus.textContent = 'Nenhum endereço reconhecido. Tente novamente ou digite o destino.';
+      resetSpeechButton();
+    };
+    speechButton.addEventListener('click', () => {
+      if (listening) { speech.stop(); return; }
+      receivedSpeech = false;
+      speechFailed = false;
+      try {
+        speech.start();
+        listening = true;
+        speechButton.textContent = 'Parar de ouvir';
+        speechButton.setAttribute('aria-pressed', 'true');
+        speechStatus.textContent = 'Permita o microfone, se solicitado, e fale o endereço do destino.';
+      } catch {
+        speechFailed = true;
+        resetSpeechButton();
+        speechStatus.textContent = 'Não foi possível abrir o microfone. Tente novamente ou digite o endereço.';
+      }
+    });
+    const stopSpeech = () => { if (listening) speech.abort(); };
+    document.addEventListener('visibilitychange', () => { if (document.hidden) stopSpeech(); });
+    $('hub-nav-home').addEventListener('click', stopSpeech);
+    $('hub-back').addEventListener('click', stopSpeech);
+    window.addEventListener('pagehide', stopSpeech);
+  }
+
   $('centralizar').addEventListener('click', () => {
     if (map) map.setView(MIRANDA, 14);
   });
