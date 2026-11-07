@@ -10,20 +10,17 @@
   const previa = $('previa');
   const mapaStatus = $('map-status');
   let veiculo = 'carro';
-  const dropoffFields = ['rua', 'numero', 'bairro', 'referencia'].map(name => $('desembarque-' + name));
-  const dropoffConfirmed = $('desembarque-confirmado');
-  const dropoffNotice = $('desembarque-aviso');
+  const dropoffFields = ['bairro', 'referencia'].map(name => $('desembarque-' + name));
   const dropoffValues = () => dropoffFields.map(input => input.value.trim());
   const hasDropoffDetails = () => dropoffValues().some(Boolean);
-  const dropoffReady = () => !hasDropoffDetails() || dropoffConfirmed.checked;
   const dropoffLines = () => {
-    const labels = ['Rua de desembarque', 'Número', 'Bairro', 'Referência'];
+    const labels = ['Bairro do destino', 'Referência do destino'];
     return dropoffValues().flatMap((value, index) => value ? [labels[index] + ': ' + value] : []);
   };
   const updateDropoffMarker = () => {
     if (!destinoMarker) return;
     const content = document.createElement('div');
-    content.textContent = ['Desembarque B', ...dropoffLines(), hasDropoffDetails() ? (dropoffConfirmed.checked ? 'Endereço conferido pelo passageiro' : 'Confira se o endereço corresponde a este ponto') : 'Ponto marcado no mapa'].join(' · ');
+    content.textContent = ['Desembarque B', ...dropoffLines(), 'Destino marcado no mapa'].join(' · ');
     destinoMarker.bindPopup(content);
   };
 
@@ -353,7 +350,7 @@
 
 
   const updateContinueButton = () => {
-    continuar.disabled = !origemPoint || !destinoPoint || !paymentLabel() || !dropoffReady();
+    continuar.disabled = !origemPoint || !destinoPoint || !paymentLabel();
   };
 
   const pointLabel = (latlng) =>
@@ -411,10 +408,7 @@
   };
 
   const routePreview = async () => {
-    if (!dropoffReady()) {
-      mensagem.textContent = 'Confira o ponto B no mapa e confirme o endereço de desembarque.';
-      return;
-    }
+
     if (!paymentLabel()) {
       mensagem.textContent = 'Escolha Dinheiro, Cartão ou Pix antes de ver a prévia.';
       return;
@@ -482,6 +476,8 @@
         `Distância pelas ruas: ${distance}`,
         `Tempo estimado: ${time}`,
         fareText,
+        `Partida: ${origemInput.value}`,
+        `Destino: ${destinoInput.value}`,
         `Forma de pagamento: ${paymentLabel()}`,
         ...dropoffLines(),
         'Estimativa, não é uma corrida. Nenhuma corrida foi enviada.'
@@ -526,8 +522,6 @@
     if (isOrigin) origemPoint = latlng;
     else {
       destinoPoint = latlng;
-      dropoffConfirmed.checked = false;
-      dropoffNotice.textContent = hasDropoffDetails() ? 'O ponto de desembarque mudou. Confira o endereço e confirme novamente.' : '';
       updateDropoffMarker();
     }
     input.value = selectedAddress || pointLabel(latlng);
@@ -586,18 +580,14 @@
     });
   });
 
-  const dropoffChanged = (edited) => {
-    if (edited) dropoffConfirmed.checked = false;
+  const dropoffChanged = () => {
     clearRoute();
     routePreviewRequested = false;
     previa.hidden = true;
-    dropoffNotice.textContent = hasDropoffDetails() && !dropoffConfirmed.checked
-      ? 'Confira o ponto B e marque a confirmação antes de ver a prévia.' : '';
     updateDropoffMarker();
     updateContinueButton();
   };
-  dropoffFields.forEach(input => input.addEventListener('input', () => dropoffChanged(true)));
-  dropoffConfirmed.addEventListener('change', () => dropoffChanged(false));
+  dropoffFields.forEach(input => input.addEventListener('input', dropoffChanged));
 
   paymentInputs.forEach(input => input.addEventListener('change', () => {
     clearRoute();
@@ -617,8 +607,6 @@
       if (isOrigin) origemPoint = null;
       else {
         destinoPoint = null;
-        dropoffConfirmed.checked = false;
-        dropoffNotice.textContent = hasDropoffDetails() ? 'Selecione o novo ponto B e confirme o endereço de desembarque.' : '';
       }
       const kind = isOrigin ? 'origin' : 'destination';
       addressRequests[kind]++;
@@ -693,6 +681,15 @@
       if (gpsWatch !== null) navigator.geolocation.clearWatch(gpsWatch);
       gpsWatch = null;
     }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 });
+  });
+
+  $('localizar-embarque').addEventListener('click', () => $('usar-gps').click());
+  $('escolher-destino-mapa').addEventListener('click', () => {
+    nextMapPoint = 'destination';
+    mapaStatus.textContent = 'Toque no mapa no local onde você quer chegar';
+    mensagem.textContent = 'Toque no mapa para escolher seu destino.';
+    $('mapa').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (map) map.invalidateSize();
   });
 
   $('centralizar').addEventListener('click', () => {
