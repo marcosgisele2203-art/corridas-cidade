@@ -630,7 +630,7 @@
     });
   });
 
-  $('usar-gps').addEventListener('click', () => {
+  $('localizar-embarque').addEventListener('click', () => {
     mensagem.textContent = '';
     if (!map) {
       mensagem.textContent = 'O mapa está indisponível. Atualize a página e tente novamente.';
@@ -680,7 +680,6 @@
     }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 });
   });
 
-  $('localizar-embarque').addEventListener('click', () => $('usar-gps').click());
   $('escolher-destino-mapa').addEventListener('click', () => {
     nextMapPoint = 'destination';
     mapaStatus.textContent = 'Toque no mapa no local onde você quer chegar';
