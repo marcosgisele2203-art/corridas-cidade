@@ -58,6 +58,15 @@
     .payment-grid input { margin:0; accent-color:var(--green); }
     .hub-symbol svg { width:36px; height:36px; color:#14543e; }
     .vehicle-icon svg { width:34px; height:34px; color:#14543e; }
+    .pickup-details { border:1px solid #dce7df; border-radius:16px; padding:18px; margin:24px 0; min-width:0; }
+    .pickup-details legend { font-weight:700; font-size:15px; padding:0 5px; }
+    .pickup-details p { color:#64776c; font-size:12px; line-height:1.6; margin:10px 0; }
+    .pickup-grid { display:grid; gap:12px; }
+    .pickup-grid label { display:grid; gap:6px; font-size:12px; font-weight:600; }
+    .pickup-grid input { min-width:0; width:100%; border:1px solid #dce7df; border-radius:9px; padding:11px; color:var(--graphite); background:white; }
+    .pickup-grid input:focus-visible { outline:2px solid var(--green); outline-offset:2px; }
+    .pickup-confirm { display:flex; gap:9px; align-items:flex-start; font-size:12px; line-height:1.6; }
+    .pickup-confirm input { margin-top:3px; flex-shrink:0; accent-color:var(--green); }
   </style>
 </head>
 <body>
@@ -149,6 +158,20 @@
           <p id="endereco-status" class="address-notice" role="status" aria-live="polite"></p>
         </div>
 
+        <fieldset class="pickup-details">
+          <legend>Complete o endereço de embarque</legend>
+          <p>Se a rua ou o bairro não aparecerem, informe abaixo. Use o GPS ou marque o ponto A no mapa.</p>
+          <div class="pickup-grid">
+            <label for="embarque-rua">Rua<input id="embarque-rua" type="text" maxlength="160" autocomplete="off" placeholder="Ex.: Rua das Flores"></label>
+            <label for="embarque-numero">Número<input id="embarque-numero" type="text" maxlength="20" autocomplete="off" placeholder="123 ou s/n"></label>
+            <label for="embarque-bairro">Bairro<input id="embarque-bairro" type="text" maxlength="100" autocomplete="off" placeholder="Nome do bairro"></label>
+            <label for="embarque-referencia">Ponto de referência<input id="embarque-referencia" type="text" maxlength="200" autocomplete="off" placeholder="Ex.: portão azul, perto da praça"></label>
+          </div>
+          <p>Esses dados complementam o ponto A; digitar aqui não move o pino no mapa.</p>
+          <label class="pickup-confirm" for="embarque-confirmado"><input id="embarque-confirmado" type="checkbox">Conferi o ponto A no mapa e ele corresponde ao endereço informado.</label>
+          <p id="embarque-aviso" role="status" aria-live="polite"></p>
+        </fieldset>
+
         <fieldset class="payment-options">
           <legend>3. Como você vai pagar?</legend>
           <p>Escolha a forma de pagamento para esta viagem.</p>
@@ -236,7 +259,7 @@
     })();
   </script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="/passageiro.js?v=20261106-flow-payment"></script>
+  <script src="/passageiro.js?v=20261107-pickup-details"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol === 'https:') {
       window.addEventListener('load', () => {
