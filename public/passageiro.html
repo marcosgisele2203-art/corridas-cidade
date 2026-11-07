@@ -77,6 +77,9 @@
     .field-stack > .destination-action { margin-top:12px; }
     .field-stack > .dropoff-details { margin:2px 0 10px; }
     .location-field { padding-right:15px; }
+    .voice-status { margin:0; }
+    #falar-destino[aria-pressed="true"] { background:#fff0ed; border-color:#c36a5a; color:#8d3020; }
+    #falar-destino:disabled { opacity:.6; cursor:default; }
   </style>
 </head>
 <body>
@@ -130,7 +133,8 @@
               <input id="origem" name="origem" type="text" autocomplete="off" aria-controls="sugestoes-origem" aria-autocomplete="list" placeholder="Onde vamos buscar você?" aria-describedby="map-hint">
             </label>
             <div id="sugestoes-origem" class="address-suggestions" role="listbox" aria-label="Endereços encontrados para origem" hidden></div>
-            <div class="simple-map-actions destination-action"><button type="button" id="escolher-destino-mapa">Escolher destino no mapa</button></div>
+            <div class="simple-map-actions destination-action"><button type="button" id="escolher-destino-mapa">Escolher destino no mapa</button><button type="button" id="falar-destino" aria-pressed="false" aria-describedby="voz-status">Falar endereço</button></div>
+            <p id="voz-status" class="map-hint voice-status" role="status" aria-live="polite"></p>
             <label class="location-field destination-field" for="destino">
               <span class="field-caption">PARA ONDE VOCÊ VAI?</span>
               <input id="destino" name="destino" type="text" autocomplete="off" aria-controls="sugestoes-destino" aria-autocomplete="list" placeholder="Digite a rua, número ou local">
@@ -242,7 +246,7 @@
     })();
   </script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="/passageiro.js?v=20261107-address-actions"></script>
+  <script src="/passageiro.js?v=20261107-voice-destination"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol === 'https:') {
       window.addEventListener('load', () => {
