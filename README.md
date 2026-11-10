@@ -68,7 +68,8 @@ Só um motorista recebe a chamada por vez; dois motoristas nunca ficam com a mes
 ### Preço
 
 Cada tipo de veículo tem sua tabela: `taxa base + km × valor por km`, nunca abaixo do mínimo, arredondado para cima
-de 50 em 50 centavos. A distância é a linha reta × 1,3 (aproxima o caminho pelas ruas).
+de 50 em 50 centavos. A distância é **pelas ruas**, calculada no servidor pelo OSRM (grátis, sem conta). Se o OSRM não
+responder, usa a linha reta × 1,3. O site do passageiro e o WhatsApp usam a mesma conta, então o valor mostrado é o cobrado.
 
 | Veículo | Taxa base | Por km | Mínimo |
 |---|---|---|---|
@@ -116,8 +117,9 @@ Também existe uma **comissão %** por corrida (padrão 0%), só para controle n
 
 | Endereço | Quem usa | O que tem |
 |---|---|---|
-| `/` | Todo mundo | Página inicial com 3 cartões: **Sou passageiro** (abre o WhatsApp da central), **Sou motorista** e **Administração** |
-| `/motorista` | Motorista | **Cadastro pelo site** (tipo, modelo, cor pela paleta, placa) e **entrada sem senha**: digita o WhatsApp e recebe um código de 6 números nele. Dentro: ficar **online/offline**, saldo, **comprar viagens** (QR Code e copia e cola do Pix na tela; as viagens entram sozinhas quando o Mercado Pago aprova), **meu relatório** com período e impressão, e **meu cadastro** (modelo, cor e placa; a central é avisada das mudanças) |
+| `/` | Todo mundo | Página inicial com 3 cartões: **Sou passageiro** (abre o site do passageiro; o número da central no rodapé abre o WhatsApp), **Sou motorista** e **Administração** |
+| `/passageiro` | Passageiro | **Pedir corrida pelo site**: marca embarque e destino no mapa (ou busca o endereço), escolhe carro ou moto e o pagamento, vê o valor da central e confirma o WhatsApp com um código de 6 números. Depois de pedir, acompanha a corrida na tela (motorista, placa, situação) e pode cancelar até o motorista chegar. Instala como app no celular |
+| `/motorista` | Motorista | **Cadastro pelo site** (tipo, modelo, cor pela paleta, placa) e **entrada sem senha**: digita o WhatsApp e recebe um código de 6 números nele. Dentro: ficar **online/offline**, saldo, **comprar viagens** (QR Code e copia e cola do Pix na tela; as viagens entram sozinhas quando o Mercado Pago aprova), **ofertas de corrida na tela** (aceitar, cheguei, iniciar, finalizar, ver a rota no mapa), **GPS pelo navegador** (a posição só é enviada com a página aberta e online), **meu relatório** com período e impressão, e **meu cadastro** (modelo, cor e placa; a central é avisada das mudanças) |
 | `/painel` | Central (senha `ADMIN_SENHA`) | Tudo da administração, abaixo |
 
 ## Painel (`/painel`)
@@ -154,6 +156,8 @@ EVOLUTION_APIKEY=apikey-da-evolution
 WEBHOOK_TOKEN=uma-senha-forte-qualquer
 ADMIN_SENHA=senha-do-painel
 MP_ACCESS_TOKEN=APP_USR-...                  (opcional: Pix automático na compra de viagens)
+OSRM_URL=https://router.project-osrm.org     (opcional: servidor de rotas; esse é o padrão)
+ROTA_PELAS_RUAS=nao                          (opcional: volta a usar só linha reta × 1,3)
 ```
 
 Em *Domains*, aponte o domínio (ex.: `corridas.seudominio.com`) para a porta **3000** e clique em **Implantar**.

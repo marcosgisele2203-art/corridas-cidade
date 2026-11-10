@@ -152,7 +152,6 @@
 
         <p class="map-hint" id="map-hint">Use sua localização para a partida. Para o destino, escolha uma sugestão da busca ou toque no mapa.</p>
         <div class="address-tools">
-          <button type="button" id="configurar-enderecos" hidden class="address-token-button">Configurações de endereço</button>
           <p id="endereco-status" class="address-notice" role="status" aria-live="polite"></p>
         </div>
 
@@ -166,7 +165,7 @@
             <label><input type="radio" name="pagamento" value="cartao" required><span>Cartão</span></label>
             <label><input type="radio" name="pagamento" value="pix" required><span>Pix</span></label>
           </div>
-          <small>A escolha informa sua preferência. Nenhum pagamento é cobrado nesta prévia.</small>
+          <small>Você paga direto ao motorista, no fim da corrida.</small>
         </fieldset>
 
         <div class="action-area">
@@ -181,6 +180,7 @@
           <p class="status-message" id="mensagem" role="status" aria-live="polite"></p>
         </div>
         <div class="preview-card" id="previa" hidden aria-live="polite"></div>
+        <div class="preview-card pedido-card" id="pedido" hidden aria-live="polite"></div>
         <div class="panel-signoff"><span>Feito com carinho</span><span class="signoff-heart">♥</span><span>pela Manu</span></div>
       </section>
 
@@ -205,7 +205,7 @@
     <button type="button" id="hub-nav-ride"><span aria-hidden="true">↗</span>Viajar</button>
     <button type="button" data-hub-help><span aria-hidden="true">♡</span>Ajuda</button>
   </nav>
-  <dialog class="hub-dialog" id="hub-help" aria-labelledby="hub-help-title"><h2 id="hub-help-title">Vamos com a Manu?</h2><p>1. Escolha Carro ou Moto.<br>2. Informe a partida e o destino, ou marque os pontos no mapa.<br>3. Escolha Dinheiro, Cartão ou Pix.<br>4. Toque em “Ver prévia da viagem” para conferir a estimativa.</p><p>Esta versão de teste permite planejar a viagem. A prévia não solicita uma corrida nem envia mensagens.</p><form method="dialog"><button>Entendi</button></form></dialog>
+  <dialog class="hub-dialog" id="hub-help" aria-labelledby="hub-help-title"><h2 id="hub-help-title">Vamos com a Manu?</h2><p>1. Escolha Carro ou Moto.<br>2. Informe a partida e o destino, ou marque os pontos no mapa.<br>3. Escolha Dinheiro, Cartão ou Pix.<br>4. Toque em “Ver prévia da viagem” para conferir a rota e o valor.<br>5. Confirme seu WhatsApp com o código e toque em “Pedir corrida”.</p><p>Você acompanha a corrida aqui e recebe os avisos no WhatsApp.</p><form method="dialog"><button>Entendi</button></form></dialog>
   <script>
     (() => {
       const home = document.getElementById('hub-home');

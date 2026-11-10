@@ -169,3 +169,11 @@ h1,h2,p { margin-top: 0; }
 .address-tools { margin-top: -10px; }
 .address-token-button { border: 0; padding: 7px 2px; background: transparent; text-decoration: underline; text-underline-offset: 3px; font-size: 10px; font-weight: 600; }
 .address-token-button:hover { background: transparent; color: #095b40; }
+
+/* pedido de corrida: entrar com o WhatsApp, valor da central e acompanhamento */
+.pedido-card { display: grid; gap: 8px; }
+.pedido-card input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #cfe3d7; border-radius: 10px; font-size: 16px; background: #fff; }
+.pedido-card input[hidden] { display: none; }
+.pedido-aviso { margin: 0; }
+.pedido-aviso.erro { color: #a3401b; font-weight: 700; }
+.link-sair { border: 0; background: transparent; color: #08764f; text-decoration: underline; cursor: pointer; font-size: 12px; justify-self: start; padding: 4px 0; }

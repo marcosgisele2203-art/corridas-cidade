@@ -16,6 +16,7 @@ const crypto = require('crypto');
 const { pool, migrar, lerConfig, salvarConfig, moverCreditos, pacotesComDesconto, CONFIG_PADRAO } = require('./lib/db');
 const bot = require('./lib/bot');
 const whats = require('./lib/whats');
+const geo = require('./lib/geo');
 const { TIPOS, ORDEM, rotulo, veiculo, coresDo } = require('./lib/tipos');
 const MP = require('./lib/mercadopago');
 const relatorio = require('./lib/relatorio');
@@ -55,6 +56,8 @@ function lerCorpo(req, limite = 2_000_000) {
 
 const texto = (v, max) => String(v == null ? '' : v).trim().slice(0, max);
 const soDigitos = (v) => String(v || '').replace(/\D/g, '');
+const pontoValido = (v) => (v && typeof v.lat === 'number' && typeof v.lng === 'number' && Number.isFinite(v.lat) && Number.isFinite(v.lng)
+  && Math.abs(v.lat) <= 90 && Math.abs(v.lng) <= 180 ? { lat: v.lat, lng: v.lng } : null);
 const numero = (v, padrao) => (Number.isFinite(Number(v)) && String(v).trim() !== '' ? Number(v) : padrao);
 
 function telefoneBR(v) {
@@ -489,13 +492,28 @@ rota('GET', '/api/publico/inicio', false, async () => {
   return { nome: cfg.nome, cidade: cfg.cidade, aceitando: cfg.aceitando, numero,
     passageiro: numero ? linkWhats(numero, 'Oi! Quero uma corrida') : '', tipos: ORDEM.filter((t) => cfg.precos[t].ativo) };
 });
-rota('GET', '/api/publico/tarifas', false, async () => {
-  const cfg = await lerConfig();
-  return Object.fromEntries(ORDEM.filter((t) => cfg.precos[t].ativo).map((t) => [t, {
-    taxa_base: cfg.precos[t].taxa_base,
-    por_km: cfg.precos[t].por_km,
-    minimo: cfg.precos[t].minimo,
-  }]));
+// Valor estimado para a prévia do site: a mesma conta da cotação e do WhatsApp (km pelas ruas no servidor).
+rota('POST', '/api/publico/estimativa', false, async ({ req }) => {
+  limitar('est:' + ipDe(req), 30, 60_000);
+  const b = await lerCorpo(req, 2048), cfg = await lerConfig();
+  const o = pontoValido(b.origemPonto), d = pontoValido(b.destinoPonto), tipo = texto(b.tipo, 20);
+  if (!o || !d) throw new Erro(400, 'Marque o embarque e o destino.');
+  if (!ORDEM.includes(tipo) || !cfg.precos[tipo].ativo) throw new Erro(400, 'Esse veículo não está disponível agora.');
+  const km = await geo.kmRuas(o, d, cfg);
+  return { km, valor: geo.preco(km, cfg.precos[tipo]) };
+});
+// Busca de endereço do site do passageiro (feita aqui no servidor, sem chave de mapa no navegador).
+rota('GET', '/api/publico/enderecos', false, async ({ req, url }) => {
+  limitar('end:' + ipDe(req), 60, 60_000);
+  const q = texto(url.searchParams.get('q'), 120);
+  if (q.length < 3) return { features: [] };
+  return { features: await geo.sugerirEnderecos(q, await lerConfig()).catch(() => []) };
+});
+rota('GET', '/api/publico/endereco-do-ponto', false, async ({ req, url }) => {
+  limitar('rev:' + ipDe(req), 60, 60_000);
+  const p = { lat: Number(url.searchParams.get('lat')), lng: Number(url.searchParams.get('lng')) };
+  if (!geo.temPonto(p) || Math.abs(p.lat) > 90 || Math.abs(p.lng) > 180) throw new Erro(400, 'Ponto inválido.');
+  return geo.enderecoDoPonto(p).catch(() => ({ rua: '', bairro: '' }));
 });
 rota('GET', '/api/publico/cores', false, async () => Object.fromEntries(ORDEM.map((t) => [t, coresDo(t)])));
 
@@ -606,7 +624,7 @@ rota('GET', '/api/motorista/eu', false, async ({ req }) => {
   const { rows: [compra] } = await pool.query(
     "SELECT id, quantidade, valor, mp_id, pix_copia_cola, pix_expira, comprovante, criado_em FROM compras WHERE motorista_id = $1 AND status = 'pendente' ORDER BY id DESC LIMIT 1", [m.id]);
   const { rows: [atual] } = await pool.query(
-    "SELECT id, status, origem_texto, destino_texto, passageiro_nome, valor_estimado FROM corridas WHERE motorista_id = $1 AND status IN ('aceita', 'chegou', 'em_andamento') LIMIT 1", [m.id]);
+    "SELECT id, status, origem_texto, destino_texto, origem_lat, origem_lng, destino_lat, destino_lng, passageiro_nome, valor_estimado FROM corridas WHERE motorista_id = $1 AND status IN ('aceita', 'chegou', 'em_andamento') LIMIT 1", [m.id]);
   const { de, ate } = relatorio.mesAtual();
   const mes = await relatorio.montar(m.id, de, ate);
   return {
@@ -624,6 +642,7 @@ rota('GET', '/api/motorista/eu', false, async ({ req }) => {
 // Sem aceitar ID de motorista enviado pelo navegador (identidade vem do cookie assinado).
 rota('POST', '/api/motorista/localizacao', false, async ({ req }) => {
   const m = await exigirMotorista(req);
+  limitar('gps:' + m.id, 180, 60_000);
   if (!m.aprovado || !m.online) throw new Erro(403, 'A localização só pode ser enviada quando você estiver aprovado e online.');
   const b = await lerCorpo(req, 2048);
   const lat = Number(b.lat), lng = Number(b.lng);
@@ -650,6 +669,21 @@ rota('GET', '/api/central/gps', true, async () => {
       AND local_em > now() - interval '2 minutes'
     ORDER BY local_em DESC LIMIT 200`);
   return { motoristas: rows, atualizado_em: new Date().toISOString() };
+});
+
+// Corrida oferecida ao motorista agora (ele pode aceitar pelo site, além do WhatsApp).
+rota('GET', '/api/motorista/oferta', false, async ({ req }) => {
+  const m = await exigirMotorista(req);
+  const { rows } = await pool.query(`SELECT id, origem_texto, destino_texto, origem_lat, origem_lng, destino_lat, destino_lng, valor_estimado, oferta_expira
+    FROM corridas WHERE status = 'procurando' AND oferta_motorista = $1 AND oferta_expira > now() LIMIT 1`, [m.id]);
+  return { oferta: rows[0] || null };
+});
+// Botões do site: aceitar, cheguei, iniciar, finalizar. Passa pelo mesmo caminho dos comandos do WhatsApp.
+rota('POST', '/api/motorista/corrida/:id/acao', false, async ({ req, p }) => {
+  const m = await exigirMotorista(req), b = await lerCorpo(req);
+  limitar('acao-m:' + m.id, 60, 60_000);
+  try { return await bot.acaoSite(m.id, Number(p.id), b.acao); }
+  catch (e) { if (e.status === 409) throw new Erro(409, e.message); throw e; }
 });
 
 rota('POST', '/api/motorista/online', false, async ({ req }) => {
@@ -779,6 +813,121 @@ rota('POST','/api/publico/acompanhamento',false,async ({ req })=>{
   };
 });
 
+// ---------------------------------------------------------------- pedido de corrida pelo site do passageiro
+// O passageiro confirma o WhatsApp com um código de 6 números. Sem código não há pedido:
+// ninguém consegue chamar corrida no nome de outro número.
+const hashPassageiro = (t, c) => crypto.createHmac('sha256', 'passageiro:' + segredoMotorista).update(t + ':' + c).digest('hex');
+function sessaoPassageiro(req) {
+  const m = /(?:^|;\s*)cp_sessao=(\d+)\.(\d+)\.([a-f0-9]{64})/.exec(req.headers.cookie || '');
+  if (!m || Number(m[2]) < Date.now()) throw new Erro(401, 'Confirme seu WhatsApp para pedir a corrida.');
+  const sig = hashPassageiro(m[1], m[2]);
+  if (!crypto.timingSafeEqual(Buffer.from(m[3]), Buffer.from(sig))) throw new Erro(401, 'Confirme seu WhatsApp novamente.');
+  return m[1];
+}
+const cookieSeguro = (req) => (String(req.headers['x-forwarded-proto'] || '').includes('https') ? '; Secure' : '');
+rota('GET', '/api/passageiro/eu', false, async ({ req }) => {
+  try { return { telefone: sessaoPassageiro(req) }; } catch { return { telefone: null }; }
+});
+rota('POST', '/api/passageiro/codigo', false, async ({ req }) => {
+  limitar('pc-ip:' + ipDe(req), 6, 15 * 60_000);
+  const b = await lerCorpo(req), tel = telefoneBR(b.telefone);
+  limitar('pc-tel:' + tel, 3, 15 * 60_000);
+  const codigo = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
+  await pool.query(`INSERT INTO passageiro_codigos (telefone, codigo_hash, expira_em) VALUES ($1, $2, now() + interval '10 minutes')
+    ON CONFLICT (telefone) DO UPDATE SET codigo_hash = EXCLUDED.codigo_hash, expira_em = EXCLUDED.expira_em, tentativas = 0`, [tel, hashPassageiro(tel, codigo)]);
+  const cfg = await lerConfig();
+  whats.texto(tel, `🔐 Seu código para pedir corrida pelo site da ${cfg.nome}: *${codigo}*\n\nVale 10 minutos. Não passe para ninguém.`);
+  return { ok: true };
+});
+rota('POST', '/api/passageiro/entrar', false, async ({ req, res }) => {
+  limitar('pe-ip:' + ipDe(req), 15, 15 * 60_000);
+  const b = await lerCorpo(req), tel = telefoneBR(b.telefone), codigo = soDigitos(b.codigo);
+  const { rows: [c] } = await pool.query(
+    'UPDATE passageiro_codigos SET tentativas = tentativas + 1 WHERE telefone = $1 AND expira_em > now() AND tentativas < 5 RETURNING codigo_hash', [tel]);
+  if (!c || codigo.length !== 6) throw new Erro(400, 'Código vencido. Peça um novo.');
+  const a = Buffer.from(hashPassageiro(tel, codigo)), e = Buffer.from(c.codigo_hash);
+  if (a.length !== e.length || !crypto.timingSafeEqual(a, e)) throw new Erro(400, 'Código errado. Confira no seu WhatsApp.');
+  await pool.query('DELETE FROM passageiro_codigos WHERE telefone = $1', [tel]);
+  const exp = String(Date.now() + 30 * 86400_000), sig = hashPassageiro(tel, exp);
+  res.setHeader('Set-Cookie', `cp_sessao=${tel}.${exp}.${sig}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${30 * 86400}${cookieSeguro(req)}`);
+  return { ok: true, telefone: tel };
+});
+rota('POST', '/api/passageiro/sair', false, async ({ res }) => {
+  res.setHeader('Set-Cookie', 'cp_sessao=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+  return { ok: true };
+});
+// Cotação: o servidor calcula km e preço (a mesma conta do WhatsApp) e assina o resultado por 5 minutos.
+rota('POST', '/api/passageiro/cotacao', false, async ({ req }) => {
+  limitar('cotacao:' + ipDe(req), 30, 15 * 60_000);
+  const tel = sessaoPassageiro(req), b = await lerCorpo(req, 4096), cfg = await lerConfig();
+  const nome = texto(b.nome, 80), origem = texto(b.origem, 180), destino = texto(b.destino, 180), tipo = texto(b.tipo, 20);
+  const pagamento = ['dinheiro', 'cartao', 'pix'].includes(b.pagamento) ? b.pagamento : null;
+  if (!cfg.aceitando) throw new Erro(400, 'A central não está aceitando corridas agora.');
+  if (!ORDEM.includes(tipo) || !cfg.precos[tipo].ativo) throw new Erro(400, 'Escolha o veículo.');
+  if (nome.length < 2) throw new Erro(400, 'Diga seu nome.');
+  if (origem.length < 3 || destino.length < 3) throw new Erro(400, 'Informe o embarque e o destino.');
+  if ((b.origemPonto && !pontoValido(b.origemPonto)) || (b.destinoPonto && !pontoValido(b.destinoPonto))) throw new Erro(400, 'Ponto do mapa inválido.');
+  const [o, d] = await Promise.all([
+    pontoValido(b.origemPonto) || geo.buscarEndereco(origem, cfg),
+    pontoValido(b.destinoPonto) || geo.buscarEndereco(destino, cfg)]);
+  if (!o || !d) throw new Erro(400, !o && !d ? 'Não achamos o embarque nem o destino. Marque os pontos no mapa.'
+    : !o ? 'Não achamos o embarque. Marque o ponto no mapa.' : 'Não achamos o destino. Marque o ponto no mapa.');
+  const km = await geo.kmRuas(o, d, cfg), valor = geo.preco(km, cfg.precos[tipo]);
+  const q = { tel, nome, origem, destino, o, d, tipo, pagamento, km, valor, exp: Date.now() + 5 * 60_000, nonce: crypto.randomBytes(16).toString('hex') };
+  const corpo = Buffer.from(JSON.stringify(q)).toString('base64url');
+  return { km, valor, token: corpo + '.' + hashPassageiro(tel, corpo) };
+});
+rota('POST', '/api/passageiro/pedir', false, async ({ req }) => bot.rodar(async () => {
+  limitar('pedir:' + ipDe(req), 10, 15 * 60_000);
+  const tel = sessaoPassageiro(req), b = await lerCorpo(req, 8192), partes = String(b.token || '').split('.');
+  if (partes.length !== 2) throw new Erro(400, 'Faça a cotação de novo.');
+  const sig = hashPassageiro(tel, partes[0]);
+  if (sig.length !== partes[1].length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(partes[1]))) throw new Erro(400, 'Cotação inválida. Faça de novo.');
+  const q = JSON.parse(Buffer.from(partes[0], 'base64url').toString('utf8'));
+  if (q.tel !== tel || q.exp < Date.now()) throw new Erro(400, 'A cotação venceu. Faça de novo.');
+  const cfg = await lerConfig();
+  if (!cfg.aceitando || !cfg.precos[q.tipo]?.ativo) throw new Erro(400, 'Esse veículo não está disponível agora.');
+  if (geo.preco(q.km, cfg.precos[q.tipo]) !== q.valor) throw new Erro(400, 'O preço mudou. Faça a cotação de novo.');
+  const { rows: [jaFeito] } = await pool.query('SELECT corrida_id FROM passageiro_pedidos WHERE token = $1', [q.nonce]);
+  if (jaFeito) return { id: jaFeito.corrida_id };
+  const { rows: [ativa] } = await pool.query("SELECT id FROM corridas WHERE passageiro_tel = $1 AND status IN ('procurando', 'aceita', 'chegou', 'em_andamento') LIMIT 1", [tel]);
+  if (ativa) throw new Erro(409, 'Você já tem uma corrida em andamento.');
+  const client = await pool.connect();
+  let corrida;
+  try {
+    await client.query('BEGIN');
+    ({ rows: [corrida] } = await client.query(`INSERT INTO corridas (passageiro_tel, passageiro_contato, passageiro_nome, origem_texto, origem_lat, origem_lng,
+        destino_texto, destino_lat, destino_lng, km, valor_estimado, tipo, pagamento)
+      VALUES ($1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
+      [tel, q.nome, q.origem, q.o.lat, q.o.lng, q.destino, q.d.lat, q.d.lng, q.km, q.valor, q.tipo, q.pagamento || null]));
+    await client.query('INSERT INTO passageiro_pedidos (token, corrida_id) VALUES ($1, $2)', [q.nonce, corrida.id]);
+    await client.query('COMMIT');
+  } catch (e) { await client.query('ROLLBACK'); throw e; } finally { client.release(); }
+  whats.texto(tel, `🔎 Corrida #${corrida.id} pedida pelo site. Procurando motorista...\nPara cancelar, mande *CANCELAR*.`);
+  await bot.despachar(corrida.id);
+  return { id: corrida.id };
+}));
+rota('GET', '/api/passageiro/viagem/:id', false, async ({ req, p }) => {
+  const tel = sessaoPassageiro(req);
+  const { rows: [c] } = await pool.query(`SELECT c.id, c.status, c.tipo, c.origem_texto, c.destino_texto, c.km, c.valor_estimado, c.valor_final,
+      m.nome AS motorista_nome, m.carro, m.cor, m.placa
+    FROM corridas c LEFT JOIN motoristas m ON m.id = c.motorista_id WHERE c.id = $1 AND c.passageiro_tel = $2`, [Number(p.id), tel]);
+  if (!c) throw new Erro(404, 'Corrida não encontrada.');
+  return c;
+});
+rota('POST', '/api/passageiro/viagem/:id/cancelar', false, async ({ req, p }) => {
+  const tel = sessaoPassageiro(req);
+  limitar('pcancelar:' + ipDe(req), 30, 60_000);
+  return bot.rodar(async () => {
+    const { rows: [c] } = await pool.query('SELECT * FROM corridas WHERE id = $1 AND passageiro_tel = $2', [Number(p.id), tel]);
+    if (!c) throw new Erro(404, 'Corrida não encontrada.');
+    if (c.status === 'cancelada') return { ok: true };
+    if (!['procurando', 'aceita', 'chegou'].includes(c.status)) throw new Erro(409, 'A corrida já começou ou terminou.');
+    await bot.cancelarPeloPassageiro(c);
+    return { ok: true };
+  });
+});
+
 // ---------------------------------------------------------------- arquivos do painel
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml',
@@ -805,7 +954,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, resultado);
     }
     if (req.method === 'GET') {
-      const pagina = { '/': 'inicio.html', '/painel': 'index.html', '/motorista': 'motorista.html' }[url.pathname.replace(/\/+$/, '') || '/'];
+      const pagina = { '/': 'inicio.html', '/painel': 'index.html', '/motorista': 'motorista.html', '/passageiro': 'passageiro.html' }[url.pathname.replace(/\/+$/, '') || '/'];
       if (pagina) return arquivo(res, pagina) || json(res, 404, { erro: 'Não encontrado' });
       if (arquivo(res, url.pathname.slice(1))) return;
     }

@@ -38,58 +38,30 @@
   let routePreviewRequested = false;
   let routeRequestId = 0;
   let routeAbortController = null;
-  // Token público usado também nos painéis de mapas da mesma origem.
-  const MAPBOX_TOKEN_KEY = 'vai-manu-mapbox-public-token';
   const addressRequests = { origin: 0, destination: 0 };
   const addressControllers = { origin: null, destination: null };
   const addressNotice = $('endereco-status');
-  const configButton = $('configurar-enderecos');
   const suggestionLists = { origin: $('sugestoes-origem'), destination: $('sugestoes-destino') };
   const suggestionTimers = { origin: null, destination: null };
   const suggestionControllers = { origin: null, destination: null };
   const suggestionRequests = { origin: 0, destination: 0 };
-  const validMapboxToken = (token) => /^pk\.[A-Za-z0-9._-]{10,}$/.test(token || '');
-  const mapboxToken = () => localStorage.getItem(MAPBOX_TOKEN_KEY) || '';
   const addressHint = (message) => { if (addressNotice) addressNotice.textContent = message; };
-  const findStreetAndNeighborhood = (features) => {
-    // Sem inferir números de imóveis vizinhos ao ponto escolhido.
-    const street = features.find((f) => f?.properties?.feature_type === 'street');
-    const address = features.find((f) => f?.properties?.feature_type === 'address');
-    const neighborhood = features.find((f) => f?.properties?.feature_type === 'neighborhood');
-    const locality = features.find((f) => f?.properties?.feature_type === 'locality');
-    const context = (street || address || features[0])?.properties?.context || {};
-    const road = street?.properties?.name || address?.properties?.context?.street?.name ||
-      context.street?.name || '';
-    const district = neighborhood?.properties?.name || context.neighborhood?.name ||
-      locality?.properties?.name || context.locality?.name || '';
-    return { road: String(road).trim(), district: String(district).trim() };
-  };
   const reverseAddress = async (kind, point) => {
     const input = kind === 'origin' ? origemInput : destinoInput;
     const request = ++addressRequests[kind];
     if (addressControllers[kind]) addressControllers[kind].abort();
     addressControllers[kind] = null;
-    const token = mapboxToken();
-    if (!validMapboxToken(token)) {
-      addressHint('Para identificar ruas e bairros automaticamente, configure seu token público do Mapbox.');
-      return;
-    }
     const controller = new AbortController();
     addressControllers[kind] = controller;
     input.value = 'Identificando rua e bairro…';
-    addressHint('Consultando o endereço aproximado no Mapbox…');
+    addressHint('Consultando o endereço aproximado…');
     try {
-      const params = new URLSearchParams({
-        longitude: String(point.lng), latitude: String(point.lat),
-        language: 'pt', country: 'br', access_token: token
-      });
-      const response = await fetch('https://api.mapbox.com/search/geocode/v6/reverse?' + params, {
-        signal: controller.signal
-      });
+      const params = new URLSearchParams({ lat: String(point.lat), lng: String(point.lng) });
+      const response = await fetch('/api/publico/endereco-do-ponto?' + params, { signal: controller.signal });
       if (!response.ok) throw new Error('Serviço de endereços indisponível (HTTP ' + response.status + ').');
       const data = await response.json();
       if (request !== addressRequests[kind]) return;
-      const { road, district } = findStreetAndNeighborhood(Array.isArray(data.features) ? data.features : []);
+      const road = String(data.rua || '').trim(), district = String(data.bairro || '').trim();
       if (!road && !district) {
         input.value = pointLabel(point);
         addressHint('Rua e bairro não encontrados neste ponto. Arraste o marcador ou confira o endereço.');
@@ -103,7 +75,7 @@
     } catch (error) {
       if (request !== addressRequests[kind] || error.name === 'AbortError') return;
       input.value = pointLabel(point);
-      addressHint('Não foi possível identificar a rua e o bairro. Verifique a conexão ou o token Mapbox.');
+      addressHint('Não foi possível identificar a rua e o bairro. Verifique a conexão.');
     } finally {
       if (addressControllers[kind] === controller) addressControllers[kind] = null;
     }
@@ -137,11 +109,6 @@
     const term = String(text).trim();
     if (term.length < 3) return;
     const list = suggestionLists[kind];
-    const token = mapboxToken();
-    if (!validMapboxToken(token)) {
-      addressHint('Configure o token público Mapbox em Configurações de endereço para pesquisar.');
-      return;
-    }
     const request = suggestionRequests[kind];
     if (list) {
       list.replaceChildren();
@@ -154,78 +121,18 @@
     suggestionTimers[kind] = setTimeout(async () => {
       const controller = new AbortController();
       suggestionControllers[kind] = controller;
+      // A busca roda no servidor (Photon/OpenStreetMap perto da cidade da central), sem chave.
       const search = async (query) => {
-        const params = new URLSearchParams({
-          q: query, language: 'pt', country: 'br', limit: '10',
-          proximity: '-56.378,-20.240', types: 'street,address,neighborhood',
-          access_token: token
-        });
-        const response = await fetch('https://api.mapbox.com/search/geocode/v6/forward?' + params, {
+        const response = await fetch('/api/publico/enderecos?' + new URLSearchParams({ q: query }), {
           signal: controller.signal
         });
         if (!response.ok) throw new Error('Busca indisponível (HTTP ' + response.status + ').');
         const data = await response.json();
-        const features = Array.isArray(data.features) ? data.features : [];
-        return features.filter((feature) => {
-          const coords = feature.geometry?.coordinates;
-          return Array.isArray(coords) && Number.isFinite(coords[0]) && Number.isFinite(coords[1]) &&
-            Math.abs(coords[0] + 56.378) <= 0.42 && Math.abs(coords[1] + 20.240) <= 0.36;
-        });
+        return Array.isArray(data.features) ? data.features : [];
       };
       try {
-        // "Alegria" isolado encontra muitos lugares fora da cidade.
-        // Priorizar a cidade, com fallback para a busca original.
-        const contextual = /miranda/i.test(term) ? term : term + ', Miranda, Mato Grosso do Sul';
-        let results = await search(contextual);
+        let results = await search(term);
         if (request !== suggestionRequests[kind]) return;
-        if (!results.length && contextual !== term) results = await search(term);
-        // Fallback OpenStreetMap/Photon quando o índice Mapbox não cobre uma rua local.
-        // API pública de demonstração: uso limitado e sem garantia de disponibilidade.
-        if (!results.length) {
-          const query = /^rua\b/i.test(term) ? term : 'Rua ' + term;
-          const photonParams = new URLSearchParams({
-            q: query, lat: '-20.240', lon: '-56.378', limit: '12', lang: 'pt'
-          });
-          try {
-            const photonResponse = await fetch('https://photon.komoot.io/api/?' + photonParams, {
-              signal: controller.signal
-            });
-            if (photonResponse.ok) {
-              const photonData = await photonResponse.json();
-              const clean = (v) => String(v || '').normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-              const searchWords = clean(term).replace(/^(rua|avenida|av|travessa)\s+/, '');
-              results = (Array.isArray(photonData.features) ? photonData.features : [])
-                .filter((feature) => {
-                  const coords = feature.geometry?.coordinates;
-                  const props = feature.properties || {};
-                  const streetName = String(props.name || props.street || '');
-                  return Array.isArray(coords) && Number.isFinite(coords[0]) &&
-                    Number.isFinite(coords[1]) &&
-                    Math.abs(coords[0] + 56.378) <= 0.12 &&
-                    Math.abs(coords[1] + 20.240) <= 0.12 &&
-                    clean(streetName).includes(searchWords);
-                })
-                .map((feature) => {
-                  const props = feature.properties || {};
-                  return {
-                    geometry: feature.geometry,
-                    properties: {
-                      name: props.name || props.street,
-                      feature_type: 'street',
-                      context: {
-                        neighborhood: props.district ? { name: props.district } : undefined,
-                        place: { name: props.city || 'Miranda' }
-                      }
-                    }
-                  };
-                });
-            }
-          } catch (fallbackError) {
-            if (fallbackError.name === 'AbortError') throw fallbackError;
-            // A busca original permanece disponível mesmo se Photon falhar.
-          }
-        }
         // Os nomes das ruas no mapa OSM nem sempre aparecem nos índices de geocodificação.
         // Consulta pontual aos nomes cadastrados perto de Miranda, somente após as duas buscas falharem.
         if (!results.length && term.length >= 5) {
@@ -335,20 +242,6 @@
       }
     }, 350);
   };
-  if (configButton) configButton.addEventListener('click', () => {
-    const token = window.prompt('Cole somente seu token PÚBLICO do Mapbox (começa com pk.). Nunca use token secreto (sk.).', mapboxToken());
-    if (token === null) return;
-    if (!validMapboxToken(token.trim())) {
-      addressHint('Token inválido. Use apenas um token público Mapbox iniciado por pk.');
-      return;
-    }
-    localStorage.setItem(MAPBOX_TOKEN_KEY, token.trim());
-    addressHint('Mapbox configurado neste navegador. Identificando os pontos do mapa…');
-    if (origemPoint) reverseAddress('origin', origemPoint);
-    if (destinoPoint) reverseAddress('destination', destinoPoint);
-  });
-
-
   const updateContinueButton = () => {
     continuar.disabled = !origemPoint || !destinoPoint || !paymentLabel();
   };
@@ -391,20 +284,15 @@
     previa.hidden = false;
   };
 
-  const loadTariffs = async (signal) => {
-    const response = await fetch('/api/publico/tarifas', { cache: 'no-store', signal });
-    if (!response.ok) throw new Error('Tarifas da central indisponíveis.');
-    const tariffs = await response.json();
-    if (!tariffs || typeof tariffs !== 'object' || Array.isArray(tariffs)) {
-      throw new Error('Não foi possível ler as tarifas da central.');
-    }
-    return tariffs;
-  };
-
-  const fareFor = (km, tariff) => {
-    if (!tariff || !['taxa_base', 'por_km', 'minimo'].every((key) =>
-      Number.isFinite(tariff[key]) && tariff[key] >= 0)) return null;
-    return Math.ceil(Math.max(Number(tariff.minimo), Number(tariff.taxa_base) + km * Number(tariff.por_km)) * 2) / 2;
+  // o valor vem da central (mesma conta do WhatsApp), não é calculado aqui no celular
+  const loadEstimate = async (signal) => {
+    const response = await fetch('/api/publico/estimativa', {
+      method: 'POST', cache: 'no-store', signal, headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipo: veiculo, origemPonto: { lat: origemPoint.lat, lng: origemPoint.lng }, destinoPonto: { lat: destinoPoint.lat, lng: destinoPoint.lng } })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !Number.isFinite(data.valor)) throw new Error(data.erro || 'Valor indisponível agora.');
+    return data;
   };
 
   const routePreview = async () => {
@@ -439,9 +327,9 @@
     // Evita ficar indefinidamente sem resposta quando a rede bloqueia o roteador.
     const timeout = setTimeout(() => controller.abort(), 12000);
     try {
-      const [routeResponse, tariffsResult] = await Promise.allSettled([
+      const [routeResponse, estimateResult] = await Promise.allSettled([
         fetch(url, { signal: controller.signal }),
-        loadTariffs(controller.signal)
+        loadEstimate(controller.signal)
       ]);
       if (requestId !== routeRequestId) return;
       if (routeResponse.status !== 'fulfilled') throw routeResponse.reason;
@@ -465,24 +353,22 @@
       const distance = `${km.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`;
       const minutes = Math.max(1, Math.round(route.duration / 60));
       const time = `${minutes} min (estimativa)`;
-      const tariffs = tariffsResult.status === 'fulfilled' ? tariffsResult.value : null;
-      const fare = fareFor(km, tariffs?.[veiculo]);
+      const fare = estimateResult.status === 'fulfilled' ? estimateResult.value.valor : null;
       const fareText = fare === null
-        ? (tariffs && !tariffs[veiculo]
-          ? 'Tarifa deste veículo não está disponível na central.'
-          : 'Valor indisponível: não foi possível carregar a tarifa atual.')
-        : `Valor estimado: R$ ${fare.toFixed(2).replace('.', ',')}`;
+        ? 'Valor indisponível agora: ' + (estimateResult.reason?.message || 'tente de novo.')
+        : `Valor da central: R$ ${fare.toFixed(2).replace('.', ',')}`;
       showPreview(`Prévia da viagem · ${veiculo === 'carro' ? 'Carro' : 'Moto'}`, [
-        `Distância pelas ruas: ${distance}`,
+        `Distância pelas ruas: ${estimateResult.status === 'fulfilled' && Number.isFinite(estimateResult.value.km) ? estimateResult.value.km.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' km' : distance}`,
         `Tempo estimado: ${time}`,
         fareText,
         `Partida: ${origemInput.value}`,
         `Destino: ${destinoInput.value}`,
         `Forma de pagamento: ${paymentLabel()}`,
         ...dropoffLines(),
-        'Estimativa, não é uma corrida. Nenhuma corrida foi enviada.'
+        'Estimativa. A corrida só é pedida no botão abaixo.'
       ], fare === null);
       mapaStatus.textContent = 'Rota pelas ruas exibida · arraste A ou B para alterar';
+      prepararPedido();
     } catch (error) {
       if (requestId !== routeRequestId) return;
       const timeoutError = error.name === 'AbortError';
@@ -772,6 +658,138 @@
     routePreviewRequested = true;
     routePreview();
   });
+
+
+  // ---------------------------------------------------------------- pedir a corrida de verdade
+  // 1) o passageiro confirma o WhatsApp com um código de 6 números;
+  // 2) a central calcula o valor (a mesma conta do WhatsApp) e assina a cotação por 5 minutos;
+  // 3) "Pedir corrida" cria a corrida e chama o motorista mais perto. A tela acompanha a situação.
+  const pedido = $('pedido');
+  const guardar = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} };
+  const lido = (k) => { try { return localStorage.getItem(k) || ''; } catch { return ''; } };
+  const reais = (v) => 'R$ ' + Number(v).toFixed(2).replace('.', ',');
+  const SITUACAO = {
+    procurando: '🔎 Procurando motorista…', aceita: '🚗 Motorista a caminho', chegou: '📍 O motorista chegou!',
+    em_andamento: '🛣️ Em viagem', finalizada: '🏁 Corrida finalizada', cancelada: '❌ Corrida cancelada',
+    sem_motorista: '😕 Nenhum motorista disponível agora'
+  };
+  let telefone = null, cotacao = null, acompanhando = null;
+  const api = async (metodo, caminho, corpo) => {
+    const r = await fetch(caminho, { method: metodo, credentials: 'same-origin', cache: 'no-store',
+      headers: corpo ? { 'Content-Type': 'application/json' } : {}, body: corpo ? JSON.stringify(corpo) : undefined });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { const e = new Error(d.erro || d.error || 'Não deu certo. Tente de novo.'); e.status = r.status; throw e; }
+    return d;
+  };
+  const el = (tag, props = {}, ...filhos) => { const n = Object.assign(document.createElement(tag), props); n.append(...filhos); return n; };
+  const aviso = (txt, erro = false) => el('p', { className: 'pedido-aviso' + (erro ? ' erro' : ''), textContent: txt, role: 'status' });
+  const mostrar = (...filhos) => { pedido.replaceChildren(...filhos); pedido.hidden = false; };
+
+  function formularioEntrar(msg) {
+    const nome = el('input', { type: 'text', autocomplete: 'name', placeholder: 'Seu nome', value: lido('vai-manu-nome'), maxLength: 80 });
+    const fone = el('input', { type: 'tel', autocomplete: 'tel', inputMode: 'tel', placeholder: 'WhatsApp com DDD', value: lido('vai-manu-fone') });
+    const codigo = el('input', { type: 'text', inputMode: 'numeric', autocomplete: 'one-time-code', placeholder: 'Código de 6 números', maxLength: 6, hidden: true });
+    const botao = el('button', { type: 'button', className: 'continue-button', textContent: 'Receber código no WhatsApp' });
+    const status = aviso(msg || 'Para pedir a corrida, confirme seu WhatsApp. Mandamos um código para ele.');
+    let etapa = 'codigo';
+    botao.onclick = async () => {
+      botao.disabled = true;
+      try {
+        if (nome.value.trim().length < 2) throw new Error('Diga seu nome.');
+        guardar('vai-manu-nome', nome.value.trim()); guardar('vai-manu-fone', fone.value.trim());
+        if (etapa === 'codigo') {
+          await api('POST', '/api/passageiro/codigo', { telefone: fone.value });
+          etapa = 'entrar'; codigo.hidden = false; codigo.focus();
+          botao.textContent = 'Confirmar código';
+          status.textContent = 'Enviamos o código para o seu WhatsApp. Ele vale 10 minutos.';
+        } else {
+          const r = await api('POST', '/api/passageiro/entrar', { telefone: fone.value, codigo: codigo.value });
+          telefone = r.telefone;
+          await prepararPedido();
+        }
+      } catch (e) { status.textContent = e.message; status.classList.add('erro'); }
+      finally { botao.disabled = false; }
+    };
+    mostrar(el('strong', { textContent: 'Pedir esta corrida' }), status, nome, fone, codigo, botao);
+  }
+
+  async function prepararPedido() {
+    if (acompanhando) return;
+    cotacao = null;
+    if (!origemPoint || !destinoPoint) return;
+    if (!telefone) return formularioEntrar();
+    const nome = lido('vai-manu-nome');
+    if (nome.length < 2) return formularioEntrar('Confirme seu nome para pedir a corrida.');
+    mostrar(aviso('Calculando o valor com a central…'));
+    try {
+      const extras = dropoffLines().join(' · ');
+      cotacao = await api('POST', '/api/passageiro/cotacao', {
+        nome, tipo: veiculo, pagamento: paymentInputs.find((i) => i.checked)?.value || '',
+        origem: origemInput.value, destino: destinoInput.value + (extras ? ' · ' + extras : ''),
+        origemPonto: { lat: origemPoint.lat, lng: origemPoint.lng }, destinoPonto: { lat: destinoPoint.lat, lng: destinoPoint.lng }
+      });
+    } catch (e) {
+      if (e.status === 401) { telefone = null; return formularioEntrar(); }
+      return mostrar(aviso(e.message, true));
+    }
+    const botao = el('button', { type: 'button', className: 'continue-button', textContent: `Pedir corrida · ${reais(cotacao.valor)}` });
+    botao.onclick = async () => {
+      botao.disabled = true; botao.textContent = 'Pedindo…';
+      try {
+        const r = await api('POST', '/api/passageiro/pedir', { token: cotacao.token });
+        guardar('vai-manu-corrida', String(r.id));
+        acompanhar(r.id);
+      } catch (e) {
+        if (e.status === 409) { mostrar(aviso(e.message, true)); return; }
+        botao.disabled = false; botao.textContent = `Pedir corrida · ${reais(cotacao.valor)}`;
+        pedido.append(aviso(e.message, true));
+      }
+    };
+    const sair = el('button', { type: 'button', className: 'link-sair', textContent: 'Não é você? Trocar número' });
+    sair.onclick = async () => { await api('POST', '/api/passageiro/sair').catch(() => {}); telefone = null; formularioEntrar(); };
+    mostrar(el('strong', { textContent: 'Valor da central: ' + reais(cotacao.valor) }),
+      aviso(`${String(cotacao.km).replace('.', ',')} km pelas ruas. Você paga direto ao motorista (${paymentLabel() || 'dinheiro ou Pix'}). Válido por 5 minutos.`),
+      botao, sair);
+  }
+
+  async function acompanhar(id) {
+    acompanhando = id;
+    let c;
+    try { c = await api('GET', '/api/passageiro/viagem/' + id); }
+    catch (e) {
+      if (e.status === 401 || e.status === 404) { guardar('vai-manu-corrida', null); acompanhando = null; return; }
+      setTimeout(() => acompanhar(id), 8000); return;
+    }
+    const fim = ['finalizada', 'cancelada', 'sem_motorista'].includes(c.status);
+    const partes = [el('strong', { textContent: `Corrida #${c.id} · ${SITUACAO[c.status] || c.status}` }),
+      aviso(`${c.origem_texto} → ${c.destino_texto}`),
+      aviso('Valor: ' + reais(c.valor_final ?? c.valor_estimado))];
+    if (c.motorista_nome) partes.push(aviso(`Motorista: ${c.motorista_nome} · ${[c.carro, c.cor].filter(Boolean).join(' ')} · placa ${c.placa || '—'}`));
+    if (['procurando', 'aceita', 'chegou'].includes(c.status)) {
+      const cancelar = el('button', { type: 'button', className: 'link-sair', textContent: 'Cancelar corrida' });
+      cancelar.onclick = async () => {
+        if (!confirm('Cancelar esta corrida?')) return;
+        try { await api('POST', `/api/passageiro/viagem/${c.id}/cancelar`); acompanhar(c.id); } catch (e) { alert(e.message); }
+      };
+      partes.push(cancelar);
+    }
+    if (!fim) partes.push(aviso('Você também recebe os avisos no seu WhatsApp.'));
+    else {
+      guardar('vai-manu-corrida', null); acompanhando = null;
+      const nova = el('button', { type: 'button', className: 'continue-button', textContent: 'Pedir outra corrida' });
+      nova.onclick = () => { pedido.hidden = true; clearRoute(); previa.hidden = true; updateContinueButton(); };
+      partes.push(nova);
+    }
+    mostrar(...partes);
+    pedido.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (!fim) setTimeout(() => acompanhar(id), 5000);
+  }
+
+  api('GET', '/api/passageiro/eu').then((r) => {
+    telefone = r.telefone;
+    const aberta = Number(lido('vai-manu-corrida'));
+    if (telefone && aberta) acompanhar(aberta);
+  }).catch(() => {});
 
   window.addEventListener('pagehide', () => {
     if (gpsWatch !== null && navigator.geolocation) navigator.geolocation.clearWatch(gpsWatch);
