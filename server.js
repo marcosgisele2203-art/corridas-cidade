@@ -624,7 +624,7 @@ rota('GET', '/api/motorista/eu', false, async ({ req }) => {
   const { rows: [compra] } = await pool.query(
     "SELECT id, quantidade, valor, mp_id, pix_copia_cola, pix_expira, comprovante, criado_em FROM compras WHERE motorista_id = $1 AND status = 'pendente' ORDER BY id DESC LIMIT 1", [m.id]);
   const { rows: [atual] } = await pool.query(
-    "SELECT id, status, origem_texto, destino_texto, origem_lat, origem_lng, destino_lat, destino_lng, passageiro_nome, valor_estimado FROM corridas WHERE motorista_id = $1 AND status IN ('aceita', 'chegou', 'em_andamento') LIMIT 1", [m.id]);
+    "SELECT id, status, origem_texto, destino_texto, origem_lat, origem_lng, destino_lat, destino_lng, passageiro_nome, valor_estimado, pagamento FROM corridas WHERE motorista_id = $1 AND status IN ('aceita', 'chegou', 'em_andamento') LIMIT 1", [m.id]);
   const { de, ate } = relatorio.mesAtual();
   const mes = await relatorio.montar(m.id, de, ate);
   return {
@@ -674,7 +674,7 @@ rota('GET', '/api/central/gps', true, async () => {
 // Corrida oferecida ao motorista agora (ele pode aceitar pelo site, além do WhatsApp).
 rota('GET', '/api/motorista/oferta', false, async ({ req }) => {
   const m = await exigirMotorista(req);
-  const { rows } = await pool.query(`SELECT id, origem_texto, destino_texto, origem_lat, origem_lng, destino_lat, destino_lng, valor_estimado, oferta_expira
+  const { rows } = await pool.query(`SELECT id, origem_texto, destino_texto, origem_lat, origem_lng, destino_lat, destino_lng, valor_estimado, pagamento, oferta_expira
     FROM corridas WHERE status = 'procurando' AND oferta_motorista = $1 AND oferta_expira > now() LIMIT 1`, [m.id]);
   return { oferta: rows[0] || null };
 });

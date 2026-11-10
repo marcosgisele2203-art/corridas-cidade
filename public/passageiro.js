@@ -339,34 +339,39 @@
         loadEstimate(controller.signal)
       ]);
       if (requestId !== routeRequestId) return;
-      if (routeResponse.status !== 'fulfilled') throw routeResponse.reason;
-      if (!routeResponse.value.ok) throw new Error(`Serviço de rotas indisponível (HTTP ${routeResponse.value.status}).`);
-      const routeData = await routeResponse.value.json();
-      if (requestId !== routeRequestId) return;
-      const route = routeData.routes?.[0];
-      const coordinatesList = route?.geometry?.coordinates;
-      if (routeData.code !== 'Ok' || !route || !Number.isFinite(route.distance) || !Number.isFinite(route.duration) ||
-          !Array.isArray(coordinatesList) || coordinatesList.length < 2 ||
-          coordinatesList.some((point) => !Array.isArray(point) || !Number.isFinite(point[0]) || !Number.isFinite(point[1]))) {
-        throw new Error('Não foi encontrada uma rota pelas ruas entre esses pontos.');
+      // O desenho da rota é opcional: se o OSRM falhar no celular, ainda dá para pedir com o valor da central.
+      let route = null;
+      if (routeResponse.status === 'fulfilled' && routeResponse.value.ok) {
+        const routeData = await routeResponse.value.json().catch(() => null);
+        if (requestId !== routeRequestId) return;
+        const r = routeData?.routes?.[0];
+        const coordinatesList = r?.geometry?.coordinates;
+        if (routeData?.code === 'Ok' && r && Number.isFinite(r.distance) && Number.isFinite(r.duration) &&
+            Array.isArray(coordinatesList) && coordinatesList.length >= 2 &&
+            coordinatesList.every((point) => Array.isArray(point) && Number.isFinite(point[0]) && Number.isFinite(point[1]))) route = r;
+      }
+      const estimate = estimateResult.status === 'fulfilled' ? estimateResult.value : null;
+      if (!route && !estimate) {
+        throw routeResponse.status === 'rejected' ? routeResponse.reason
+          : (estimateResult.reason || new Error('Não foi possível calcular a rota. Tente novamente.'));
       }
 
-      routeLine = L.geoJSON(route.geometry, {
-        style: { color: '#07875b', weight: 6, opacity: 0.88, lineCap: 'round', lineJoin: 'round' }
-      }).addTo(map);
-      map.fitBounds(routeLine.getBounds(), { padding: [70, 70], maxZoom: 16 });
+      if (route) {
+        routeLine = L.geoJSON(route.geometry, {
+          style: { color: '#07875b', weight: 6, opacity: 0.88, lineCap: 'round', lineJoin: 'round' }
+        }).addTo(map);
+        map.fitBounds(routeLine.getBounds(), { padding: [70, 70], maxZoom: 16 });
+      }
 
-      const km = route.distance / 1000;
-      const distance = `${km.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`;
-      const minutes = Math.max(1, Math.round(route.duration / 60));
-      const time = `${minutes} min (estimativa)`;
-      const fare = estimateResult.status === 'fulfilled' ? estimateResult.value.valor : null;
+      const kmText = (km) => `${km.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`;
+      const distance = estimate && Number.isFinite(estimate.km) ? kmText(estimate.km) : route ? kmText(route.distance / 1000) : '—';
+      const fare = estimate ? estimate.valor : null;
       const fareText = fare === null
         ? 'Valor indisponível agora: ' + (estimateResult.reason?.message || 'tente de novo.')
         : `Valor da central: R$ ${fare.toFixed(2).replace('.', ',')}`;
       showPreview(`Prévia da viagem · ${veiculo === 'carro' ? 'Carro' : 'Moto'}`, [
-        `Distância pelas ruas: ${estimateResult.status === 'fulfilled' && Number.isFinite(estimateResult.value.km) ? estimateResult.value.km.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' km' : distance}`,
-        `Tempo estimado: ${time}`,
+        `Distância pelas ruas: ${distance}`,
+        route ? `Tempo estimado: ${Math.max(1, Math.round(route.duration / 60))} min (estimativa)` : 'Desenho da rota indisponível agora (o valor não muda).',
         fareText,
         `Partida: ${origemInput.value}`,
         `Destino: ${destinoInput.value}`,
@@ -374,8 +379,8 @@
         ...dropoffLines(),
         'Estimativa. A corrida só é pedida no botão abaixo.'
       ], fare === null);
-      mapaStatus.textContent = 'Rota pelas ruas exibida · arraste A ou B para alterar';
-      prepararPedido();
+      mapaStatus.textContent = route ? 'Rota pelas ruas exibida · arraste A ou B para alterar' : 'Pontos marcados · arraste A ou B para alterar';
+      if (estimate) prepararPedido();
     } catch (error) {
       if (requestId !== routeRequestId) return;
       const timeoutError = error.name === 'AbortError';

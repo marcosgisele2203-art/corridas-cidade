@@ -152,7 +152,7 @@ async function carregar() {
   const acoes = eu.corrida ? (c.status === 'aceita' ? [['cheguei','Cheguei ao local'],['iniciar','Iniciar viagem']] : c.status === 'chegou' ? [['iniciar','Iniciar viagem']] : c.status === 'em_andamento' ? [['finalizar','Finalizar viagem']] : []) : oferta ? [['aceitar','Aceitar corrida']] : [];
   const assinatura=JSON.stringify(c);
   if(assinatura!==assinaturaCorrida){assinaturaCorrida=assinatura;
-  $('#corridaAtual').innerHTML = c ? '<div class="cartao corrida-agora"><h3>Corrida #'+esc(c.id)+' · '+esc(c.status || 'Nova oferta')+'</h3><p>📍 '+esc(c.origem_texto)+' → 🏁 '+esc(c.destino_texto)+'</p><p>Estimativa: '+reais(c.valor_estimado)+'</p><div class="botoes">'+acoes.map(([acao,label])=>'<button data-acao="'+acao+'" data-corrida="'+esc(c.id)+'">'+label+'</button>').join(' ')+'</div><p id="erroAcao" role="alert"></p></div>' : '';
+  $('#corridaAtual').innerHTML = c ? '<div class="cartao corrida-agora"><h3>Corrida #'+esc(c.id)+' · '+esc(c.status || 'Nova oferta')+'</h3><p>📍 '+esc(c.origem_texto)+' → 🏁 '+esc(c.destino_texto)+'</p><p>Estimativa: '+reais(c.valor_estimado)+(c.pagamento?' · 💳 Pagamento: '+esc({dinheiro:'Dinheiro',cartao:'Cartão',pix:'Pix'}[c.pagamento]||c.pagamento):'')+'</p><div class="botoes">'+acoes.map(([acao,label])=>'<button data-acao="'+acao+'" data-corrida="'+esc(c.id)+'">'+label+'</button>').join(' ')+'</div><p id="erroAcao" role="alert"></p></div>' : '';
 if(c){
  const bloco=$('#corridaAtual .corrida-agora'),nav=document.createElement('div');nav.className='botoes';
  const itens=eu.corrida?[[c.status==='em_andamento'?'Ir ao destino':'Ir até o passageiro',c.status==='em_andamento'?'destino':'origem',false],['Ver rota','destino',true]]:[['Ver rota','destino',true]];
