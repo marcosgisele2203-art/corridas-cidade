@@ -25,7 +25,9 @@
         const pos = [Number(m.lat), Number(m.lng)];
         if (!pos.every(Number.isFinite)) continue;
         vistos.add(m.id);
-        const rotulo = `${ICONE[m.tipo] || '🚗'} ${texto(m.nome)} · ${texto(m.carro)} ${texto(m.placa)}` + (m.corrida_atual ? ` · corrida #${m.corrida_atual}` : ' · livre');
+        // o texto vem do cadastro do motorista: entra como texto puro, nunca como HTML
+        const rotulo = document.createElement('span');
+        rotulo.textContent = `${ICONE[m.tipo] || '🚗'} ${texto(m.nome)} · ${texto(m.carro)} ${texto(m.placa)}` + (m.corrida_atual ? ` · corrida #${m.corrida_atual}` : ' · livre');
         if (pinos.has(m.id)) pinos.get(m.id).setLatLng(pos).setPopupContent(rotulo);
         else pinos.set(m.id, L.marker(pos, { title: texto(m.nome) }).addTo(mapa).bindPopup(rotulo));
       }

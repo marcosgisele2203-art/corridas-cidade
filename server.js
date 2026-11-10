@@ -901,6 +901,9 @@ rota('POST', '/api/passageiro/pedir', false, async ({ req }) => bot.rodar(async 
       VALUES ($1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
       [tel, q.nome, q.origem, q.o.lat, q.o.lng, q.destino, q.d.lat, q.d.lng, q.km, q.valor, q.tipo, q.pagamento || null]));
     await client.query('INSERT INTO passageiro_pedidos (token, corrida_id) VALUES ($1, $2)', [q.nonce, corrida.id]);
+    // a conversa do WhatsApp precisa existir para o passageiro dar a nota no fim (etapa "avaliar")
+    await client.query(`INSERT INTO conversas (telefone, contato, nome) VALUES ($1, $1, $2)
+      ON CONFLICT (telefone) DO UPDATE SET nome = COALESCE(NULLIF(conversas.nome, ''), EXCLUDED.nome)`, [tel, q.nome]);
     await client.query('COMMIT');
   } catch (e) { await client.query('ROLLBACK'); throw e; } finally { client.release(); }
   whats.texto(tel, `🔎 Corrida #${corrida.id} pedida pelo site. Procurando motorista...\nPara cancelar, mande *CANCELAR*.`);

@@ -10,6 +10,9 @@
   const previa = $('previa');
   const mapaStatus = $('map-status');
   let veiculo = 'carro';
+  // estado do pedido pelo site; versaoPedido muda a cada alteração da viagem e invalida a cotação anterior
+  const pedido = $('pedido');
+  let telefone = null, cotacao = null, acompanhando = null, versaoPedido = 0;
   const dropoffFields = ['bairro', 'referencia'].map(name => $('desembarque-' + name));
   const dropoffValues = () => dropoffFields.map(input => input.value.trim());
   const hasDropoffDetails = () => dropoffValues().some(Boolean);
@@ -268,6 +271,10 @@
     if (routeLine) routeLine.remove();
     routeLine = null;
     continuar.querySelector('span').textContent = 'Ver prévia da viagem';
+    // mudou endereço, ponto, veículo ou pagamento: a cotação antiga não vale mais
+    versaoPedido += 1;
+    cotacao = null;
+    if (!acompanhando && pedido) { pedido.hidden = true; pedido.replaceChildren(); }
   };
 
   const showPreview = (title, lines, error = false) => {
@@ -664,7 +671,6 @@
   // 1) o passageiro confirma o WhatsApp com um código de 6 números;
   // 2) a central calcula o valor (a mesma conta do WhatsApp) e assina a cotação por 5 minutos;
   // 3) "Pedir corrida" cria a corrida e chama o motorista mais perto. A tela acompanha a situação.
-  const pedido = $('pedido');
   const guardar = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} };
   const lido = (k) => { try { return localStorage.getItem(k) || ''; } catch { return ''; } };
   const reais = (v) => 'R$ ' + Number(v).toFixed(2).replace('.', ',');
@@ -673,7 +679,6 @@
     em_andamento: '🛣️ Em viagem', finalizada: '🏁 Corrida finalizada', cancelada: '❌ Corrida cancelada',
     sem_motorista: '😕 Nenhum motorista disponível agora'
   };
-  let telefone = null, cotacao = null, acompanhando = null;
   const api = async (metodo, caminho, corpo) => {
     const r = await fetch(caminho, { method: metodo, credentials: 'same-origin', cache: 'no-store',
       headers: corpo ? { 'Content-Type': 'application/json' } : {}, body: corpo ? JSON.stringify(corpo) : undefined });
@@ -716,6 +721,7 @@
   async function prepararPedido() {
     if (acompanhando) return;
     cotacao = null;
+    const versao = versaoPedido;
     if (!origemPoint || !destinoPoint) return;
     if (!telefone) return formularioEntrar();
     const nome = lido('vai-manu-nome');
@@ -729,11 +735,14 @@
         origemPonto: { lat: origemPoint.lat, lng: origemPoint.lng }, destinoPonto: { lat: destinoPoint.lat, lng: destinoPoint.lng }
       });
     } catch (e) {
+      if (versao !== versaoPedido) return; // a viagem mudou enquanto calculava
       if (e.status === 401) { telefone = null; return formularioEntrar(); }
       return mostrar(aviso(e.message, true));
     }
+    if (versao !== versaoPedido) { cotacao = null; return; }
     const botao = el('button', { type: 'button', className: 'continue-button', textContent: `Pedir corrida · ${reais(cotacao.valor)}` });
     botao.onclick = async () => {
+      if (versao !== versaoPedido || !cotacao) { pedido.hidden = true; return; }
       botao.disabled = true; botao.textContent = 'Pedindo…';
       try {
         const r = await api('POST', '/api/passageiro/pedir', { token: cotacao.token });
