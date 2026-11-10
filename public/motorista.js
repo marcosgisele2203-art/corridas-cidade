@@ -349,3 +349,12 @@ $('#corridaAtual').onclick = async e => {
   finally { agindo = false; b.disabled = false; }
 };
 setInterval(()=>{if(!agindo && !$('#area').hidden && !document.hidden && aba === 'inicio') carregar().catch(()=>{});},5000);
+
+// Fechou ou saiu da página com o GPS ligado: apaga a posição na hora.
+// keepalive faz o pedido terminar mesmo com a página fechando.
+window.addEventListener('pagehide', () => {
+  if (gpsWatch === null) return;
+  navigator.geolocation.clearWatch(gpsWatch);
+  gpsWatch = null;
+  fetch('/api/motorista/localizacao', { method: 'DELETE', credentials: 'same-origin', keepalive: true }).catch(() => {});
+});
