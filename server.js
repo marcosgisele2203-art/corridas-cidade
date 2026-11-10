@@ -489,6 +489,14 @@ rota('GET', '/api/publico/inicio', false, async () => {
   return { nome: cfg.nome, cidade: cfg.cidade, aceitando: cfg.aceitando, numero,
     passageiro: numero ? linkWhats(numero, 'Oi! Quero uma corrida') : '', tipos: ORDEM.filter((t) => cfg.precos[t].ativo) };
 });
+rota('GET', '/api/publico/tarifas', false, async () => {
+  const cfg = await lerConfig();
+  return Object.fromEntries(ORDEM.filter((t) => cfg.precos[t].ativo).map((t) => [t, {
+    taxa_base: cfg.precos[t].taxa_base,
+    por_km: cfg.precos[t].por_km,
+    minimo: cfg.precos[t].minimo,
+  }]));
+});
 rota('GET', '/api/publico/cores', false, async () => Object.fromEntries(ORDEM.map((t) => [t, coresDo(t)])));
 
 // ---------------------------------------------------------------- área do motorista (entra com código no WhatsApp)
@@ -612,6 +620,38 @@ rota('GET', '/api/motorista/eu', false, async ({ req }) => {
   };
 });
 
+// Localização voluntária: somente motorista autenticado, aprovado e online.
+// Sem aceitar ID de motorista enviado pelo navegador (identidade vem do cookie assinado).
+rota('POST', '/api/motorista/localizacao', false, async ({ req }) => {
+  const m = await exigirMotorista(req);
+  if (!m.aprovado || !m.online) throw new Erro(403, 'A localização só pode ser enviada quando você estiver aprovado e online.');
+  const b = await lerCorpo(req, 2048);
+  const lat = Number(b.lat), lng = Number(b.lng);
+  if (b.lat == null || b.lng == null || !Number.isFinite(lat) || !Number.isFinite(lng)
+      || lat < -90 || lat > 90 || lng < -180 || lng > 180) throw new Erro(400, 'Coordenadas inválidas.');
+  await pool.query('UPDATE motoristas SET lat = $2, lng = $3, local_em = now() WHERE id = $1 AND online AND aprovado AND ativo',
+    [m.id, lat, lng]);
+  return { ok: true, atualizado_em: new Date().toISOString() };
+});
+
+// O próprio motorista interrompe o compartilhamento, removendo a última posição.
+rota('DELETE', '/api/motorista/localizacao', false, async ({ req }) => {
+  const m = await exigirMotorista(req);
+  await pool.query('UPDATE motoristas SET lat = NULL, lng = NULL, local_em = NULL WHERE id = $1', [m.id]);
+  return { ok: true };
+});
+
+// Visão protegida da central: apenas posições recentes de motoristas ativos e online.
+rota('GET', '/api/central/gps', true, async () => {
+  const { rows } = await pool.query(`SELECT id, nome, tipo, carro, placa, lat, lng, local_em,
+      (SELECT c.id FROM corridas c WHERE c.motorista_id = m.id AND c.status IN ('aceita','chegou','em_andamento') LIMIT 1) AS corrida_atual
+    FROM motoristas m
+    WHERE ativo AND aprovado AND online AND lat BETWEEN -90 AND 90 AND lng BETWEEN -180 AND 180
+      AND local_em > now() - interval '2 minutes'
+    ORDER BY local_em DESC LIMIT 200`);
+  return { motoristas: rows, atualizado_em: new Date().toISOString() };
+});
+
 rota('POST', '/api/motorista/online', false, async ({ req }) => {
   const m = await exigirMotorista(req);
   if (!m.aprovado) throw new Erro(400, 'Seu cadastro ainda está em análise.');
@@ -677,6 +717,67 @@ rota('GET', '/api/motorista/relatorio', false, async ({ req, url }) => {
 });
 
 rota('GET', '/api/mensagens', true, async () => whats.enviados.slice(-50).reverse());
+
+// Acompanhamento voluntário: token aleatório, armazenado apenas como hash.
+// A emissão e revogação são exclusivas do administrador autenticado.
+const statusAcompanhaveis = ['aceita','chegou','em_andamento'];
+const hashAcompanhamento = (token) => crypto.createHash('sha256').update(token).digest('hex');
+rota('POST', '/api/viagens/:id/acompanhamento', true, async ({ p }) => {
+  const id = Number(p.id);
+  if (!Number.isSafeInteger(id) || id < 1) throw new Erro(400,'Corrida inválida.');
+  const { rows: [c] } = await pool.query(
+    "SELECT id, status, motorista_id FROM corridas WHERE id = $1", [id]);
+  if (!c || !statusAcompanhaveis.includes(c.status) || !c.motorista_id)
+    throw new Erro(409,'Somente viagens aceitas e em andamento podem receber link de acompanhamento.');
+  // Gerar novo link invalida os anteriores dessa mesma viagem.
+  const token = crypto.randomBytes(32).toString('base64url');
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    // Serialize a emissão por corrida, evitando dois links válidos em chamadas simultâneas.
+    await client.query('SELECT id FROM corridas WHERE id = $1 FOR UPDATE', [id]);
+    const {rows:[corridaAtual]}=await client.query('SELECT status,motorista_id FROM corridas WHERE id=$1',[id]);
+    if (!corridaAtual || !statusAcompanhaveis.includes(corridaAtual.status) || !corridaAtual.motorista_id)
+      throw new Erro(409,'A viagem não está mais ativa.');
+    await client.query('UPDATE acompanhamento_links SET revogado_em = now() WHERE corrida_id = $1 AND revogado_em IS NULL', [id]);
+    await client.query("INSERT INTO acompanhamento_links(corrida_id,token_hash,expira_em) VALUES ($1,$2,now() + interval '60 minutes')",
+      [id,hashAcompanhamento(token)]);
+    await client.query('COMMIT');
+  } catch(e) { await client.query('ROLLBACK'); throw e; } finally { client.release(); }
+  return { url: '/acompanhar.html#token='+token, expira_em: new Date(Date.now()+3600000).toISOString() };
+});
+rota('POST','/api/viagens/:id/acompanhamento/revogar',true,async ({ p })=>{
+  const id=Number(p.id);
+  if(!Number.isSafeInteger(id)||id<1) throw new Erro(400,'Corrida inválida.');
+  await pool.query('UPDATE acompanhamento_links SET revogado_em = now() WHERE corrida_id = $1 AND revogado_em IS NULL',[id]);
+  return {ok:true};
+});
+// Sem sessão administrativa: apenas dados necessários para seguir a corrida correspondente.
+// Token vem no corpo POST, não aparece na URL enviada ao servidor ou nos logs de acesso.
+rota('POST','/api/publico/acompanhamento',false,async ({ req })=>{
+  limitar('acomp:'+ipDe(req),120,60_000);
+  const b=await lerCorpo(req,1024);
+  const token=String(b.token||'');
+  if(!/^[A-Za-z0-9_-]{43}$/.test(token)) throw new Erro(404,'Acompanhamento indisponível.');
+  const {rows:[c]}=await pool.query(`
+    SELECT c.id,c.status,c.tipo,c.origem_texto,c.destino_texto,
+           m.carro,m.cor,m.placa,m.lat,m.lng,m.local_em
+    FROM acompanhamento_links a
+    JOIN corridas c ON c.id=a.corrida_id
+    JOIN motoristas m ON m.id=c.motorista_id
+    WHERE a.token_hash=$1 AND a.revogado_em IS NULL AND a.expira_em > now()
+    LIMIT 1`,[hashAcompanhamento(token)]);
+  if(!c||!statusAcompanhaveis.includes(c.status)) throw new Erro(410,'O acompanhamento terminou ou expirou.');
+  const gpsRecente= c.local_em && Date.now()-new Date(c.local_em).getTime()<120000
+     && Number.isFinite(c.lat)&&Number.isFinite(c.lng);
+  return {
+    corrida:c.id,status:c.status,tipo:c.tipo,
+    origem:c.origem_texto,destino:c.destino_texto,
+    veiculo:[c.carro,c.cor].filter(Boolean).join(' '),placa:c.placa,
+    gps_recente:!!gpsRecente,
+    posicao:gpsRecente?{lat:c.lat,lng:c.lng,atualizado_em:c.local_em}:null
+  };
+});
 
 // ---------------------------------------------------------------- arquivos do painel
 
