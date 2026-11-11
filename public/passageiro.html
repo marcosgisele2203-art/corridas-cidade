@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f8f6">
+  <meta name="description" content="Planeje sua próxima viagem com a Vai de Manu.">
+  <title>Vai de Manu · Sua próxima viagem</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="manifest" href="/passageiro.webmanifest">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="/passageiro.css">
+
+  <style>
+    [hidden] { display: none !important; }
+    .hub { max-width: 1120px; margin: auto; padding: 44px 28px 110px; }
+    .hub-welcome { display:flex; justify-content:space-between; gap:20px; align-items:center; margin-bottom:30px; }
+    .hub-kicker { color:var(--green); font-size:11px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; }
+    .hub h1 { font:800 clamp(28px,5vw,42px)/1.15 Manrope,sans-serif; letter-spacing:-1.5px; margin:10px 0; }
+    .hub-subtitle { color:#65766e; line-height:1.6; margin:0; }
+    .hub-avatar { width:68px; height:68px; border-radius:24px; object-fit:cover; background:#e2efe7; }
+    .hub-hero { position:relative; overflow:hidden; background:#064e3b; color:white; border-radius:28px; padding:36px; margin-bottom:30px; }
+    .hub-hero::after { content:''; position:absolute; width:270px; height:270px; border:45px solid #ffffff08; border-radius:50%; right:-80px; top:-80px; pointer-events:none; }
+    .hub-hero .hub-kicker { color:#a9e9c7; }
+    .hub-hero h2 { font:800 clamp(28px,5vw,40px)/1.2 Manrope,sans-serif; letter-spacing:-1px; margin:14px 0; }
+    .hub-hero p { color:#d1e6dc; line-height:1.6; max-width:440px; }
+    .hub-search { position:relative; z-index:1; background:white; color:#183d2d; border:0; border-radius:16px; padding:19px 22px; display:flex; justify-content:space-between; width:100%; max-width:510px; font-weight:700; text-align:left; cursor:pointer; }
+    .hub-section-title { font:800 20px Manrope,sans-serif; margin-bottom:16px; letter-spacing:-.5px; }
+    .hub-services { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:28px; }
+    .hub-service { background:white; color:var(--graphite); border:1px solid #e1e9e4; border-radius:22px; padding:24px; text-align:left; cursor:pointer; transition:transform .15s,border-color .15s; }
+    .hub-service:hover { transform:translateY(-3px); border-color:#71b797; }
+    .hub-symbol { display:flex; align-items:center; justify-content:center; width:52px; height:52px; border-radius:16px; background:#eef6f0; font-size:27px; margin-bottom:20px; }
+    .hub-service strong { display:block; font:800 18px Manrope,sans-serif; margin-bottom:6px; }
+    .hub-service small { color:#6a7971; line-height:1.5; }
+    .hub-note { display:flex; align-items:center; gap:18px; padding:24px; border-radius:22px; background:#e7f1e9; }
+    .hub-note p { margin:5px 0 0; font-size:13px; color:#536c5c; line-height:1.6; }
+    .hub-nav { position:fixed; bottom:0; left:0; right:0; z-index:900; display:flex; justify-content:center; gap:clamp(24px,10vw,100px); padding:12px 20px calc(12px + env(safe-area-inset-bottom)); border-top:1px solid #e3ebe5; background:#fffffff5; backdrop-filter:blur(14px); }
+    .hub-nav button { border:0; background:transparent; color:#68796f; cursor:pointer; padding:6px 16px; font-size:12px; display:grid; gap:4px; justify-items:center; }
+    .hub-nav button span { font-size:21px; }
+    .hub-nav button[aria-current="page"] { color:var(--green); font-weight:700; }
+    .hub-back { margin:16px 24px; border:1px solid #d5e5da; padding:12px 18px; background:white; color:var(--green-dark); border-radius:12px; cursor:pointer; }
+    body.hub-trip { padding-bottom:90px; }
+    .hub-dialog { max-width:440px; width:calc(100% - 36px); border:0; border-radius:24px; padding:28px; color:var(--graphite); box-shadow:0 20px 80px #0003; }
+    .hub-dialog::backdrop { background:#052e2377; }
+    .hub-dialog p { color:#586e60; line-height:1.7; }
+    .hub-dialog button { background:var(--green); color:white; border:0; padding:13px 22px; border-radius:12px; cursor:pointer; }
+    button:focus-visible,a:focus-visible { outline:3px solid #dbac35; outline-offset:4px; }
+    @media(max-width:600px) { .hub { padding:26px 20px 110px; } .hub-welcome { gap:10px; } .hub-avatar { width:52px; height:52px; border-radius:18px; } .hub-hero { padding:26px 22px; border-radius:24px; } .hub-services { gap:10px; } .hub-service { padding:18px 12px; border-radius:18px; } .hub-service strong { font-size:16px; } .hub-symbol { width:44px; height:44px; margin-bottom:16px; } .hub-service small { font-size:11px; } }
+    @media(prefers-reduced-motion:reduce) { .hub-service { transition:none; } }
+    .flow-address-title { font-size:17px; margin:26px 0 18px; }
+    .payment-options { border:0; padding:0; margin:26px 0; min-width:0; }
+    .payment-options legend { font-weight:700; font-size:17px; margin-bottom:8px; }
+    .payment-options p,.payment-options small { color:#64776c; font-size:12px; line-height:1.6; }
+    .payment-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
+    .payment-grid label { display:flex; align-items:center; justify-content:center; gap:6px; padding:14px 6px; border:1px solid #dce7df; border-radius:12px; cursor:pointer; font-size:12px; }
+    .payment-grid label:has(input:checked) { border-color:var(--green); background:#eaf5ef; color:var(--green-dark); }
+    .payment-grid input { margin:0; accent-color:var(--green); }
+    .hub-symbol svg { width:36px; height:36px; color:#14543e; }
+    .vehicle-icon svg { width:34px; height:34px; color:#14543e; }
+    .dropoff-details { border:1px solid #dce7df; border-radius:16px; padding:18px; margin:24px 0; min-width:0; }
+    .dropoff-details legend { font-weight:700; font-size:15px; padding:0 5px; }
+    .dropoff-details p { color:#64776c; font-size:12px; line-height:1.6; margin:10px 0; }
+    .dropoff-grid { display:grid; gap:12px; }
+    .dropoff-grid label { display:grid; gap:6px; font-size:12px; font-weight:600; }
+    .dropoff-grid input { min-width:0; width:100%; border:1px solid #dce7df; border-radius:9px; padding:11px; color:var(--graphite); background:white; }
+    .dropoff-grid input:focus-visible { outline:2px solid var(--green); outline-offset:2px; }
+    .dropoff-confirm { display:flex; gap:9px; align-items:flex-start; font-size:12px; line-height:1.6; }
+    .dropoff-confirm input { margin-top:3px; flex-shrink:0; accent-color:var(--green); }
+    .dropoff-details summary { cursor:pointer; font-size:13px; font-weight:600; color:var(--green-dark); }
+    .dropoff-grid { margin-top:16px; }
+    .simple-map-actions { display:grid; grid-template-columns:1fr; gap:8px; margin:16px 0; }
+    .simple-map-actions button { background:#edf6f0; color:var(--green-dark); border:1px solid #cfe3d7; padding:13px; border-radius:12px; cursor:pointer; font-size:13px; font-weight:600; }
+    .route-fields { display:block; }
+    .route-rail { display:none; }
+    .field-stack > .simple-map-actions { margin:0; }
+    .field-stack > .destination-action { margin-top:12px; }
+    .field-stack > .dropoff-details { margin:2px 0 10px; }
+    .location-field { padding-right:15px; }
+    .voice-status { margin:0; }
+    #falar-destino[aria-pressed="true"] { background:#fff0ed; border-color:#c36a5a; color:#8d3020; }
+    #falar-destino:disabled { opacity:.6; cursor:default; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Vai de Manu, página inicial">
+        <img src="/manu.png" alt="" class="brand-avatar">
+        <span class="brand-name">vai de <strong>manu</strong></span>
+      </a>
+      <div class="topbar-meta">
+        <span class="service-indicator"><span></span> Sua cidade, do seu jeito</span>
+        <span class="city-label">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.4"/></svg>
+          Miranda, MS
+        </span>
+      </div>
+    </header>
+
+
+    <main class="hub" id="hub-home" aria-labelledby="hub-title">
+      <div class="hub-welcome">
+        <div><span class="hub-kicker">Seu dia com a Manu</span><h1 id="hub-title">Olá! Bora de Manu?</h1><p class="hub-subtitle">Miranda mais perto de você.</p></div>
+        <img class="hub-avatar" src="/manu.png" alt="Mascote Manu">
+      </div>
+      <section class="hub-hero" aria-labelledby="hub-hero-title">
+        <span class="hub-kicker">Vai com você</span><h2 id="hub-hero-title">Seu próximo destino<br>começa aqui.</h2>
+        <p>De carro ou de moto, planeje seu caminho pela cidade em poucos toques.</p>
+        <button type="button" class="hub-search" data-hub-choose><span>Escolher Carro ou Moto</span><span aria-hidden="true">→</span></button>
+      </section>
+      <section aria-labelledby="hub-services-title"><h2 class="hub-section-title" id="hub-services-title" tabindex="-1">Primeiro, como você quer ir?</h2>
+        <div class="hub-services">
+          <button type="button" class="hub-service" data-hub-ride="carro"><span class="hub-symbol" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 21 4-10h20l4 10M8 22h32v15H8zM5 20l4 2m30 0 4-2M14 28h5m10 0h5M14 33h20M11 37v4h5v-4m16 0v4h5v-4"/><path d="M15 16h18"/></svg></span><strong>Carro</strong><small>Conforto no caminho</small></button>
+          <button type="button" class="hub-service" data-hub-ride="moto"><span class="hub-symbol" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="33" r="8"/><circle cx="37" cy="33" r="8"/><path d="m11 33 9-15h9l8 15M16 25h13l-8 8H11m18-15-3-7h-6m8 3h8l3 5h-9M15 18H9m8 4-4-4"/></svg></span><strong>Moto</strong><small>Praticidade no seu dia</small></button>
+          <button type="button" class="hub-service" data-hub-help><span class="hub-symbol" aria-hidden="true">♡</span><strong>Ajuda</strong><small>Veja como funciona</small></button>
+        </div>
+      </section>
+      <aside class="hub-note"><span aria-hidden="true" style="font-size:30px">⌖</span><div><strong>Do seu bairro ao seu destino</strong><p>Escolha os pontos no mapa e confira a distância, o tempo e o valor estimado antes de seguir.</p></div></aside>
+    </main>
+    <button type="button" class="hub-back" id="hub-back" hidden>← Voltar ao início</button>
+    <main class="ride-layout" id="hub-ride" hidden>
+      <section class="booking-panel" aria-labelledby="page-title">
+        <h1 id="page-title">2. Informe os endereços</h1>
+        <p class="intro-copy" id="veiculo-escolhido">Informe a partida e o destino da viagem.</p>
+
+        <div class="route-fields">
+          <div class="route-rail" aria-hidden="true"><span class="rail-origin"></span><span class="rail-line"></span><span class="rail-destination"></span></div>
+          <div class="field-stack">
+            <div class="simple-map-actions"><button type="button" id="localizar-embarque">Usar minha localização</button></div>
+            <label class="location-field" for="origem">
+              <span class="field-caption">ONDE VAMOS BUSCAR VOCÊ?</span>
+              <input id="origem" name="origem" type="text" autocomplete="off" aria-controls="sugestoes-origem" aria-autocomplete="list" placeholder="Onde vamos buscar você?" aria-describedby="map-hint">
+            </label>
+            <div id="sugestoes-origem" class="address-suggestions" role="listbox" aria-label="Endereços encontrados para origem" hidden></div>
+            <div class="simple-map-actions destination-action"><button type="button" id="escolher-destino-mapa">Escolher destino no mapa</button><button type="button" id="falar-destino" aria-pressed="false" aria-describedby="voz-status">Falar endereço</button></div>
+            <p id="voz-status" class="map-hint voice-status" role="status" aria-live="polite"></p>
+            <label class="location-field destination-field" for="destino">
+              <span class="field-caption">PARA ONDE VOCÊ VAI?</span>
+              <input id="destino" name="destino" type="text" autocomplete="off" aria-controls="sugestoes-destino" aria-autocomplete="list" placeholder="Digite a rua, número ou local">
+            </label>
+            <div id="sugestoes-destino" class="address-suggestions" role="listbox" aria-label="Endereços encontrados para destino" hidden></div>
+        <details class="dropoff-details">
+          <summary>Adicionar bairro ou referência (opcional)</summary>
+          <div class="dropoff-grid">
+            <label for="desembarque-bairro">Bairro do destino<input id="desembarque-bairro" type="text" maxlength="100" autocomplete="off" placeholder="Ex.: Centro"></label>
+            <label for="desembarque-referencia">Referência do destino<input id="desembarque-referencia" type="text" maxlength="200" autocomplete="off" placeholder="Ex.: em frente ao Mercado Barbosa"></label>
+          </div>
+        </details>
+          </div>
+        </div>
+
+        <p class="map-hint" id="map-hint">Use sua localização para a partida. Para o destino, escolha uma sugestão da busca ou toque no mapa.</p>
+        <div class="address-tools">
+          <p id="endereco-status" class="address-notice" role="status" aria-live="polite"></p>
+        </div>
+
+
+
+        <fieldset class="payment-options">
+          <legend>3. Como você vai pagar?</legend>
+          <p>Escolha a forma de pagamento para esta viagem.</p>
+          <div class="payment-grid">
+            <label><input type="radio" name="pagamento" value="dinheiro" required><span>Dinheiro</span></label>
+            <label><input type="radio" name="pagamento" value="cartao" required><span>Cartão</span></label>
+            <label><input type="radio" name="pagamento" value="pix" required><span>Pix</span></label>
+          </div>
+          <small>Você paga direto ao motorista, no fim da corrida.</small>
+        </fieldset>
+
+        <div class="action-area">
+          <button class="continue-button" id="continuar" type="button" disabled>
+            <span>Ver prévia da viagem</span>
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+          </button>
+          <p class="privacy-note">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/></svg>
+            Sua localização só é usada quando você autoriza.
+          </p>
+          <p class="status-message" id="mensagem" role="status" aria-live="polite"></p>
+        </div>
+        <div class="preview-card" id="previa" hidden aria-live="polite"></div>
+        <div class="preview-card pedido-card" id="pedido" hidden aria-live="polite"></div>
+        <div class="panel-signoff"><span>Feito com carinho</span><span class="signoff-heart">♥</span><span>pela Manu</span></div>
+      </section>
+
+      <section class="map-panel" aria-label="Mapa para escolher pontos da viagem">
+        <div id="mapa" role="application" aria-label="Mapa interativo de Miranda, Mato Grosso do Sul"></div>
+        <div class="map-top-card">
+          <span class="map-live-dot" aria-hidden="true"></span>
+          <span><strong>Miranda</strong><small>Seu próximo embarque começa aqui</small></span>
+        </div>
+        <div class="map-control-hint">
+          <span class="hint-pin" aria-hidden="true">⌖</span>
+          <span id="map-status">Escolha os pontos da sua viagem</span>
+        </div>
+        <button class="locate-map-button" id="centralizar" type="button" aria-label="Centralizar mapa em Miranda" title="Centralizar mapa">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v3m0 12v3M3 12h3m12 0h3"/><circle cx="12" cy="12" r="6"/></svg>
+        </button>
+      </section>
+    </main>
+  </div>
+  <nav class="hub-nav" aria-label="Navegação principal">
+    <button type="button" id="hub-nav-home" aria-current="page"><span aria-hidden="true">⌂</span>Início</button>
+    <button type="button" id="hub-nav-ride"><span aria-hidden="true">↗</span>Viajar</button>
+    <button type="button" data-hub-help><span aria-hidden="true">♡</span>Ajuda</button>
+  </nav>
+  <dialog class="hub-dialog" id="hub-help" aria-labelledby="hub-help-title"><h2 id="hub-help-title">Vamos com a Manu?</h2><p>1. Escolha Carro ou Moto.<br>2. Informe a partida e o destino, ou marque os pontos no mapa.<br>3. Escolha Dinheiro, Cartão ou Pix.<br>4. Toque em “Ver prévia da viagem” para conferir a rota e o valor.<br>5. Confirme seu WhatsApp com o código e toque em “Pedir corrida”.</p><p>Você acompanha a corrida aqui e recebe os avisos no WhatsApp.</p><form method="dialog"><button>Entendi</button></form></dialog>
+  <script>
+    (() => {
+      const home = document.getElementById('hub-home');
+      const ride = document.getElementById('hub-ride');
+      const back = document.getElementById('hub-back');
+      const navHome = document.getElementById('hub-nav-home');
+      const navRide = document.getElementById('hub-nav-ride');
+      let selectedVehicle = null;
+      function chooseVehicle() {
+        showHome();
+        document.getElementById('hub-services-title').scrollIntoView({ block: 'center' });
+        document.getElementById('hub-services-title').focus({ preventScroll: true });
+      }
+      function showRide(vehicle) {
+        if (vehicle) selectedVehicle = vehicle;
+        if (!selectedVehicle) { chooseVehicle(); return; }
+        home.hidden = true; ride.hidden = false; back.hidden = false;
+        document.body.classList.add('hub-trip');
+        navHome.removeAttribute('aria-current'); navRide.setAttribute('aria-current', 'page');
+        document.dispatchEvent(new CustomEvent('vehicle-selected', { detail: selectedVehicle }));
+        document.getElementById('veiculo-escolhido').textContent = 'Viagem de ' + (selectedVehicle === 'moto' ? 'Moto' : 'Carro') + '. Informe a partida e o destino.';
+        window.dispatchEvent(new Event('resize'));
+        window.scrollTo(0, 0);
+        document.getElementById('origem').focus({ preventScroll: true });
+      }
+      function showHome() {
+        home.hidden = false; ride.hidden = true; back.hidden = true;
+        document.body.classList.remove('hub-trip');
+        navRide.removeAttribute('aria-current'); navHome.setAttribute('aria-current', 'page');
+        window.scrollTo(0, 0); navHome.focus({ preventScroll: true });
+      }
+      document.querySelectorAll('[data-hub-ride]').forEach(button => button.addEventListener('click', () => showRide(button.dataset.hubRide)));
+      document.querySelectorAll('[data-hub-help]').forEach(button => button.addEventListener('click', () => document.getElementById('hub-help').showModal()));
+      back.addEventListener('click', showHome); navHome.addEventListener('click', showHome);
+      navRide.addEventListener('click', () => showRide());
+      document.querySelector('[data-hub-choose]').addEventListener('click', chooseVehicle);
+      document.querySelector('.brand').href = '/passageiro.html';
+    })();
+  </script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/passageiro.js?v=20261107-voice-destination"></script>
+  <script>
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw-passageiro.js', { scope: '/passageiro.html' })
+          .catch(() => { /* instalação permanece opcional; navegação online continua funcionando */ });
+      });
+    }
+  </script>
+</body>
+</html>

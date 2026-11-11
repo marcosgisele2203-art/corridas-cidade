@@ -379,3 +379,6 @@ a.entrada-cadeado { color: var(--cor-escura); font-weight: 700; text-decoration:
 }
 @media(max-width:340px) { .inicio-icone { width:43px; height:43px; font-size:22px; } .inicio-cartao { gap:10px; } .inicio-detalhes strong { font-size:21px; } }
 }
+
+/* botões das corridas na área do motorista (aceitar, cheguei, ver rota...) */
+.botoes { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }

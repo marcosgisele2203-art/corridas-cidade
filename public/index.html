@@ -93,6 +93,11 @@
 
     <section id="aba-motoristas" hidden>
       <div class="dica-manu"><img src="img/manu/manu-joinha.webp" alt=""><div><b>Seus motoristas ficam aqui</b><span>Aprove quem se cadastrou pelo WhatsApp e libere as viagens quando o Pix cair. 🚘</span></div></div>
+      <div class="cartao" style="margin:14px 0">
+        <div class="linha"><h3>🗺️ Motoristas no mapa</h3><span class="dica" id="centralMapaStatus" role="status">Carregando...</span></div>
+        <div id="centralMapa" style="height:360px;border-radius:14px;background:#eaf0ee" aria-label="Mapa dos motoristas com GPS ligado"></div>
+        <p class="dica">Só aparecem motoristas online com GPS dos últimos 2 minutos. Atualiza a cada 15 segundos.</p>
+      </div>
       <div class="linha">
         <h2>Motoristas</h2>
         <button id="novoMotorista">+ Cadastrar motorista</button>
@@ -204,6 +209,9 @@
     </section>
   </main>
 </div>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="painel.js"></script>
+<script src="mapa-central.js"></script>
 </body>
 </html>

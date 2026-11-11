@@ -1,0 +1,26 @@
+{
+  "name": "Vai de Manu — Passageiro",
+  "short_name": "Vai de Manu",
+  "description": "Planeje corridas em Miranda, MS, com o Vai de Manu.",
+  "lang": "pt-BR",
+  "start_url": "/passageiro.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f6f8f6",
+  "theme_color": "#07875b",
+  "icons": [
+    {
+      "src": "/manu.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
