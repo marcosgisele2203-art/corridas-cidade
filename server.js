@@ -682,7 +682,7 @@ rota('GET', '/api/motorista/oferta', false, async ({ req }) => {
 rota('POST', '/api/motorista/corrida/:id/acao', false, async ({ req, p }) => {
   const m = await exigirMotorista(req), b = await lerCorpo(req);
   limitar('acao-m:' + m.id, 60, 60_000);
-  try { return await bot.acaoSite(m.id, Number(p.id), b.acao); }
+  try { return await bot.acaoSite(m.id, Number(p.id), b.acao, b.valor); }
   catch (e) { if (e.status === 409) throw new Erro(409, e.message); throw e; }
 });
 
