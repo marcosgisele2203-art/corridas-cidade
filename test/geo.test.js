@@ -79,3 +79,16 @@ test('enderecoDoPonto devolve rua e bairro do Photon', async () => {
   simularInternet(() => ({ body: { features: [] } }));
   assert.deepStrictEqual(await geo.enderecoDoPonto(A), { rua: '', bairro: '' });
 });
+
+test('sugerirEnderecos mantém o número do imóvel', async () => {
+  simularInternet((url) => {
+    if (url.includes('nominatim')) return { body: [{ lat: '-20.24', lon: '-56.378' }] };
+    return { body: { features: [
+      { geometry: { coordinates: [-56.38, -20.25] }, properties: { street: 'Rua Oriel Xavier', housenumber: '2' } },
+      { geometry: { coordinates: [-56.38, -20.25] }, properties: { name: 'Rua Oriel Xavier', street: 'Rua Oriel Xavier', housenumber: '40' } },
+      { geometry: { coordinates: [-56.38, -20.25] }, properties: { name: 'Padaria Oriel', street: 'Rua Oriel Xavier', housenumber: '7' } },
+    ] } };
+  });
+  const nomes = (await geo.sugerirEnderecos('Oriel Xavier', cfg)).map((f) => f.properties.name);
+  assert.deepStrictEqual(nomes, ['Rua Oriel Xavier, 2', 'Rua Oriel Xavier, 40', 'Padaria Oriel (Rua Oriel Xavier, 7)']);
+});

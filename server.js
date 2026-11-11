@@ -877,7 +877,8 @@ rota('POST', '/api/passageiro/cotacao', false, async ({ req }) => {
   const corpo = Buffer.from(JSON.stringify(q)).toString('base64url');
   return { km, valor, token: corpo + '.' + hashPassageiro(tel, corpo) };
 });
-rota('POST', '/api/passageiro/pedir', false, async ({ req }) => bot.rodar(async () => {
+rota('POST', '/api/passageiro/pedir', false, async ({ req }) => {
+  // lê e confere o pedido ANTES de entrar na fila do robô: uma conexão lenta não pode travar o atendimento de todos
   limitar('pedir:' + ipDe(req), 10, 15 * 60_000);
   const tel = sessaoPassageiro(req), b = await lerCorpo(req, 8192), partes = String(b.token || '').split('.');
   if (partes.length !== 2) throw new Erro(400, 'Faça a cotação de novo.');
@@ -885,31 +886,33 @@ rota('POST', '/api/passageiro/pedir', false, async ({ req }) => bot.rodar(async 
   if (sig.length !== partes[1].length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(partes[1]))) throw new Erro(400, 'Cotação inválida. Faça de novo.');
   const q = JSON.parse(Buffer.from(partes[0], 'base64url').toString('utf8'));
   if (q.tel !== tel || q.exp < Date.now()) throw new Erro(400, 'A cotação venceu. Faça de novo.');
-  const cfg = await lerConfig();
-  if (!cfg.aceitando || !cfg.precos[q.tipo]?.ativo) throw new Erro(400, 'Esse veículo não está disponível agora.');
-  if (geo.preco(q.km, cfg.precos[q.tipo]) !== q.valor) throw new Erro(400, 'O preço mudou. Faça a cotação de novo.');
-  const { rows: [jaFeito] } = await pool.query('SELECT corrida_id FROM passageiro_pedidos WHERE token = $1', [q.nonce]);
-  if (jaFeito) return { id: jaFeito.corrida_id };
-  const { rows: [ativa] } = await pool.query("SELECT id FROM corridas WHERE passageiro_tel = $1 AND status IN ('procurando', 'aceita', 'chegou', 'em_andamento') LIMIT 1", [tel]);
-  if (ativa) throw new Erro(409, 'Você já tem uma corrida em andamento.');
-  const client = await pool.connect();
-  let corrida;
-  try {
-    await client.query('BEGIN');
-    ({ rows: [corrida] } = await client.query(`INSERT INTO corridas (passageiro_tel, passageiro_contato, passageiro_nome, origem_texto, origem_lat, origem_lng,
-        destino_texto, destino_lat, destino_lng, km, valor_estimado, tipo, pagamento)
-      VALUES ($1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
-      [tel, q.nome, q.origem, q.o.lat, q.o.lng, q.destino, q.d.lat, q.d.lng, q.km, q.valor, q.tipo, q.pagamento || null]));
-    await client.query('INSERT INTO passageiro_pedidos (token, corrida_id) VALUES ($1, $2)', [q.nonce, corrida.id]);
-    // a conversa do WhatsApp precisa existir para o passageiro dar a nota no fim (etapa "avaliar")
-    await client.query(`INSERT INTO conversas (telefone, contato, nome) VALUES ($1, $1, $2)
-      ON CONFLICT (telefone) DO UPDATE SET nome = COALESCE(NULLIF(conversas.nome, ''), EXCLUDED.nome)`, [tel, q.nome]);
-    await client.query('COMMIT');
-  } catch (e) { await client.query('ROLLBACK'); throw e; } finally { client.release(); }
-  whats.texto(tel, `🔎 Corrida #${corrida.id} pedida pelo site. Procurando motorista...\nPara cancelar, mande *CANCELAR*.`);
-  await bot.despachar(corrida.id);
-  return { id: corrida.id };
-}));
+  return bot.rodar(async () => {
+    const cfg = await lerConfig();
+    if (!cfg.aceitando || !cfg.precos[q.tipo]?.ativo) throw new Erro(400, 'Esse veículo não está disponível agora.');
+    if (geo.preco(q.km, cfg.precos[q.tipo]) !== q.valor) throw new Erro(400, 'O preço mudou. Faça a cotação de novo.');
+    const { rows: [jaFeito] } = await pool.query('SELECT corrida_id FROM passageiro_pedidos WHERE token = $1', [q.nonce]);
+    if (jaFeito) return { id: jaFeito.corrida_id };
+    const { rows: [ativa] } = await pool.query("SELECT id FROM corridas WHERE passageiro_tel = $1 AND status IN ('procurando', 'aceita', 'chegou', 'em_andamento') LIMIT 1", [tel]);
+    if (ativa) throw new Erro(409, 'Você já tem uma corrida em andamento.');
+    const client = await pool.connect();
+    let corrida;
+    try {
+      await client.query('BEGIN');
+      ({ rows: [corrida] } = await client.query(`INSERT INTO corridas (passageiro_tel, passageiro_contato, passageiro_nome, origem_texto, origem_lat, origem_lng,
+          destino_texto, destino_lat, destino_lng, km, valor_estimado, tipo, pagamento)
+        VALUES ($1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
+        [tel, q.nome, q.origem, q.o.lat, q.o.lng, q.destino, q.d.lat, q.d.lng, q.km, q.valor, q.tipo, q.pagamento || null]));
+      await client.query('INSERT INTO passageiro_pedidos (token, corrida_id) VALUES ($1, $2)', [q.nonce, corrida.id]);
+      // a conversa do WhatsApp precisa existir para o passageiro dar a nota no fim (etapa "avaliar")
+      await client.query(`INSERT INTO conversas (telefone, contato, nome) VALUES ($1, $1, $2)
+        ON CONFLICT (telefone) DO UPDATE SET nome = COALESCE(NULLIF(conversas.nome, ''), EXCLUDED.nome)`, [tel, q.nome]);
+      await client.query('COMMIT');
+    } catch (e) { await client.query('ROLLBACK'); throw e; } finally { client.release(); }
+    whats.texto(tel, `🔎 Corrida #${corrida.id} pedida pelo site. Procurando motorista...\nPara cancelar, mande *CANCELAR*.`);
+    await bot.despachar(corrida.id);
+    return { id: corrida.id };
+  });
+});
 rota('GET', '/api/passageiro/viagem/:id', false, async ({ req, p }) => {
   const tel = sessaoPassageiro(req);
   const { rows: [c] } = await pool.query(`SELECT c.id, c.status, c.tipo, c.origem_texto, c.destino_texto, c.km, c.valor_estimado, c.valor_final,
