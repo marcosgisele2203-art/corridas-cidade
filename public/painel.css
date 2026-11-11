@@ -382,3 +382,9 @@ a.entrada-cadeado { color: var(--cor-escura); font-weight: 700; text-decoration:
 
 /* botões das corridas na área do motorista (aceitar, cheguei, ver rota...) */
 .botoes { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+
+/* nome do bairro em cima do contorno (aba Bairros) */
+.leaflet-tooltip.rotulo-bairro { background: rgba(255, 255, 255, .85); border: 0; box-shadow: none; font-weight: 800; color: #1f2a1f; padding: 2px 6px; }
+.leaflet-tooltip.rotulo-bairro::before { display: none; }
+/* com a aba Bairros, os botões do menu ficam um pouco mais justos para caber tudo numa tela de computador */
+header nav button { padding: 12px 13px; }

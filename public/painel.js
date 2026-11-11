@@ -57,6 +57,7 @@ const AREAS = [
   { aba: 'corridas', icone: '🛣️', titulo: 'Viagens', texto: 'Ao vivo: quem pediu, qual motorista aceitou e as viagens em andamento. E todas as que já foram feitas.' },
   { aba: 'motoristas', icone: '🚘', titulo: 'Motoristas', texto: 'Aprove cadastros, libere viagens compradas e veja quem está online.' },
   { aba: 'relatorio', icone: '📊', titulo: 'Relatório', texto: 'O geral da central e o individual de cada motorista, para imprimir ou mandar.' },
+  { aba: 'bairros', icone: '🏘️', titulo: 'Bairros', texto: 'Desenhe os bairros da cidade no mapa para o sistema mostrar o bairro de cada corrida.' },
   { aba: 'divulgar', icone: '📣', titulo: 'Divulgar', texto: 'Links, QR Code, cartaz e as artes da Vai de Manu para postar.' },
   { aba: 'config', icone: '⚙️', titulo: 'Configurações', texto: 'Nome, cidade, preços, pacotes de viagens, Pix e Mercado Pago.' },
 ];
@@ -98,6 +99,7 @@ function atualizar() {
   if (aba === 'relatorio') carregarRelatorio();
   if (aba === 'config') carregarConfig();
   if (aba === 'divulgar') carregarDivulgar();
+  if (aba === 'bairros' && window.carregarBairros) window.carregarBairros();
 }
 
 // ---------------------------------------------------------------- corridas

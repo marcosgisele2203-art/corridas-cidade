@@ -134,8 +134,21 @@ Vai de Manu.
 | **🛣️ Viagens** | **ao vivo** em 3 colunas (atualiza a cada 5 s): *Procurando motorista* (mostra qual motorista está sendo chamado e os segundos que ele tem), *Motorista a caminho* (quem aceitou, veículo, placa, "chegou") e *Em viagem*; som opcional de pedido novo. Embaixo, as **viagens feitas** com filtro por período, situação, motorista e busca. Clicando numa viagem abre o **passo a passo**: pedido, motoristas chamados, aceite, chegada, embarque e fim (ou cancelamento), com valor e nota |
 | **Motoristas** | **aprovar/recusar** quem se cadastrou pelo WhatsApp, cadastro manual (tipo de veículo, modelo, placa), ativar/desativar, pôr online/tirar do ar, nota média |
 | **Relatório** | **geral da central** (corridas, faturamento, venda de viagens) e **individual de cada motorista** (corridas, ganhos, nota, viagens compradas/usadas, saldo): ver, imprimir/PDF e **mandar no WhatsApp** dele, um por um ou para todos |
+| **🏘️ Bairros** | o administrador **desenha o contorno de cada bairro** no mapa (toca nos cantos; pode arrastar os pontos para ajustar), dá o nome e salva. Pode editar e excluir. Ver abaixo |
 | **📣 Divulgar** | **artes da Vai de Manu para baixar** (`public/artes/`), link do WhatsApp da central (já com "Oi! Quero uma corrida"), **QR Code**, texto pronto para grupos/status/redes, **cartaz para imprimir**, e o link de cadastro para motoristas |
 | **Configurações** | nome da central, cidade, **preços por veículo**, comissão, tempo para aceitar, WhatsApp do administrador, aprovação automática, abrir/fechar a central |
+
+### Bairros cadastrados pela central
+
+O OpenStreetMap não tem a maioria dos bairros de cidade pequena. Por isso a própria central desenha os bairros na aba
+**🏘️ Bairros** do painel, uma vez só. Depois disso, sem custo e sem chave de mapa:
+
+- no **site do passageiro**, ao marcar um ponto no mapa, o campo de bairro vem preenchido com o bairro cadastrado;
+- no **WhatsApp**, quando o passageiro manda a localização ou digita um endereço que o mapa encontra, o texto da saída e do
+  destino ganha `· Bairro Nome`, e o motorista vê o bairro na chamada.
+
+O bairro cadastrado vale mais que o do OpenStreetMap. Fora de todos os bairros desenhados, continua o do OpenStreetMap (quando
+existir). Se um bairro foi desenhado dentro de outro, vale o menor. Os contornos ficam na tabela `bairros`.
 
 ## Instalação no Easypanel
 

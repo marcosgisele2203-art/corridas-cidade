@@ -54,6 +54,7 @@
       <button data-aba="corridas" class="ativa">🛣️ Viagens</button>
       <button data-aba="motoristas">Motoristas</button>
       <button data-aba="relatorio">Relatório</button>
+      <button data-aba="bairros">🏘️ Bairros</button>
       <button data-aba="divulgar">📣 Divulgar</button>
       <button data-aba="config">Configurações</button>
     </nav>
@@ -157,6 +158,31 @@
       </div>
     </section>
 
+    <section id="aba-bairros" hidden>
+      <div class="dica-manu"><img src="img/manu/manu-joinha.webp" alt=""><div><b>Os bairros da sua cidade</b><span>Desenhe cada bairro no mapa uma vez. Depois o sistema mostra sozinho o bairro de quem pede a corrida. 🏘️</span></div></div>
+      <div class="linha">
+        <h2>Bairros</h2>
+        <button id="novoBairro">+ Desenhar bairro</button>
+      </div>
+      <div class="cartao">
+        <div id="desenhoBairro" hidden>
+          <div class="grade">
+            <label>Nome do bairro<input id="nomeBairro" maxlength="60" placeholder="Vila Nova"></label>
+          </div>
+          <p class="dica" id="dicaDesenho">Toque no mapa, em volta do bairro, para marcar os cantos. Com 3 pontos ou mais o contorno fecha sozinho.</p>
+          <div class="linha">
+            <button type="button" id="salvarBairro">Salvar bairro</button>
+            <button type="button" class="sec" id="desfazerPonto">↩️ Desfazer último ponto</button>
+            <button type="button" class="sec" id="cancelarBairro">Cancelar</button>
+          </div>
+          <p class="erro" id="erroBairro" role="alert"></p>
+        </div>
+        <div id="mapaBairros" style="height:460px;border-radius:14px;background:#eaf0ee" aria-label="Mapa dos bairros cadastrados"></div>
+        <p class="dica" id="statusBairros" role="status">Carregando…</p>
+      </div>
+      <div id="listaBairros"></div>
+    </section>
+
     <section id="aba-config" hidden>
       <div class="dica-manu"><img src="img/manu/manu-joinha.webp" alt=""><div><b>Aqui você ajusta tudo</b><span>Nome, cidade, preços, pacotes de viagens e Pix. Depois é só clicar em Salvar. ⚙️</span></div></div>
       <h2>Configurações</h2>
@@ -213,5 +239,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="painel.js"></script>
 <script src="mapa-central.js"></script>
+<script src="bairros.js"></script>
 </body>
 </html>

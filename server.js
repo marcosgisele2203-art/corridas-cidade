@@ -17,6 +17,7 @@ const { pool, migrar, lerConfig, salvarConfig, moverCreditos, pacotesComDesconto
 const bot = require('./lib/bot');
 const whats = require('./lib/whats');
 const geo = require('./lib/geo');
+const bairros = require('./lib/bairros');
 const { TIPOS, ORDEM, rotulo, veiculo, coresDo } = require('./lib/tipos');
 const MP = require('./lib/mercadopago');
 const relatorio = require('./lib/relatorio');
@@ -263,6 +264,32 @@ rota('PUT', '/api/motoristas/:id', true, async ({ req, p }) => {
   if (!m) throw new Erro(404, 'Motorista não encontrado.');
   return m;
 });
+// ---- bairros desenhados no mapa pelo administrador
+function dadosBairro(b) {
+  const nome = texto(b.nome, 60).replace(/\s+/g, ' ');
+  if (nome.length < 2) throw new Erro(400, 'Digite o nome do bairro.');
+  const contorno = Array.isArray(b.contorno) ? b.contorno.map((x) => (Array.isArray(x) ? x.map(Number) : x)) : null;
+  if (!bairros.contornoValido(contorno)) throw new Erro(400, 'Marque pelo menos 3 pontos no mapa para fechar o contorno do bairro.');
+  return [nome, JSON.stringify(contorno.map(([la, ln]) => [Math.round(la * 1e6) / 1e6, Math.round(ln * 1e6) / 1e6]))];
+}
+async function gravarBairro(sql, params) {
+  try { return (await pool.query(sql, params)).rows[0]; }
+  catch (e) { if (e.code === '23505') throw new Erro(400, 'Já existe um bairro com esse nome.'); throw e; }
+  finally { bairros.limparCache(); }
+}
+rota('GET', '/api/bairros', true, async () => bairros.listar());
+rota('POST', '/api/bairros', true, async ({ req }) =>
+  gravarBairro('INSERT INTO bairros (nome, contorno) VALUES ($1, $2) RETURNING id, nome, contorno', dadosBairro(await lerCorpo(req))));
+rota('PUT', '/api/bairros/:id', true, async ({ req, p }) => {
+  const b = await gravarBairro('UPDATE bairros SET nome = $2, contorno = $3 WHERE id = $1 RETURNING id, nome, contorno', [Number(p.id), ...dadosBairro(await lerCorpo(req))]);
+  if (!b) throw new Erro(404, 'Bairro não encontrado.');
+  return b;
+});
+rota('DELETE', '/api/bairros/:id', true, async ({ p }) => {
+  await gravarBairro('DELETE FROM bairros WHERE id = $1', [Number(p.id)]);
+  return { ok: true };
+});
+
 // viagens grátis uma única vez por motorista
 async function darBoasVindas(m, cfg) {
   const n = Number(cfg.creditos_boas_vindas) || 0;
@@ -513,7 +540,9 @@ rota('GET', '/api/publico/endereco-do-ponto', false, async ({ req, url }) => {
   limitar('rev:' + ipDe(req), 60, 60_000);
   const p = { lat: Number(url.searchParams.get('lat')), lng: Number(url.searchParams.get('lng')) };
   if (!geo.temPonto(p) || Math.abs(p.lat) > 90 || Math.abs(p.lng) > 180) throw new Erro(400, 'Ponto inválido.');
-  return geo.enderecoDoPonto(p).catch(() => ({ rua: '', bairro: '' }));
+  const [achado, cadastrado] = await Promise.all([geo.enderecoDoPonto(p).catch(() => ({ rua: '', bairro: '' })), bairros.doPonto(p)]);
+  // o bairro desenhado pela central vale mais que o do mapa
+  return { rua: achado.rua, bairro: cadastrado || achado.bairro };
 });
 rota('GET', '/api/publico/cores', false, async () => Object.fromEntries(ORDEM.map((t) => [t, coresDo(t)])));
 
