@@ -158,7 +158,22 @@ ADMIN_SENHA=senha-do-painel
 MP_ACCESS_TOKEN=APP_USR-...                  (opcional: Pix automático na compra de viagens)
 OSRM_URL=https://router.project-osrm.org     (opcional: servidor de rotas; esse é o padrão)
 ROTA_PELAS_RUAS=nao                          (opcional: volta a usar só linha reta × 1,3)
+GOOGLE_MAPS_KEY=chave-do-google              (opcional: endereços e bairros pelo Google Maps; ver abaixo)
 ```
+
+#### Endereços e bairros pelo Google Maps (opcional)
+
+Sem chave, o sistema busca endereços e bairros no OpenStreetMap, que é grátis mas muitas vezes não tem os
+bairros de cidade pequena. Com `GOOGLE_MAPS_KEY`, ele busca **primeiro no Google** e só usa o OpenStreetMap
+se o Google falhar. A chave é usada **só no servidor**, nunca aparece no navegador.
+
+No Google Cloud, o projeto precisa de **faturamento ativo** e a chave precisa liberar:
+**Places API (New)** (endereço digitado e sugestões) e **Geocoding API** (rua e bairro do ponto marcado no mapa).
+Na chave, em *Restrições de aplicativos*, use **Nenhuma** ou **Endereços IP** (o IP do servidor):
+a restrição por **Sites** bloqueia o uso pelo servidor. A distância e o preço continuam pelo OSRM.
+
+Se o Google recusar (chave errada, faturamento desligado), o log mostra `... (Google) falhou: ...` e o
+sistema segue funcionando com o OpenStreetMap.
 
 Em *Domains*, aponte o domínio (ex.: `corridas.seudominio.com`) para a porta **3000** e clique em **Implantar**.
 Nos logs deve aparecer `Central de corridas no ar na porta 3000`.
