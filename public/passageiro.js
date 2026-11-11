@@ -729,6 +729,11 @@
     const versao = versaoPedido;
     if (!origemPoint || !destinoPoint) return;
     if (!telefone) return formularioEntrar();
+    // espera terminar a identificação da rua (até 8 s) para a cotação levar o endereço certo, não "Identificando…"
+    for (let i = 0; i < 40 && (addressControllers.origin || addressControllers.destination); i++) {
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    if (versao !== versaoPedido) return;
     const nome = lido('vai-manu-nome');
     if (nome.length < 2) return formularioEntrar('Confirme seu nome para pedir a corrida.');
     mostrar(aviso('Calculando o valor com a central…'));
@@ -736,7 +741,9 @@
       const extras = dropoffLines().join(' · ');
       cotacao = await api('POST', '/api/passageiro/cotacao', {
         nome, tipo: veiculo, pagamento: paymentInputs.find((i) => i.checked)?.value || '',
-        origem: origemInput.value, destino: destinoInput.value + (extras ? ' · ' + extras : ''),
+        // se a rua ainda não foi identificada, manda o ponto do mapa (nunca o texto "Identificando…")
+        origem: /^Identificando/.test(origemInput.value) ? pointLabel(origemPoint) : origemInput.value,
+        destino: (/^Identificando/.test(destinoInput.value) ? pointLabel(destinoPoint) : destinoInput.value) + (extras ? ' · ' + extras : ''),
         origemPonto: { lat: origemPoint.lat, lng: origemPoint.lng }, destinoPonto: { lat: destinoPoint.lat, lng: destinoPoint.lng }
       });
     } catch (e) {
@@ -766,14 +773,20 @@
       botao, sair);
   }
 
+  // um único timer: cada chamada nova invalida as consultas antigas ainda em andamento
+  let timerAcompanhar = null, rodadaAcompanhar = 0;
   async function acompanhar(id) {
+    clearTimeout(timerAcompanhar);
+    const rodada = ++rodadaAcompanhar;
     acompanhando = id;
     let c;
     try { c = await api('GET', '/api/passageiro/viagem/' + id); }
     catch (e) {
+      if (rodada !== rodadaAcompanhar) return;
       if (e.status === 401 || e.status === 404) { guardar('vai-manu-corrida', null); acompanhando = null; return; }
-      setTimeout(() => acompanhar(id), 8000); return;
+      timerAcompanhar = setTimeout(() => acompanhar(id), 8000); return;
     }
+    if (rodada !== rodadaAcompanhar) return;
     const fim = ['finalizada', 'cancelada', 'sem_motorista'].includes(c.status);
     const partes = [el('strong', { textContent: `Corrida #${c.id} · ${SITUACAO[c.status] || c.status}` }),
       aviso(`${c.origem_texto} → ${c.destino_texto}`),
@@ -791,12 +804,12 @@
     else {
       guardar('vai-manu-corrida', null); acompanhando = null;
       const nova = el('button', { type: 'button', className: 'continue-button', textContent: 'Pedir outra corrida' });
-      nova.onclick = () => { pedido.hidden = true; clearRoute(); previa.hidden = true; updateContinueButton(); };
+      nova.onclick = () => { rodadaAcompanhar++; clearTimeout(timerAcompanhar); pedido.hidden = true; clearRoute(); previa.hidden = true; updateContinueButton(); };
       partes.push(nova);
     }
     mostrar(...partes);
     pedido.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    if (!fim) setTimeout(() => acompanhar(id), 5000);
+    if (!fim) timerAcompanhar = setTimeout(() => acompanhar(id), 5000);
   }
 
   api('GET', '/api/passageiro/eu').then((r) => {
