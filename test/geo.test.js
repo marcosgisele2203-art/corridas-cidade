@@ -11,9 +11,9 @@ const B = { lat: -20.255, lng: -56.392 };
 // troca o fetch por respostas prontas; cada teste diz o que a "internet" responde
 function simularInternet(responder) {
   const chamadas = [];
-  global.fetch = async (url) => {
+  global.fetch = async (url, opcoes) => {
     chamadas.push(String(url));
-    const r = await responder(String(url));
+    const r = await responder(String(url), opcoes);
     if (r instanceof Error) throw r;
     return { ok: r.status ? r.status < 400 : true, status: r.status || 200, json: async () => r.body };
   };
@@ -91,4 +91,65 @@ test('sugerirEnderecos mantém o número do imóvel', async () => {
   });
   const nomes = (await geo.sugerirEnderecos('Oriel Xavier', cfg)).map((f) => f.properties.name);
   assert.deepStrictEqual(nomes, ['Rua Oriel Xavier, 2', 'Rua Oriel Xavier, 40', 'Padaria Oriel (Rua Oriel Xavier, 7)']);
+});
+
+// ---- Google Maps (só com GOOGLE_MAPS_KEY)
+const MIRANDA = { body: [{ lat: '-20.24', lon: '-56.378' }] }; // centro da cidade (Nominatim)
+
+test('buscarEndereco usa o Google Geocoding quando há GOOGLE_MAPS_KEY', async () => {
+  process.env.GOOGLE_MAPS_KEY = 'chave-teste';
+  try {
+    const chamadas = simularInternet((url) => {
+      if (url.includes('nominatim')) return MIRANDA;
+      return { body: { status: 'OK', results: [{ types: ['street_address'], geometry: { location: { lat: -20.245, lng: -56.38 } } }] } };
+    });
+    assert.deepStrictEqual(await geo.buscarEndereco('Rua Oriel Xavier, 40', cfg), { lat: -20.245, lng: -56.38 });
+    const google = chamadas.find((u) => u.includes('maps.googleapis.com/maps/api/geocode'));
+    assert.ok(google, 'deveria perguntar ao Google');
+    assert.match(google, /components=country:BR/);
+    assert.ok(!chamadas.some((u) => u.includes('photon')), 'não precisa do OpenStreetMap se o Google achou');
+  } finally { delete process.env.GOOGLE_MAPS_KEY; }
+});
+
+test('Google: resultado que é só a cidade não vale; tenta o Places pelo nome do lugar', async () => {
+  process.env.GOOGLE_MAPS_KEY = 'chave-teste';
+  try {
+    let corpoPlaces;
+    simularInternet((url, opcoes) => {
+      if (url.includes('nominatim')) return MIRANDA;
+      if (url.includes('geocode')) return { body: { status: 'OK', results: [{ types: ['locality', 'political'], geometry: { location: { lat: -20.24, lng: -56.378 } } }] } };
+      corpoPlaces = { url, opcoes };
+      return { body: { places: [{ types: ['bus_station'], location: { latitude: -20.25, longitude: -56.385 } }] } };
+    });
+    assert.deepStrictEqual(await geo.buscarEndereco('Rodoviária', cfg), { lat: -20.25, lng: -56.385 });
+    assert.match(corpoPlaces.url, /places\.googleapis\.com\/v1\/places:searchText/);
+    assert.strictEqual(corpoPlaces.opcoes.headers['X-Goog-Api-Key'], 'chave-teste');
+    assert.match(JSON.parse(corpoPlaces.opcoes.body).textQuery, /Rodoviária, Miranda/);
+  } finally { delete process.env.GOOGLE_MAPS_KEY; }
+});
+
+test('Google longe da cidade ou com erro: volta para o OpenStreetMap', async () => {
+  process.env.GOOGLE_MAPS_KEY = 'chave-teste';
+  try {
+    simularInternet((url) => {
+      if (url.includes('nominatim.openstreetmap.org/search') && url.includes('Oriel')) return { body: [{ lat: '-20.246', lon: '-56.379' }] };
+      if (url.includes('nominatim')) return MIRANDA;
+      if (url.includes('geocode')) return { body: { status: 'OK', results: [{ types: ['route'], geometry: { location: { lat: -20.4, lng: -54.6 } } }] } }; // Campo Grande
+      return { status: 403, body: { error: { message: 'API key not valid' } } };
+    });
+    assert.deepStrictEqual(await geo.buscarEndereco('Rua Oriel Xavier', cfg), { lat: -20.246, lng: -56.379 });
+    simularInternet((url) => {
+      if (url.includes('nominatim.openstreetmap.org/search') && url.includes('Oriel')) return { body: [{ lat: '-20.246', lon: '-56.379' }] };
+      if (url.includes('nominatim')) return MIRANDA;
+      return { body: { status: 'REQUEST_DENIED', error_message: 'faturamento desligado' } };
+    });
+    assert.deepStrictEqual(await geo.buscarEndereco('Rua Oriel Xavier', cfg), { lat: -20.246, lng: -56.379 });
+  } finally { delete process.env.GOOGLE_MAPS_KEY; }
+});
+
+test('sem GOOGLE_MAPS_KEY o Google nunca é chamado', async () => {
+  delete process.env.GOOGLE_MAPS_KEY;
+  const chamadas = simularInternet((url) => (url.includes('nominatim') ? { body: [{ lat: '-20.246', lon: '-56.379' }] } : { body: {} }));
+  await geo.buscarEndereco('Rua Oriel Xavier', cfg);
+  assert.ok(!chamadas.some((u) => u.includes('google')));
 });

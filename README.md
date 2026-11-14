@@ -81,8 +81,9 @@ responder, usa a linha reta × 1,3. O site do passageiro e o WhatsApp usam a mes
 Tudo muda em Painel › Configurações, onde também dá para **desligar** um tipo (ele some do menu do passageiro).
 
 - Quando o passageiro manda **localização**, o preço sai na hora.
-- Quando **digita o endereço**, o sistema procura no OpenStreetMap dentro da cidade configurada. Se não achar, a corrida
-  vai "no taxímetro" e o motorista informa o valor no fim (`FINALIZAR 15`).
+- Quando **digita o endereço**, o sistema procura no **Google Maps** (se `GOOGLE_MAPS_KEY` estiver preenchida) e depois no
+  OpenStreetMap, sempre dentro da cidade configurada. Se não achar, a corrida vai "no taxímetro" e o motorista informa o
+  valor no fim (`FINALIZAR 15`).
 
 O passageiro paga a corrida direto ao motorista (dinheiro ou Pix).
 
@@ -158,7 +159,13 @@ ADMIN_SENHA=senha-do-painel
 MP_ACCESS_TOKEN=APP_USR-...                  (opcional: Pix automático na compra de viagens)
 OSRM_URL=https://router.project-osrm.org     (opcional: servidor de rotas; esse é o padrão)
 ROTA_PELAS_RUAS=nao                          (opcional: volta a usar só linha reta × 1,3)
+GOOGLE_MAPS_KEY=AIza...                      (opcional: Google Maps para achar o endereço digitado)
 ```
+
+**Chave do Google Maps (opcional).** No Google Cloud, ative a **Geocoding API** e a **Places API (New)**, crie uma chave
+restrita a essas duas APIs e, de preferência, ao IP do servidor (**não** use restrição "Sites": a busca é feita pelo
+servidor). Coloque um limite diário em *Cotas* para não ter surpresa na fatura. Sem a chave, ou se o Google falhar, o
+sistema usa o OpenStreetMap como antes. A chave fica só no servidor e nunca vai para as páginas.
 
 Em *Domains*, aponte o domínio (ex.: `corridas.seudominio.com`) para a porta **3000** e clique em **Implantar**.
 Nos logs deve aparecer `Central de corridas no ar na porta 3000`.
