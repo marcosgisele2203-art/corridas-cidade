@@ -167,7 +167,8 @@ CARTO_KEY=...                                (opcional: mapa de fundo CARTO Voya
 restrita a essas duas APIs e, de preferência, ao IP do servidor (**não** use restrição "Sites": a busca é feita pelo
 servidor). Coloque um limite diário em *Cotas* para não ter surpresa na fatura. No site do passageiro, as **sugestões enquanto digita**
 continuam vindo do OpenStreetMap; o Google só é consultado quando ele não acha nada (ex.: "prefeitura"), e cada termo
-fica guardado na memória para não gastar a cota a cada letra. Sem a chave, ou se o Google falhar, o
+fica guardado na memória para não gastar a cota a cada letra. Quando o passageiro **marca um ponto no mapa**, a rua e o **bairro**
+vêm primeiro do Google (Geocoding API), porque o OpenStreetMap quase não tem os bairros da cidade. Sem a chave, ou se o Google falhar, o
 sistema usa o OpenStreetMap como antes. A chave fica só no servidor e nunca vai para as páginas.
 
 **Mapa de fundo CARTO Voyager (opcional).** Os mapas do site (passageiro, motorista, painel e link de acompanhamento)

@@ -208,3 +208,31 @@ test('se o Photon e o Google falharem, a sugestão volta vazia sem erro', async 
     assert.deepStrictEqual(await geo.sugerirEnderecos('posto de saude', cfg), []);
   } finally { delete process.env.GOOGLE_MAPS_KEY; }
 });
+
+// ---- rua e bairro de um ponto marcado no mapa
+test('enderecoDoPonto pega rua e bairro do Google e guarda o ponto', async () => {
+  process.env.GOOGLE_MAPS_KEY = 'chave-teste';
+  try {
+    const chamadas = simularInternet(() => ({ body: { status: 'OK', results: [
+      { address_components: [{ long_name: 'Rua do Cedro', types: ['route'] }, { long_name: '99', types: ['street_number'] }] },
+      { address_components: [{ long_name: 'Loteamento Mondego', types: ['sublocality_level_1', 'sublocality', 'political'] }] },
+    ] } }));
+    const P = { lat: -20.25863, lng: -56.37805 };
+    assert.deepStrictEqual(await geo.enderecoDoPonto(P), { rua: 'Rua do Cedro', bairro: 'Loteamento Mondego' });
+    assert.match(chamadas[0], /geocode\/json.*latlng=-20\.2586,-56\.3781/);
+    await geo.enderecoDoPonto({ lat: -20.25864, lng: -56.37806 }); // mesmo lugar (diferença de 1 m)
+    assert.strictEqual(chamadas.length, 1);
+  } finally { delete process.env.GOOGLE_MAPS_KEY; }
+});
+
+test('enderecoDoPonto volta para o Photon se o Google falhar ou não achar nada', async () => {
+  process.env.GOOGLE_MAPS_KEY = 'chave-teste';
+  try {
+    simularInternet((url) => (url.includes('googleapis') ? { body: { status: 'REQUEST_DENIED', error_message: 'faturamento' } }
+      : { body: { features: [{ properties: { street: 'Rua Oriel Xavier', district: 'Centro' } }] } }));
+    assert.deepStrictEqual(await geo.enderecoDoPonto({ lat: -20.3, lng: -56.3 }), { rua: 'Rua Oriel Xavier', bairro: 'Centro' });
+    simularInternet((url) => (url.includes('googleapis') ? { body: { status: 'ZERO_RESULTS', results: [] } }
+      : { body: { features: [{ properties: { street: 'Rua B' } }] } }));
+    assert.deepStrictEqual(await geo.enderecoDoPonto({ lat: -20.31, lng: -56.31 }), { rua: 'Rua B', bairro: '' });
+  } finally { delete process.env.GOOGLE_MAPS_KEY; }
+});
