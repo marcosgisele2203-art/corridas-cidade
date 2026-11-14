@@ -246,3 +246,41 @@ test('bairro igual ao nome da cidade (erro do OpenStreetMap) não aparece', asyn
   simularInternet(() => ({ body: { features: [{ properties: { street: 'Rua Mondego', locality: 'Miranda', city: 'Miranda' } }] } }));
   assert.deepStrictEqual(await geo.enderecoDoPonto({ lat: -20.32, lng: -56.32 }), { rua: 'Rua Mondego', bairro: '' });
 });
+
+test('com número digitado, a sugestão do Google com o número certo vem no topo', async () => {
+  process.env.GOOGLE_MAPS_KEY = 'chave-teste';
+  try {
+    const chamadas = simularInternet((url) => {
+      if (url.includes('nominatim')) return MIRANDA;
+      if (url.includes('photon')) return { body: { features: [{ geometry: { coordinates: [-56.37, -20.25] }, properties: { name: 'Rua Oriel Xavier' } }] } };
+      return { body: { status: 'OK', results: [{ types: ['street_address'], geometry: { location: { lat: -20.2621, lng: -56.3812 } },
+        address_components: [{ long_name: '2', types: ['street_number'] }, { long_name: 'Rua Oriel Xavier', types: ['route'] },
+          { long_name: 'Baiazinha', types: ['sublocality_level_1', 'sublocality'] }, { long_name: 'Miranda', types: ['administrative_area_level_2'] }] }] } };
+    });
+    const lista = await geo.sugerirEnderecos('Rua Oriel Xavier 2', cfg);
+    assert.strictEqual(lista[0].properties.name, 'Rua Oriel Xavier, 2');
+    assert.strictEqual(lista[0].properties.context.neighborhood.name, 'Baiazinha');
+    assert.deepStrictEqual(lista[0].geometry.coordinates, [-56.3812, -20.2621]);
+    assert.strictEqual(lista[1].properties.name, 'Rua Oriel Xavier'); // a do OpenStreetMap continua, embaixo
+    assert.ok(chamadas.some((u) => u.includes('geocode/json')));
+  } finally { delete process.env.GOOGLE_MAPS_KEY; }
+});
+
+test('sem número digitado, ou se o Google só achar a rua, não muda nada', async () => {
+  process.env.GOOGLE_MAPS_KEY = 'chave-teste';
+  try {
+    let chamadas = simularInternet((url) => (url.includes('nominatim') ? MIRANDA
+      : { body: { features: [{ geometry: { coordinates: [-56.37, -20.25] }, properties: { name: 'Rua Oriel Xavier' } }] } }));
+    await geo.sugerirEnderecos('Rua Oriel Xavier', cfg);
+    assert.ok(!chamadas.some((u) => u.includes('google')));
+    chamadas = simularInternet((url) => {
+      if (url.includes('nominatim')) return MIRANDA;
+      if (url.includes('photon')) return { body: { features: [{ geometry: { coordinates: [-56.37, -20.25] }, properties: { name: 'Rua Oriel Xavier' } }] } };
+      return { body: { status: 'OK', results: [{ types: ['route'], geometry: { location: { lat: -20.26, lng: -56.38 } },
+        address_components: [{ long_name: 'Rua Oriel Xavier', types: ['route'] }] }] } };
+    });
+    const lista = await geo.sugerirEnderecos('Rua Oriel Xavier 999', cfg);
+    assert.strictEqual(lista.length, 1);
+    assert.strictEqual(lista[0].properties.name, 'Rua Oriel Xavier');
+  } finally { delete process.env.GOOGLE_MAPS_KEY; }
+});
