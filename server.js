@@ -17,6 +17,7 @@ const { pool, migrar, lerConfig, salvarConfig, moverCreditos, pacotesComDesconto
 const bot = require('./lib/bot');
 const whats = require('./lib/whats');
 const geo = require('./lib/geo');
+const mapaFundo = require('./lib/mapa-fundo');
 const { TIPOS, ORDEM, rotulo, veiculo, coresDo } = require('./lib/tipos');
 const MP = require('./lib/mercadopago');
 const relatorio = require('./lib/relatorio');
@@ -960,6 +961,10 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, resultado);
     }
     if (req.method === 'GET') {
+      if (url.pathname === '/mapa-fundo.js') {
+        res.writeHead(200, { 'Content-Type': MIME['.js'], 'Cache-Control': 'no-cache' });
+        return res.end(mapaFundo.script(process.env.CARTO_KEY));
+      }
       const pagina = { '/': 'inicio.html', '/painel': 'index.html', '/motorista': 'motorista.html', '/passageiro': 'passageiro.html' }[url.pathname.replace(/\/+$/, '') || '/'];
       if (pagina) return arquivo(res, pagina) || json(res, 404, { erro: 'Não encontrado' });
       if (arquivo(res, url.pathname.slice(1))) return;

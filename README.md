@@ -160,12 +160,19 @@ MP_ACCESS_TOKEN=APP_USR-...                  (opcional: Pix automático na compr
 OSRM_URL=https://router.project-osrm.org     (opcional: servidor de rotas; esse é o padrão)
 ROTA_PELAS_RUAS=nao                          (opcional: volta a usar só linha reta × 1,3)
 GOOGLE_MAPS_KEY=AIza...                      (opcional: Google Maps para achar o endereço digitado)
+CARTO_KEY=...                                (opcional: mapa de fundo CARTO Voyager, mais bonito no celular)
 ```
 
 **Chave do Google Maps (opcional).** No Google Cloud, ative a **Geocoding API** e a **Places API (New)**, crie uma chave
 restrita a essas duas APIs e, de preferência, ao IP do servidor (**não** use restrição "Sites": a busca é feita pelo
 servidor). Coloque um limite diário em *Cotas* para não ter surpresa na fatura. Sem a chave, ou se o Google falhar, o
 sistema usa o OpenStreetMap como antes. A chave fica só no servidor e nunca vai para as páginas.
+
+**Mapa de fundo CARTO Voyager (opcional).** Os mapas do site (passageiro, motorista, painel e link de acompanhamento)
+usam o CARTO Voyager quando `CARTO_KEY` está preenchida; sem ela, continuam no OpenStreetMap padrão. Peça a chave grátis em
+https://carto.com/basemaps/apikey (uso comercial grátis até 1 milhão de pedidos por mês) e, no painel do CARTO, restrinja a
+chave aos domínios do site (*Referer*). Essa chave aparece no navegador (vai no endereço das imagens do mapa), por isso a
+restrição de domínio é importante.
 
 Em *Domains*, aponte o domínio (ex.: `corridas.seudominio.com`) para a porta **3000** e clique em **Implantar**.
 Nos logs deve aparecer `Central de corridas no ar na porta 3000`.
