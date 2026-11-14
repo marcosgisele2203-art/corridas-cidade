@@ -13,7 +13,7 @@
     if (area.closest('section').hidden || document.hidden) return;
     if (!mapa) {
       mapa = L.map(area, { scrollWheelZoom: false }).setView([-20.24, -56.38], 13); // Miranda-MS até chegar o 1º motorista
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(mapa);
+      mapaFundo(mapa);
     }
     mapa.invalidateSize();
     try {

@@ -457,10 +457,7 @@
     $('mapa').setAttribute('aria-label', 'Mapa indisponível');
   } else {
     map = L.map('mapa', { zoomControl: false, scrollWheelZoom: false }).setView(MIRANDA, 14);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+    mapaFundo(map);
     L.control.zoom({ position: 'topright' }).addTo(map);
     map.on('click', mapClick);
   }

@@ -32,9 +32,7 @@ async function consultar(){
   if(!map){
    if(!window.L){$('gps').textContent='Mapa temporariamente indisponível.';return;}
    map=L.map('mapa').setView(ponto,15);
-   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
-     maxZoom:19,attribution:'&copy; OpenStreetMap contributors'
-   }).addTo(map);
+   mapaFundo(map);
    marker=L.marker(ponto).addTo(map).bindPopup('Posição recente do motorista');
   }else{
    marker.setLatLng(ponto);map.panTo(ponto,{animate:true});

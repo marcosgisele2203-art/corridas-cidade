@@ -115,7 +115,7 @@ async function desenharMapaCorrida(c){
  const el=document.getElementById('mapaCorrida'),o=pontoCorrida(c,'origem'),d=pontoCorrida(c,'destino');
  if(!el||!o||!d||typeof L==='undefined')return;
  const map=L.map(el,{scrollWheelZoom:false});mapaCorrida=map;
- L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+ mapaFundo(map);
  L.marker(o).addTo(map).bindPopup('Embarque');L.marker(d).addTo(map).bindPopup('Destino');
  map.fitBounds([o,d],{padding:[30,30],maxZoom:16});
  const key=o.join(',')+';'+d.join(',');
