@@ -83,6 +83,24 @@
       if (addressControllers[kind] === controller) addressControllers[kind] = null;
     }
   };
+  // Sugestão escolhida sem bairro (o OpenStreetMap quase não tem os bairros da cidade):
+  // pergunta o bairro do ponto ao servidor e acrescenta ao texto, sem trocar o resto.
+  const completeDistrict = async (kind, point, label) => {
+    const input = kind === 'origin' ? origemInput : destinoInput;
+    const request = addressRequests[kind];
+    try {
+      const params = new URLSearchParams({ lat: String(point.lat), lng: String(point.lng) });
+      const response = await fetch('/api/publico/endereco-do-ponto?' + params);
+      if (!response.ok) return;
+      const district = String((await response.json()).bairro || '').trim();
+      if (!district || request !== addressRequests[kind] || input.value !== label) return;
+      const parts = label.split(' · ');
+      parts.splice(parts.length > 1 ? parts.length - 1 : parts.length, 0, 'Bairro ' + district);
+      input.value = parts.join(' · ');
+    } catch (error) {
+      // sem bairro o pedido continua valendo: o ponto no mapa é o que importa
+    }
+  };
   const closeSuggestions = (kind) => {
     const list = suggestionLists[kind];
     if (!list) return;
@@ -428,6 +446,7 @@
       addressRequests[kind]++;
       if (addressControllers[kind]) addressControllers[kind].abort();
       addressHint('Endereço selecionado na busca. Confira o ponto marcado no mapa.');
+      if (!/(^| · )Bairro /.test(selectedAddress)) completeDistrict(kind, latlng, selectedAddress);
     } else {
       reverseAddress(kind, latlng);
     }

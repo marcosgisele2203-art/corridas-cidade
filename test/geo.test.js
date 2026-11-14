@@ -236,3 +236,13 @@ test('enderecoDoPonto volta para o Photon se o Google falhar ou não achar nada'
     assert.deepStrictEqual(await geo.enderecoDoPonto({ lat: -20.31, lng: -56.31 }), { rua: 'Rua B', bairro: '' });
   } finally { delete process.env.GOOGLE_MAPS_KEY; }
 });
+
+test('bairro igual ao nome da cidade (erro do OpenStreetMap) não aparece', async () => {
+  delete process.env.GOOGLE_MAPS_KEY;
+  simularInternet((url) => (url.includes('nominatim') ? MIRANDA : { body: { features: [
+    { geometry: { coordinates: [-56.38, -20.25] }, properties: { name: 'Rua Oriel Xavier', district: 'Miranda', city: 'Miranda' } }] } }));
+  const [s] = await geo.sugerirEnderecos('Oriel', cfg);
+  assert.strictEqual(s.properties.context.neighborhood, undefined);
+  simularInternet(() => ({ body: { features: [{ properties: { street: 'Rua Mondego', locality: 'Miranda', city: 'Miranda' } }] } }));
+  assert.deepStrictEqual(await geo.enderecoDoPonto({ lat: -20.32, lng: -56.32 }), { rua: 'Rua Mondego', bairro: '' });
+});
