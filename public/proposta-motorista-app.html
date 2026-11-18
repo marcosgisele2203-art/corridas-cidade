@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#06622e">
+<title>Motorista · Vai de Manu</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap">
+<link rel="stylesheet" href="proposta.css">
+<style>
+/* app do motorista: uma tela por vez, botões presos embaixo, como app de celular */
+html, body { height: 100%; }
+body { background: #dfe5e1; }
+.app { max-width: 460px; min-height: 100dvh; margin: 0 auto; background: #fff; position: relative; box-shadow: 0 0 60px rgba(0,0,0,.12); }
+.tela { min-height: 100dvh; display: flex; flex-direction: column; padding: var(--e3); padding-bottom: calc(var(--e3) + env(safe-area-inset-bottom)); animation: entra .25s ease; }
+.tela[hidden] { display: none; }
+@keyframes entra { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+.voltar { width: 48px; height: 48px; margin: -8px 0 var(--e2) -12px; border: 0; background: none; border-radius: 50%; display: grid; place-items: center; cursor: pointer; color: var(--texto); }
+.voltar:hover { background: var(--fundo-2); }
+.voltar svg { width: 28px; height: 28px; transform: scaleX(-1); }
+.tela h1 { font-size: 34px; letter-spacing: -1.2px; line-height: 1.1; margin: 0 0 var(--e1); }
+.tela .ajuda { color: var(--suave); margin: 0 0 var(--e4); font-size: 17px; }
+.empurra { flex: 1; }
+.base { display: grid; gap: 12px; padding-top: var(--e3); }
+.base .botao { width: 100%; min-height: 58px; font-size: 18px; }
+.botao:disabled { background: var(--fundo-2); border-color: var(--fundo-2); color: #a3ada7; cursor: not-allowed; }
+.miudo { font-size: 14px; color: var(--suave); text-align: center; margin: 0; }
+.miudo a { color: var(--verde-escuro); font-weight: 700; text-decoration: underline; }
+
+/* 1 · boas-vindas */
+.boas { background: var(--verde-escuro); color: #fff; overflow: hidden; position: relative; }
+.boas::before { content: ''; position: absolute; width: 520px; height: 520px; border-radius: 50%; border: 80px solid rgba(255,255,255,.06); right: -260px; top: 120px; }
+.boas .logo { color: #fff; font-size: 28px; position: relative; }
+.boas .logo b { color: #8ee0ae; }
+.boas h1 { color: #fff; font-size: 40px; margin-top: var(--e4); position: relative; }
+.boas p { color: rgba(255,255,255,.8); font-size: 18px; margin: 0; position: relative; }
+.boas .manu { position: relative; flex: 1; min-height: 240px; }
+.boas .manu img { position: absolute; right: -10px; bottom: -10px; height: 100%; max-height: 380px; width: auto; filter: drop-shadow(0 16px 24px rgba(0,0,0,.3)); }
+.boas .botao.contorno { color: #fff; border-color: rgba(255,255,255,.7); }
+.boas .botao.contorno:hover { background: rgba(255,255,255,.1); }
+.boas .miudo { color: rgba(255,255,255,.7); }
+.boas .miudo a { color: #fff; }
+
+/* 2 · telefone */
+.ddi { align-self: center; display: inline-flex; align-items: center; gap: 10px; border: 2px solid var(--borda); border-radius: 999px; padding: 8px 18px; font-weight: 800; font-size: 18px; margin-bottom: var(--e3); }
+.ddi .bandeira { width: 30px; height: 20px; border-radius: 4px; background: #229e45; position: relative; overflow: hidden; }
+.ddi .bandeira::before { content: ''; position: absolute; inset: 3px 4px; background: #f8e509; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.ddi .bandeira::after { content: ''; position: absolute; width: 8px; height: 8px; border-radius: 50%; background: #2b49a3; left: 11px; top: 6px; }
+.numero { border: 0; border-bottom: 3px solid var(--borda); font: inherit; font-size: 34px; font-weight: 700; letter-spacing: 1px; text-align: center; padding: 8px 0; width: 100%; color: var(--texto); background: none; }
+.numero:focus { outline: none; border-color: var(--verde); }
+.numero::placeholder { color: #c3cbc6; }
+.aceite { display: flex; gap: 12px; align-items: flex-start; font-size: 15px; color: var(--suave); cursor: pointer; }
+.aceite input { appearance: none; flex: none; width: 26px; height: 26px; border: 2px solid #b9c3bd; border-radius: 50%; margin: 0; cursor: pointer; display: grid; place-items: center; }
+.aceite input:checked { background: var(--verde); border-color: var(--verde); }
+.aceite input:checked::after { content: ''; width: 7px; height: 12px; border: solid #fff; border-width: 0 3px 3px 0; transform: translateY(-2px) rotate(45deg); }
+.aceite a { color: var(--verde-escuro); font-weight: 700; text-decoration: underline; }
+
+/* 3 · código */
+.codigo { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.codigo input { width: 100%; height: 64px; text-align: center; font: inherit; font-size: 30px; font-weight: 800; border: 2px solid var(--borda); border-radius: 14px; color: var(--texto); }
+.codigo input:focus { outline: none; border-color: var(--verde); box-shadow: 0 0 0 4px var(--verde-claro); }
+.tempo { color: var(--suave); font-size: 15px; margin-top: var(--e2); text-align: center; }
+.passo-n { text-align: center; color: var(--suave); font-weight: 700; font-size: 14px; }
+
+/* 4 · cadastro */
+.topo-cad { margin: calc(-1 * var(--e3)) calc(-1 * var(--e3)) 0; padding: var(--e3) var(--e3) 0; background: #eaf6ee; position: relative; overflow: hidden; }
+.topo-cad h1 { max-width: 230px; position: relative; z-index: 1; }
+.topo-cad .ilus { display: block; width: 300px; margin: -10px -40px -24px auto; }
+.folha { background: #fff; border-radius: 28px 28px 0 0; margin: 0 calc(-1 * var(--e3)); padding: var(--e3); position: relative; }
+.folha h2 { font-size: 22px; letter-spacing: -.4px; margin: 0 0 var(--e2); }
+.carrossel { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-left: var(--e3); margin: 0 calc(-1 * var(--e3)) var(--e3); padding: 0 var(--e3) 4px; scrollbar-width: none; }
+.carrossel > div { flex: 0 0 72%; scroll-snap-align: start; background: #eaf6ee; border-radius: 20px; padding: var(--e3) var(--e2) var(--e2); }
+.carrossel svg { color: var(--verde); width: 30px; height: 30px; margin-bottom: var(--e1); }
+.carrossel b { display: block; font-size: 19px; line-height: 1.2; margin-bottom: 4px; }
+.carrossel span { color: var(--suave); font-size: 15px; }
+.campo { display: block; font-weight: 700; font-size: 15px; margin-bottom: var(--e2); }
+.campo input { display: block; width: 100%; font: inherit; font-size: 18px; min-height: 56px; padding: 0 16px; margin-top: 6px; border: 0; border-radius: 14px; background: var(--fundo-2); color: var(--texto); }
+.campo input:focus { outline: 2px solid var(--verde); }
+.tipos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 6px 0 var(--e2); }
+.tipos button { font: inherit; font-weight: 700; font-size: 14px; border: 2px solid var(--fundo-2); background: var(--fundo-2); border-radius: 14px; padding: 6px 2px 8px; cursor: pointer; color: var(--texto); }
+.tipos button svg { display: block; width: 100%; height: 40px; }
+.tipos button[aria-pressed=true] { border-color: var(--verde); background: var(--verde-claro); }
+.duas { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+
+/* 5 · localização */
+.loc { background: #f4f8f5; }
+.mapinha { width: 220px; height: 220px; border-radius: 50%; margin: var(--e3) auto var(--e4); background: #fff; border: 6px solid var(--verde-claro); position: relative; overflow: hidden; }
+.mapinha svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.garantias-loc { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--e2); }
+.garantias-loc li { display: flex; gap: 14px; }
+.garantias-loc svg { color: var(--verde); flex: none; }
+.garantias-loc b { display: block; }
+.garantias-loc span { color: var(--suave); font-size: 15px; }
+.loc .botao.contorno { border-color: transparent; color: var(--suave); }
+
+/* 6 · início do motorista */
+.inicio-mot { background: var(--fundo-2); padding: 0; }
+.cabeca { background: var(--verde-escuro); color: #fff; padding: var(--e3) var(--e3) 72px; border-radius: 0 0 32px 32px; }
+.cabeca .linha-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--e3); }
+.cabeca .linha-topo img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; object-position: top; background: #fff; }
+.cabeca small { color: rgba(255,255,255,.7); font-weight: 700; }
+.cabeca h1 { color: #fff; font-size: 28px; margin: 0; }
+.status { margin: -52px var(--e3) var(--e2); background: #fff; border-radius: 24px; padding: var(--e3); box-shadow: 0 10px 30px rgba(0,0,0,.08); }
+.status-linha { display: flex; align-items: center; gap: 12px; margin-bottom: var(--e2); }
+.bolinha { width: 14px; height: 14px; border-radius: 50%; background: #b9c3bd; box-shadow: 0 0 0 5px #eef1ef; }
+.online .bolinha { background: #1fbf5f; box-shadow: 0 0 0 5px #d3f3df; animation: pulsa 1.6s infinite; }
+@keyframes pulsa { 50% { box-shadow: 0 0 0 9px rgba(31,191,95,.15); } }
+.status b { font-size: 20px; }
+.status p { margin: 0 0 var(--e2); color: var(--suave); font-size: 15px; }
+.status .botao { width: 100%; min-height: 58px; font-size: 18px; }
+.online .status .botao { background: #fff; color: var(--texto); border-color: var(--borda); }
+.cartoes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 var(--e3) var(--e2); }
+.mini-cartao { background: #fff; border-radius: 20px; padding: var(--e2); }
+.mini-cartao small { color: var(--suave); font-weight: 700; font-size: 14px; }
+.mini-cartao b { display: block; font-size: 30px; letter-spacing: -1px; line-height: 1.2; }
+.mini-cartao a { color: var(--verde-escuro); font-weight: 800; font-size: 14px; }
+.lista { background: #fff; border-radius: 20px; margin: 0 var(--e3) var(--e3); overflow: hidden; }
+.lista a { display: flex; align-items: center; gap: 14px; padding: 16px var(--e2); min-height: 60px; border-bottom: 1px solid var(--borda); font-weight: 700; }
+.lista a:last-child { border: 0; }
+.lista a .ico { width: 40px; height: 40px; border-radius: 12px; background: var(--verde-claro); color: var(--verde); display: grid; place-items: center; }
+.lista a .ico svg { width: 22px; height: 22px; }
+.lista a > svg { margin-left: auto; color: #b9c3bd; width: 20px; height: 20px; }
+
+/* setas para navegar no protótipo (só no computador) */
+.demo { position: fixed; left: 16px; bottom: 16px; display: flex; gap: 6px; flex-wrap: wrap; max-width: calc(50vw - 260px); }
+.demo button { font: inherit; font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--borda); background: #fff; cursor: pointer; }
+@media (max-width: 1000px) { .demo { display: none; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-carro" viewBox="0 0 24 24"><path d="M5 17H3.5a1 1 0 0 1-1-1v-3.2a2 2 0 0 1 .6-1.4L5 9.5l1.6-3.4A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.8 1.1L19 9.5l1.9 1.9a2 2 0 0 1 .6 1.4V16a1 1 0 0 1-1 1H19"/><path d="M5 9.5h14"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></symbol>
+  <symbol id="i-moto" viewBox="0 0 24 24"><circle cx="5.5" cy="16.5" r="3"/><circle cx="18.5" cy="16.5" r="3"/><path d="M5.5 16.5 9 10h5l2.5 6.5"/><path d="M14 10l1.5-4H18"/><path d="M8.5 16.5h7"/><path d="M9 10H6.5"/></symbol>
+  <symbol id="i-van" viewBox="0 0 24 24"><path d="M3 17V8a2 2 0 0 1 2-2h11l5 5v6h-2"/><path d="M15 6v5h6"/><path d="M3 11h12"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></symbol>
+  <symbol id="i-caminhao" viewBox="0 0 24 24"><path d="M2 16V6a1 1 0 0 1 1-1h11v11"/><path d="M14 9h4l3.5 4V16a1 1 0 0 1-1 1H20"/><circle cx="6.5" cy="17.5" r="2"/><circle cx="17.5" cy="17.5" r="2"/><path d="M8.5 17.5h7"/><path d="M2 16v1.5h2.5"/></symbol>
+  <symbol id="i-pessoa" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-volante" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/><path d="M3.5 10.5c3 1 5.5 1 8.5 1s5.5 0 8.5-1"/><path d="M10.5 14.2 8 20.5M13.5 14.2l2.5 6.3"/></symbol>
+  <symbol id="i-ajuda" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7v.5"/><path d="M12 17.2v.1"/></symbol>
+  <symbol id="i-seta" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-pino" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.5 2.5L16 9.5"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M4.5 19.5 5.6 16A8 8 0 1 1 8.4 18.6z"/><path d="M9 9.2c0 3 2.6 5.8 5.8 5.8l1.2-1.3-1.8-1-1 .8c-1-.4-2-1.4-2.4-2.4l.8-1-1-1.8z"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-cifrao" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M14.8 9.2c-.5-.9-1.6-1.4-2.8-1.4-1.6 0-2.8.8-2.8 2.1 0 3 5.7 1.5 5.7 4.3 0 1.3-1.3 2.1-2.9 2.1-1.3 0-2.4-.6-2.9-1.5M12 6v1.8M12 16.3V18"/></symbol>
+  <symbol id="i-presente" viewBox="0 0 24 24"><rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M5 12v8h14v-8M12 8v12"/><path d="M12 8C10 4 7 4.5 7 6.3 7 8 12 8 12 8zm0 0c2-4 5-3.5 5-1.7C17 8 12 8 12 8z"/></symbol>
+  <symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 3 5 6v5.5c0 4.3 3 7.8 7 9.5 4-1.7 7-5.2 7-9.5V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+</svg>
+<div class="app">
+
+  <!-- 1 · boas-vindas -->
+  <section class="tela boas" data-tela="boas">
+    <span class="logo"><img src="manu.png" alt="" style="background:#fff">vai de <b>manu</b></span>
+    <h1>Bem-vindo(a) à Vai de Manu!</h1>
+    <p>A área dos motoristas da central de Miranda.</p>
+    <div class="manu"><img src="img/manu/manu-joinha.webp" alt=""></div>
+    <div class="base">
+      <button class="botao claro" data-ir="fone" data-modo="entrar">Entrar</button>
+      <button class="botao contorno" data-ir="fone" data-modo="criar">Criar minha conta</button>
+      <p class="miudo">Ao entrar ou se cadastrar, você concorda com os <a href="#">termos de uso e a política de privacidade</a>.</p>
+    </div>
+  </section>
+
+  <!-- 2 · telefone -->
+  <form class="tela" data-tela="fone" hidden>
+    <button type="button" class="voltar" data-ir="boas" aria-label="Voltar"><svg class="ic"><use href="#i-seta"/></svg></button>
+    <h1 id="tituloFone">Qual é o seu WhatsApp?</h1>
+    <p class="ajuda">Vamos mandar um código de 6 números nele. Sem senha.</p>
+    <span class="ddi"><span class="bandeira" aria-hidden="true"></span>+55</span>
+    <input class="numero" id="numero" inputmode="tel" autocomplete="tel" placeholder="67 99999-9999" aria-label="WhatsApp com DDD">
+    <div class="empurra"></div>
+    <div class="base">
+      <label class="aceite"><input type="checkbox" id="aceite"><span>Li e aceito os <a href="#">Termos de Uso</a> e a <a href="#">Política de Privacidade</a></span></label>
+      <button class="botao" id="proximoFone" disabled>Próximo</button>
+    </div>
+  </form>
+
+  <!-- 3 · código -->
+  <form class="tela" data-tela="codigo" hidden>
+    <button type="button" class="voltar" data-ir="fone" aria-label="Voltar"><svg class="ic"><use href="#i-seta"/></svg></button>
+    <h1>Digite o código</h1>
+    <p class="ajuda">Mandamos 6 números para o WhatsApp <b id="foneMostra">+55 67 99999-9999</b>.</p>
+    <div class="codigo" role="group" aria-label="Código de 6 números">
+      <input inputmode="numeric" maxlength="1" aria-label="1º número"><input inputmode="numeric" maxlength="1" aria-label="2º número"><input inputmode="numeric" maxlength="1" aria-label="3º número"><input inputmode="numeric" maxlength="1" aria-label="4º número"><input inputmode="numeric" maxlength="1" aria-label="5º número"><input inputmode="numeric" maxlength="1" aria-label="6º número">
+    </div>
+    <div class="tempo" id="tempo">Reenviar código em 56 s</div>
+    <div class="empurra"></div>
+    <div class="base"><button class="botao" id="proximoCodigo" disabled>Confirmar</button><p class="passo-n" id="passoCodigo">Passo 2 de 4</p></div>
+  </form>
+
+  <!-- 4 · cadastro -->
+  <form class="tela" data-tela="cadastro" hidden style="padding-top:var(--e3)">
+    <div class="topo-cad">
+      <button type="button" class="voltar" data-ir="codigo" aria-label="Voltar"><svg class="ic"><use href="#i-seta"/></svg></button>
+      <h1>Cadastre-se como motorista</h1>
+      <svg class="ilus" viewBox="0 0 320 190" aria-hidden="true"><ellipse cx="163" cy="176" rx="140" ry="9" fill="#000" opacity=".18"/><path d="M28 150V118q2-14 18-17l46-7 34-30q8-7 20-7h66q13 0 21 8l30 29 22 5q12 3 12 17v34z" fill="#fff"/><path d="M28 132h268v18H28z" fill="#e3e9e5"/><path d="M28 124h268v6H28z" fill="#0a8f43"/><path d="M106 94l28-25q4-4 10-4h36v29z" fill="#1f2b26"/><path d="M188 65h24q8 0 14 6l24 23h-62z" fill="#1f2b26"/><path d="M184 68v62" stroke="#e3e9e5" stroke-width="2"/><rect x="190" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><rect x="140" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><ellipse cx="289" cy="110" rx="7" ry="5" fill="#ffd54a"/><rect x="28" y="106" width="8" height="12" rx="2" fill="#e0475b"/><path d="M244 92l8 2-2 6-8-2z" fill="#1f2b26"/><circle cx="86" cy="150" r="25" fill="#1b221e"/><circle cx="86" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="86" cy="150" r="5.5" fill="#7d8983"/><circle cx="242" cy="150" r="25" fill="#1b221e"/><circle cx="242" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="242" cy="150" r="5.5" fill="#7d8983"/></svg>
+    </div>
+    <div class="folha">
+      <h2>Suas vantagens</h2>
+      <div class="carrossel">
+        <div><svg class="ic"><use href="#i-cifrao"/></svg><b>Sem mensalidade</b><span>Compre viagens só quando precisar, a partir de R$ 1,00.</span></div>
+        <div><svg class="ic"><use href="#i-presente"/></svg><b>3 viagens grátis</b><span>Entram no seu saldo assim que for aprovado.</span></div>
+        <div><svg class="ic"><use href="#i-relogio"/></svg><b>Seu horário</b><span>Fique online e offline quando quiser.</span></div>
+        <div><svg class="ic"><use href="#i-zap"/></svg><b>Central da cidade</b><span>Suporte de gente daqui, pelo WhatsApp.</span></div>
+      </div>
+      <h2>Seus dados</h2>
+      <label class="campo">Nome completo<input name="nome" autocomplete="name"></label>
+      <span class="campo" style="margin:0">Tipo de veículo</span>
+      <div class="tipos">
+        <button type="button" aria-pressed="false"><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="160" cy="176" rx="130" ry="9" fill="#000" opacity=".18"/><path d="M150 132L84 150" stroke="#3a4640" stroke-width="8" stroke-linecap="round"/><path d="M242 150L214 84" stroke="#3a4640" stroke-width="8" stroke-linecap="round"/><rect x="132" y="112" width="58" height="34" rx="8" fill="#5d6a63"/><rect x="140" y="120" width="20" height="18" rx="3" fill="#7d8983"/><rect x="84" y="134" width="70" height="10" rx="5" fill="#aab4ae"/><path d="M58 116l58-10 4 12-54 8z" fill="#0a8f43"/><path d="M96 106q4-10 28-10l40 2-10 14-54 2z" fill="#1f2b26"/><path d="M150 112q8-26 44-28h18q8 12 0 28z" fill="#0a8f43"/><path d="M168 96q14-6 30-6" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".7"/><path d="M214 84l-14-14h-10" stroke="#1f2b26" stroke-width="6" stroke-linecap="round" fill="none"/><circle cx="228" cy="94" r="11" fill="#1f2b26"/><circle cx="230" cy="94" r="6.5" fill="#ffd54a"/><circle cx="84" cy="150" r="30" fill="#1b221e"/><circle cx="84" cy="150" r="16.5" fill="#d5dcd8"/><circle cx="84" cy="150" r="6.6" fill="#7d8983"/><circle cx="242" cy="150" r="30" fill="#1b221e"/><circle cx="242" cy="150" r="16.5" fill="#d5dcd8"/><circle cx="242" cy="150" r="6.6" fill="#7d8983"/></svg>Moto</button>
+        <button type="button" aria-pressed="true"><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="163" cy="176" rx="140" ry="9" fill="#000" opacity=".18"/><path d="M28 150V118q2-14 18-17l46-7 34-30q8-7 20-7h66q13 0 21 8l30 29 22 5q12 3 12 17v34z" fill="#fff"/><path d="M28 132h268v18H28z" fill="#e3e9e5"/><path d="M28 124h268v6H28z" fill="#0a8f43"/><path d="M106 94l28-25q4-4 10-4h36v29z" fill="#1f2b26"/><path d="M188 65h24q8 0 14 6l24 23h-62z" fill="#1f2b26"/><path d="M184 68v62" stroke="#e3e9e5" stroke-width="2"/><rect x="190" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><rect x="140" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><ellipse cx="289" cy="110" rx="7" ry="5" fill="#ffd54a"/><rect x="28" y="106" width="8" height="12" rx="2" fill="#e0475b"/><path d="M244 92l8 2-2 6-8-2z" fill="#1f2b26"/><circle cx="86" cy="150" r="25" fill="#1b221e"/><circle cx="86" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="86" cy="150" r="5.5" fill="#7d8983"/><circle cx="242" cy="150" r="25" fill="#1b221e"/><circle cx="242" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="242" cy="150" r="5.5" fill="#7d8983"/></svg>Carro</button>
+        <button type="button" aria-pressed="false"><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="160" cy="176" rx="145" ry="9" fill="#000" opacity=".18"/><path d="M22 150V72q0-18 18-18h176q16 0 26 12l40 42q14 4 14 20v22z" fill="#fff"/><path d="M22 132h274v18H22z" fill="#e3e9e5"/><path d="M22 116h274v10H22z" fill="#0a8f43"/><rect x="40" y="66" width="42" height="32" rx="5" fill="#1f2b26"/><rect x="90" y="66" width="42" height="32" rx="5" fill="#1f2b26"/><rect x="140" y="66" width="46" height="32" rx="5" fill="#1f2b26"/><path d="M196 66h26q8 0 14 7l28 29h-68z" fill="#1f2b26"/><path d="M192 60v70" stroke="#e3e9e5" stroke-width="2"/><ellipse cx="289" cy="122" rx="6" ry="5" fill="#ffd54a"/><rect x="22" y="100" width="7" height="14" rx="2" fill="#e0475b"/><circle cx="78" cy="150" r="24" fill="#1b221e"/><circle cx="78" cy="150" r="13.2" fill="#d5dcd8"/><circle cx="78" cy="150" r="5.3" fill="#7d8983"/><circle cx="246" cy="150" r="24" fill="#1b221e"/><circle cx="246" cy="150" r="13.2" fill="#d5dcd8"/><circle cx="246" cy="150" r="5.3" fill="#7d8983"/></svg>Van</button>
+        <button type="button" aria-pressed="false"><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="160" cy="176" rx="148" ry="9" fill="#000" opacity=".18"/><rect x="16" y="40" width="190" height="98" rx="8" fill="#fff" stroke="#e3e9e5" stroke-width="3"/><path d="M54 46v86" stroke="#e3e9e5" stroke-width="2"/><path d="M92 46v86" stroke="#e3e9e5" stroke-width="2"/><path d="M130 46v86" stroke="#e3e9e5" stroke-width="2"/><path d="M168 46v86" stroke="#e3e9e5" stroke-width="2"/><rect x="38" y="72" width="146" height="36" rx="6" fill="#fff"/><text x="111" y="97" text-anchor="middle" font-family="Manrope, sans-serif" font-weight="800" font-size="22" fill="#1f2b26">vai de <tspan fill="#0a8f43">manu</tspan></text><path d="M212 146V74q0-10 10-10h34q10 0 16 9l20 34q8 4 8 16v23z" fill="#0a8f43"/><path d="M224 74h32q6 0 10 6l16 26h-58z" fill="#1f2b26"/><rect x="226" y="114" width="12" height="4" rx="2" fill="#06622e"/><rect x="14" y="136" width="286" height="10" rx="3" fill="#3a4640"/><ellipse cx="294" cy="128" rx="5" ry="6" fill="#ffd54a"/><circle cx="64" cy="152" r="22" fill="#1b221e"/><circle cx="64" cy="152" r="12.1" fill="#d5dcd8"/><circle cx="64" cy="152" r="4.8" fill="#7d8983"/><circle cx="112" cy="152" r="22" fill="#1b221e"/><circle cx="112" cy="152" r="12.1" fill="#d5dcd8"/><circle cx="112" cy="152" r="4.8" fill="#7d8983"/><circle cx="260" cy="152" r="22" fill="#1b221e"/><circle cx="260" cy="152" r="12.1" fill="#d5dcd8"/><circle cx="260" cy="152" r="4.8" fill="#7d8983"/></svg>Frete</button>
+      </div>
+      <label class="campo">Modelo<input name="carro" placeholder="VW Gol"></label>
+      <div class="duas"><label class="campo">Cor<input name="cor" placeholder="Branco"></label><label class="campo">Placa<input name="placa" placeholder="ABC1D23"></label></div>
+      <div class="base" style="padding-top:var(--e1)"><button class="botao">Cadastrar agora</button><p class="passo-n">Passo 3 de 4</p></div>
+    </div>
+  </form>
+
+  <!-- 5 · localização (explica antes de o celular perguntar) -->
+  <section class="tela loc" data-tela="loc" hidden>
+    <div class="mapinha" aria-hidden="true">
+      <svg viewBox="0 0 220 220">
+        <rect width="220" height="220" fill="#f4f6f4"/>
+        <path d="M0 60h220M0 140h220M60 0v220M150 0v220M0 200 200 0" stroke="#dfe5e1" stroke-width="10"/>
+        <path d="M20 180C70 150 90 120 110 110s60-40 90-80" stroke="#0a8f43" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="1 12"/>
+        <circle cx="110" cy="110" r="34" fill="#0a8f43" opacity=".14"/>
+        <path d="M110 128s-22-19-22-36a22 22 0 0 1 44 0c0 17-22 36-22 36z" fill="#0a8f43"/><circle cx="110" cy="92" r="8" fill="#fff"/>
+      </svg>
+    </div>
+    <h1>Receba as corridas mais perto de você</h1>
+    <p class="ajuda" style="margin-bottom:var(--e3)">Para isso, precisamos da sua localização enquanto você trabalha.</p>
+    <ul class="garantias-loc">
+      <li><svg class="ic"><use href="#i-check"/></svg><div><b>Só quando você está online</b><span>Ficou offline, a posição é apagada.</span></div></li>
+      <li><svg class="ic"><use href="#i-escudo"/></svg><div><b>Só com esta página aberta</b><span>Nada é enviado com o app fechado.</span></div></li>
+      <li><svg class="ic"><use href="#i-pino"/></svg><div><b>Só para a corrida</b><span>Usada para chamar o motorista mais perto.</span></div></li>
+    </ul>
+    <div class="empurra"></div>
+    <div class="base">
+      <button class="botao" data-ir="inicio">Permitir localização</button>
+      <button class="botao contorno" data-ir="inicio">Agora não</button>
+      <p class="passo-n">Passo 4 de 4</p>
+    </div>
+  </section>
+
+  <!-- 6 · início do motorista -->
+  <section class="tela inicio-mot" data-tela="inicio" hidden>
+    <div class="cabeca">
+      <div class="linha-topo"><span class="logo" style="color:#fff;font-size:22px"><img src="manu.png" alt="">vai de <b style="color:#8ee0ae">manu</b></span><button class="voltar" aria-label="Menu" style="color:#fff;margin:0"><svg class="ic" style="transform:none"><use href="#i-menu"/></svg></button></div>
+      <small>Boa tarde,</small>
+      <h1>Pedro Lima</h1>
+    </div>
+    <div class="status" id="status">
+      <div class="status-linha"><span class="bolinha"></span><b id="statusTexto">Você está offline</b></div>
+      <p id="statusDica">Fique online para receber corridas aqui e no seu WhatsApp.</p>
+      <button class="botao" id="botaoOnline">Ficar online</button>
+    </div>
+    <div class="cartoes">
+      <div class="mini-cartao"><small>Saldo</small><b>12</b><small>viagens</small><br><a href="#">Comprar mais →</a></div>
+      <div class="mini-cartao"><small>Este mês</small><b>R$ 486</b><small>em 41 corridas</small><br><a href="#">Ver relatório →</a></div>
+    </div>
+    <nav class="lista" aria-label="Menu do motorista">
+      <a href="#"><span class="ico"><svg class="ic"><use href="#i-cifrao"/></svg></span>Comprar viagens<svg class="ic"><use href="#i-seta"/></svg></a>
+      <a href="#"><span class="ico"><svg class="ic"><use href="#i-relogio"/></svg></span>Meu relatório<svg class="ic"><use href="#i-seta"/></svg></a>
+      <a href="#"><span class="ico"><svg class="ic"><use href="#i-carro"/></svg></span>Meu cadastro<svg class="ic"><use href="#i-seta"/></svg></a>
+      <a href="#"><span class="ico"><svg class="ic"><use href="#i-zap"/></svg></span>Falar com a central<svg class="ic"><use href="#i-seta"/></svg></a>
+    </nav>
+  </section>
+</div>
+
+<div class="demo" aria-label="Telas do protótipo">
+  <button data-ir="boas">1 Boas-vindas</button><button data-ir="fone">2 Telefone</button><button data-ir="codigo">3 Código</button>
+  <button data-ir="cadastro">4 Cadastro</button><button data-ir="loc">5 Localização</button><button data-ir="inicio">6 Início</button>
+</div>
+
+<script>
+// protótipo: só troca de tela, sem chamar o servidor
+const $ = (s) => document.querySelector(s);
+let modo = 'criar';
+function ir(nome) {
+  document.querySelectorAll('.tela').forEach((t) => t.hidden = t.dataset.tela !== nome);
+  window.scrollTo(0, 0);
+  const campo = document.querySelector(`[data-tela="${nome}"] input:not([type=checkbox])`);
+  if (campo && matchMedia('(min-width: 1000px)').matches) campo.focus();
+  if (nome === 'codigo') contar();
+  try { history.replaceState(null, '', '#' + nome); } catch {}
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-ir]'); if (!b) return;
+  if (b.dataset.modo) { modo = b.dataset.modo; $('#tituloFone').textContent = modo === 'entrar' ? 'Entre com seu WhatsApp' : 'Qual é o seu WhatsApp?'; }
+  e.preventDefault(); ir(b.dataset.ir);
+});
+const validar = () => { $('#proximoFone').disabled = !($('#aceite').checked && $('#numero').value.replace(/\D/g, '').length >= 10); };
+$('#numero').oninput = validar; $('#aceite').onchange = validar;
+document.querySelector('[data-tela="fone"]').onsubmit = (e) => { e.preventDefault(); $('#foneMostra').textContent = '+55 ' + $('#numero').value; ir('codigo'); };
+const caixas = [...document.querySelectorAll('.codigo input')];
+caixas.forEach((c, i) => {
+  c.oninput = () => { c.value = c.value.replace(/\D/g, ''); if (c.value && caixas[i + 1]) caixas[i + 1].focus(); $('#proximoCodigo').disabled = caixas.some((x) => !x.value); };
+  c.onkeydown = (e) => { if (e.key === 'Backspace' && !c.value && caixas[i - 1]) caixas[i - 1].focus(); };
+});
+document.querySelector('[data-tela="codigo"]').onsubmit = (e) => { e.preventDefault(); ir(modo === 'entrar' ? 'inicio' : 'cadastro'); };
+document.querySelector('[data-tela="cadastro"]').onsubmit = (e) => { e.preventDefault(); ir('loc'); };
+let relogio;
+function contar() {
+  let s = 56; clearInterval(relogio); $('#tempo').textContent = `Reenviar código em ${s} s`;
+  relogio = setInterval(() => { s--; $('#tempo').innerHTML = s > 0 ? `Reenviar código em ${s} s` : '<button type="button" class="link" style="background:none;border:0;font:inherit;font-weight:800;color:var(--verde-escuro);text-decoration:underline;cursor:pointer">Reenviar código</button>'; if (s <= 0) clearInterval(relogio); }, 1000);
+}
+document.querySelectorAll('.tipos button').forEach((b, _, todos) => b.onclick = () => todos.forEach((x) => x.setAttribute('aria-pressed', x === b)));
+$('#botaoOnline').onclick = () => {
+  const on = $('.inicio-mot').classList.toggle('online');
+  $('#statusTexto').textContent = on ? 'Você está online' : 'Você está offline';
+  $('#statusDica').textContent = on ? 'Procurando corridas perto de você. Mantenha esta página aberta.' : 'Fique online para receber corridas aqui e no seu WhatsApp.';
+  $('#botaoOnline').textContent = on ? 'Ficar offline' : 'Ficar online';
+};
+function pelaHash() { const t = location.hash.slice(1); if (document.querySelector(`[data-tela="${t}"]`)) ir(t); }
+addEventListener('hashchange', pelaHash);
+pelaHash();
+</script>
+</body>
+</html>

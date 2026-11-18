@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seja motorista · Vai de Manu</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap">
+<link rel="stylesheet" href="proposta.css">
+<style>
+/* destaque do motorista: fundo verde-escuro com a Manu, cartão de cadastro à direita */
+.mot-destaque { position: relative; background: var(--verde-escuro); color: #fff; overflow: hidden; }
+.mot-destaque::before { content: ''; position: absolute; width: 760px; height: 760px; border-radius: 50%; border: 110px solid rgba(255,255,255,.05); left: -260px; top: -240px; }
+.mot-destaque .envolve { position: relative; display: grid; grid-template-columns: 1fr 520px; gap: var(--e4); align-items: center; min-height: 660px; padding-top: var(--e4); padding-bottom: var(--e4); }
+.mot-arte { position: relative; align-self: stretch; }
+.mot-arte img { position: absolute; bottom: -40px; right: -30px; height: 92%; width: auto; max-width: none; filter: drop-shadow(0 20px 30px rgba(0,0,0,.3)); }
+.mot-chamada { position: relative; z-index: 1; max-width: 330px; }
+.mot-chamada h1 { color: #fff; font-size: clamp(38px, 3.8vw, 54px); }
+.mot-chamada h1 mark { background: none; color: #8ee0ae; }
+.mot-chamada p { color: rgba(255,255,255,.8); font-size: 19px; margin: 0; }
+.selo-ganho { position: relative; z-index: 2; display: inline-block; margin-top: var(--e4); background: #fff; color: var(--texto); border-radius: var(--raio); padding: 18px 22px; box-shadow: 0 16px 40px rgba(0,0,0,.25); }
+.selo-ganho small { display: block; color: var(--suave); font-weight: 700; }
+.selo-ganho b { display: block; font-size: 40px; line-height: 1.1; color: var(--verde); letter-spacing: -1px; }
+
+/* cartão de cadastro com etapas */
+.cad { background: #fff; color: var(--texto); border-radius: 28px; padding: var(--e4); box-shadow: 0 30px 60px rgba(0,0,0,.25); min-height: 520px; display: flex; flex-direction: column; }
+.cad-progresso { display: flex; gap: 6px; margin-bottom: var(--e3); }
+.cad-progresso i { flex: 1; height: 6px; border-radius: 3px; background: var(--borda); transition: background .3s; }
+.cad-progresso i.feito { background: var(--verde); }
+.cad-olho { font-weight: 800; color: var(--verde); font-size: 14px; letter-spacing: 1.5px; text-transform: uppercase; }
+.cad h2 { font-size: clamp(28px, 3vw, 38px); letter-spacing: -1px; margin: 6px 0 var(--e1); }
+.cad .ajuda { color: var(--suave); margin: 0 0 var(--e3); font-size: 16px; }
+.cad label { display: block; font-weight: 700; font-size: 15px; margin-bottom: var(--e2); }
+.cad input { display: block; width: 100%; font: inherit; font-size: 18px; min-height: 56px; padding: 0 16px; margin-top: 6px; border: 2px solid var(--borda); border-radius: 14px; background: #fff; color: var(--texto); }
+.cad input:focus { outline: none; border-color: var(--verde); box-shadow: 0 0 0 4px var(--verde-claro); }
+.fone { display: flex; margin-top: 6px; }
+.fone span { display: grid; place-items: center; padding: 0 16px; background: var(--verde); color: #fff; font-weight: 800; border-radius: 14px 0 0 14px; font-size: 18px; }
+.fone input { margin: 0; border-radius: 0 14px 14px 0; border-left: 0; }
+.cad .botao { width: 100%; margin-top: auto; }
+.cad .rodape-cad { display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: space-between; align-items: center; margin-top: var(--e2); font-size: 15px; color: var(--suave); }
+.cad .link { color: var(--verde-escuro); font-weight: 800; text-decoration: underline; background: none; border: 0; font: inherit; cursor: pointer; padding: 0; }
+.codigo { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin: var(--e2) 0 var(--e1); }
+.codigo input { margin: 0; padding: 0; text-align: center; font-size: 28px; font-weight: 800; }
+.tempo { color: var(--suave); font-size: 15px; margin-bottom: var(--e3); }
+.tipos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 6px 0 var(--e2); }
+.tipos button { font: inherit; font-weight: 700; font-size: 14px; border: 2px solid var(--borda); background: #fff; border-radius: 14px; padding: 6px 4px 8px; cursor: pointer; color: var(--texto); }
+.tipos button svg { display: block; width: 100%; height: 44px; }
+.tipos button[aria-pressed=true] { border-color: var(--verde); background: var(--verde-claro); }
+.duas { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.pronto { text-align: center; margin: auto 0; }
+.pronto .ok { width: 88px; height: 88px; border-radius: 50%; background: var(--verde-claro); color: var(--verde); display: grid; place-items: center; margin: 0 auto var(--e3); }
+.pronto .ok svg { width: 48px; height: 48px; stroke-width: 2.2; }
+.pronto ul { text-align: left; list-style: none; padding: 0; margin: var(--e3) 0 0; display: grid; gap: 12px; }
+.pronto li { display: flex; gap: 12px; color: var(--suave); }
+.pronto li svg { color: var(--verde); }
+.pronto li b { color: var(--texto); }
+
+/* calculadora */
+.calc { display: grid; grid-template-columns: 1fr 420px; gap: var(--e4); align-items: start; }
+.controle { background: #fff; border: 1px solid var(--borda); border-radius: var(--raio); padding: var(--e3); margin-bottom: var(--e2); }
+.controle-topo { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: var(--e2); font-weight: 700; }
+.controle-topo output { font-size: 28px; font-weight: 800; letter-spacing: -.5px; }
+input[type=range] { width: 100%; accent-color: var(--verde); height: 28px; }
+.regua { display: flex; justify-content: space-between; color: var(--suave); font-size: 13px; font-weight: 700; }
+.resultado { background: var(--verde-escuro); color: #fff; border-radius: 28px; padding: var(--e4); position: sticky; top: 100px; }
+.resultado small { color: rgba(255,255,255,.75); font-weight: 700; }
+.resultado .grande { font-size: clamp(44px, 5vw, 64px); font-weight: 800; letter-spacing: -2px; line-height: 1.05; margin: 6px 0 var(--e3); }
+.resultado dl { margin: 0 0 var(--e3); display: grid; gap: 10px; }
+.resultado dl div { display: flex; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,.14); }
+.resultado dt { color: rgba(255,255,255,.75); }
+.resultado dd { margin: 0; font-weight: 800; }
+.resultado .nota { font-size: 13px; color: rgba(255,255,255,.65); margin: var(--e2) 0 0; }
+.abas.claras button { background: #fff; border-color: var(--borda); }
+.abas.claras button[aria-selected=true] { background: var(--verde); border-color: var(--verde); }
+
+.passos.quatro { grid-template-columns: repeat(4, 1fr); gap: var(--e3); }
+.passo code { background: var(--verde-claro); color: var(--verde-escuro); padding: 1px 8px; border-radius: 6px; font-weight: 800; font-family: inherit; }
+
+@media (max-width: 1000px) {
+  .mot-destaque .envolve { grid-template-columns: 1fr; min-height: 0; padding: var(--e3); gap: var(--e3); }
+  .mot-arte { order: 2; height: auto; }
+  .mot-arte img { position: relative; display: block; height: 250px; bottom: auto; right: auto; margin: 4px -8px -24px auto; }
+  .mot-chamada { padding-top: 0 !important; }
+  .mot-chamada { margin: 0; max-width: none; }
+  .mot-chamada h1 { font-size: 36px; letter-spacing: -1.2px; margin-bottom: var(--e1); }
+  .mot-chamada p { font-size: 17px; }
+  .selo-ganho { position: absolute; bottom: 24px; left: 0; margin: 0; padding: 14px 18px; }
+  .selo-ganho b { font-size: 30px; }
+  .cad { padding: var(--e3); min-height: 0; border-radius: 24px; }
+  .cad .botao { margin-top: var(--e2); }
+  .calc { grid-template-columns: 1fr; }
+  .resultado { position: static; padding: var(--e3); }
+  .passos.quatro { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-carro" viewBox="0 0 24 24"><path d="M5 17H3.5a1 1 0 0 1-1-1v-3.2a2 2 0 0 1 .6-1.4L5 9.5l1.6-3.4A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.8 1.1L19 9.5l1.9 1.9a2 2 0 0 1 .6 1.4V16a1 1 0 0 1-1 1H19"/><path d="M5 9.5h14"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></symbol>
+  <symbol id="i-moto" viewBox="0 0 24 24"><circle cx="5.5" cy="16.5" r="3"/><circle cx="18.5" cy="16.5" r="3"/><path d="M5.5 16.5 9 10h5l2.5 6.5"/><path d="M14 10l1.5-4H18"/><path d="M8.5 16.5h7"/><path d="M9 10H6.5"/></symbol>
+  <symbol id="i-van" viewBox="0 0 24 24"><path d="M3 17V8a2 2 0 0 1 2-2h11l5 5v6h-2"/><path d="M15 6v5h6"/><path d="M3 11h12"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></symbol>
+  <symbol id="i-caminhao" viewBox="0 0 24 24"><path d="M2 16V6a1 1 0 0 1 1-1h11v11"/><path d="M14 9h4l3.5 4V16a1 1 0 0 1-1 1H20"/><circle cx="6.5" cy="17.5" r="2"/><circle cx="17.5" cy="17.5" r="2"/><path d="M8.5 17.5h7"/><path d="M2 16v1.5h2.5"/></symbol>
+  <symbol id="i-pessoa" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-volante" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/><path d="M3.5 10.5c3 1 5.5 1 8.5 1s5.5 0 8.5-1"/><path d="M10.5 14.2 8 20.5M13.5 14.2l2.5 6.3"/></symbol>
+  <symbol id="i-ajuda" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7v.5"/><path d="M12 17.2v.1"/></symbol>
+  <symbol id="i-seta" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-pino" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.5 2.5L16 9.5"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M4.5 19.5 5.6 16A8 8 0 1 1 8.4 18.6z"/><path d="M9 9.2c0 3 2.6 5.8 5.8 5.8l1.2-1.3-1.8-1-1 .8c-1-.4-2-1.4-2.4-2.4l.8-1-1-1.8z"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-cifrao" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M14.8 9.2c-.5-.9-1.6-1.4-2.8-1.4-1.6 0-2.8.8-2.8 2.1 0 3 5.7 1.5 5.7 4.3 0 1.3-1.3 2.1-2.9 2.1-1.3 0-2.4-.6-2.9-1.5M12 6v1.8M12 16.3V18"/></symbol>
+  <symbol id="i-presente" viewBox="0 0 24 24"><rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M5 12v8h14v-8M12 8v12"/><path d="M12 8C10 4 7 4.5 7 6.3 7 8 12 8 12 8zm0 0c2-4 5-3.5 5-1.7C17 8 12 8 12 8z"/></symbol>
+  <symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 3 5 6v5.5c0 4.3 3 7.8 7 9.5 4-1.7 7-5.2 7-9.5V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+</svg>
+<header class="topo">
+  <div class="envolve">
+    <a class="logo" href="/" aria-label="Vai de Manu, página inicial"><img src="manu.png" alt="">vai de <b>manu</b></a>
+    <nav class="menu" aria-label="Principal">
+      <a href="/passageiro"><svg class="ic"><use href="#i-pessoa"/></svg>Passageiro</a>
+      <a href="/motorista" aria-current="page" style="background:var(--fundo-2)"><svg class="ic"><use href="#i-volante"/></svg>Motorista</a>
+      <a href="#ganhos"><svg class="ic"><use href="#i-cifrao"/></svg>Quanto ganho</a>
+      <a href="#como"><svg class="ic"><use href="#i-ajuda"/></svg>Como funciona</a>
+    </nav>
+    <a class="botao contorno" href="#cadastro">Já sou motorista</a>
+    <button class="menu-cel so-cel" aria-label="Abrir menu"><svg class="ic"><use href="#i-menu"/></svg></button>
+  </div>
+</header>
+
+<main>
+  <section class="mot-destaque">
+    <div class="envolve">
+      <div class="mot-arte">
+        <div class="mot-chamada" style="padding-top:var(--e3)">
+          <h1>Dirija na sua cidade e <mark>fique com a corrida inteira.</mark></h1>
+          <p>Sem mensalidade e sem porcentagem. Você paga só R$ 1,00 por viagem aceita.</p>
+        </div>
+        <img src="img/manu/manu-joinha.webp" alt="" aria-hidden="true">
+        <div class="selo-ganho"><small>Ao ser aprovado, ganhe</small><b>3 viagens</b><small>grátis para começar</small></div>
+      </div>
+
+      <div class="cad" id="cadastro" aria-live="polite">
+        <div class="cad-progresso" aria-hidden="true"><i class="feito"></i><i></i><i></i><i></i></div>
+
+        <form class="etapa" data-etapa="1">
+          <span class="cad-olho">Olá, futuro parceiro</span>
+          <h2>Comece pelo seu WhatsApp</h2>
+          <p class="ajuda">Vamos mandar um código de 6 números nele. Sem senha para decorar.</p>
+          <label>Seu WhatsApp com DDD
+            <span class="fone"><span>+55</span><input name="telefone" inputmode="tel" autocomplete="tel" placeholder="67 99999-9999" required></span>
+          </label>
+          <button class="botao">Receber código <span class="seta"><svg class="ic"><use href="#i-seta"/></svg></span></button>
+          <div class="rodape-cad"><span>Passo 1 de 4</span><span>Já tem cadastro? É o mesmo caminho.</span></div>
+        </form>
+
+        <form class="etapa" data-etapa="2" hidden>
+          <span class="cad-olho">Confira seu WhatsApp</span>
+          <h2>Digite o código</h2>
+          <p class="ajuda">Mandamos 6 números para <b id="foneMostra">+55 67 9••••-••20</b>.</p>
+          <div class="codigo" role="group" aria-label="Código de 6 números">
+            <input inputmode="numeric" maxlength="1" aria-label="1º número"><input inputmode="numeric" maxlength="1" aria-label="2º número"><input inputmode="numeric" maxlength="1" aria-label="3º número"><input inputmode="numeric" maxlength="1" aria-label="4º número"><input inputmode="numeric" maxlength="1" aria-label="5º número"><input inputmode="numeric" maxlength="1" aria-label="6º número">
+          </div>
+          <div class="tempo" id="tempo">Reenviar código em 56 s</div>
+          <button class="botao">Confirmar <span class="seta"><svg class="ic"><use href="#i-seta"/></svg></span></button>
+          <div class="rodape-cad"><span>Passo 2 de 4</span><button type="button" class="link" data-voltar>Trocar número</button></div>
+        </form>
+
+        <form class="etapa" data-etapa="3" hidden>
+          <span class="cad-olho">Quase lá</span>
+          <h2>Seu veículo</h2>
+          <label>Nome completo<input name="nome" autocomplete="name" required></label>
+          <span style="font-weight:700;font-size:15px">Tipo de veículo</span>
+          <div class="tipos">
+            <button type="button" aria-pressed="false"><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="160" cy="176" rx="130" ry="9" fill="#000" opacity=".18"/><path d="M150 132L84 150" stroke="#3a4640" stroke-width="8" stroke-linecap="round"/><path d="M242 150L214 84" stroke="#3a4640" stroke-width="8" stroke-linecap="round"/><rect x="132" y="112" width="58" height="34" rx="8" fill="#5d6a63"/><rect x="140" y="120" width="20" height="18" rx="3" fill="#7d8983"/><rect x="84" y="134" width="70" height="10" rx="5" fill="#aab4ae"/><path d="M58 116l58-10 4 12-54 8z" fill="#0a8f43"/><path d="M96 106q4-10 28-10l40 2-10 14-54 2z" fill="#1f2b26"/><path d="M150 112q8-26 44-28h18q8 12 0 28z" fill="#0a8f43"/><path d="M168 96q14-6 30-6" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".7"/><path d="M214 84l-14-14h-10" stroke="#1f2b26" stroke-width="6" stroke-linecap="round" fill="none"/><circle cx="228" cy="94" r="11" fill="#1f2b26"/><circle cx="230" cy="94" r="6.5" fill="#ffd54a"/><circle cx="84" cy="150" r="30" fill="#1b221e"/><circle cx="84" cy="150" r="16.5" fill="#d5dcd8"/><circle cx="84" cy="150" r="6.6" fill="#7d8983"/><circle cx="242" cy="150" r="30" fill="#1b221e"/><circle cx="242" cy="150" r="16.5" fill="#d5dcd8"/><circle cx="242" cy="150" r="6.6" fill="#7d8983"/></svg>Moto</button>
+            <button type="button" aria-pressed="true"><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="163" cy="176" rx="140" ry="9" fill="#000" opacity=".18"/><path d="M28 150V118q2-14 18-17l46-7 34-30q8-7 20-7h66q13 0 21 8l30 29 22 5q12 3 12 17v34z" fill="#fff"/><path d="M28 132h268v18H28z" fill="#e3e9e5"/><path d="M28 124h268v6H28z" fill="#0a8f43"/><path d="M106 94l28-25q4-4 10-4h36v29z" fill="#1f2b26"/><path d="M188 65h24q8 0 14 6l24 23h-62z" fill="#1f2b26"/><path d="M184 68v62" stroke="#e3e9e5" stroke-width="2"/><rect x="190" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><rect x="140" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><ellipse cx="289" cy="110" rx="7" ry="5" fill="#ffd54a"/><rect x="28" y="106" width="8" height="12" rx="2" fill="#e0475b"/><path d="M244 92l8 2-2 6-8-2z" fill="#1f2b26"/><circle cx="86" cy="150" r="25" fill="#1b221e"/><circle cx="86" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="86" cy="150" r="5.5" fill="#7d8983"/><circle cx="242" cy="150" r="25" fill="#1b221e"/><circle cx="242" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="242" cy="150" r="5.5" fill="#7d8983"/></svg>Carro</button>
+            <button type="button" aria-pressed="false"><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="160" cy="176" rx="145" ry="9" fill="#000" opacity=".18"/><path d="M22 150V72q0-18 18-18h176q16 0 26 12l40 42q14 4 14 20v22z" fill="#fff"/><path d="M22 132h274v18H22z" fill="#e3e9e5"/><path d="M22 116h274v10H22z" fill="#0a8f43"/><rect x="40" y="66" width="42" height="32" rx="5" fill="#1f2b26"/><rect x="90" y="66" width="42" height="32" rx="5" fill="#1f2b26"/><rect x="140" y="66" width="46" height="32" rx="5" fill="#1f2b26"/><path d="M196 66h26q8 0 14 7l28 29h-68z" fill="#1f2b26"/><path d="M192 60v70" stroke="#e3e9e5" stroke-width="2"/><ellipse cx="289" cy="122" rx="6" ry="5" fill="#ffd54a"/><rect x="22" y="100" width="7" height="14" rx="2" fill="#e0475b"/><circle cx="78" cy="150" r="24" fill="#1b221e"/><circle cx="78" cy="150" r="13.2" fill="#d5dcd8"/><circle cx="78" cy="150" r="5.3" fill="#7d8983"/><circle cx="246" cy="150" r="24" fill="#1b221e"/><circle cx="246" cy="150" r="13.2" fill="#d5dcd8"/><circle cx="246" cy="150" r="5.3" fill="#7d8983"/></svg>Van</button>
+            <button type="button" aria-pressed="false"><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="160" cy="176" rx="148" ry="9" fill="#000" opacity=".18"/><rect x="16" y="40" width="190" height="98" rx="8" fill="#fff" stroke="#e3e9e5" stroke-width="3"/><path d="M54 46v86" stroke="#e3e9e5" stroke-width="2"/><path d="M92 46v86" stroke="#e3e9e5" stroke-width="2"/><path d="M130 46v86" stroke="#e3e9e5" stroke-width="2"/><path d="M168 46v86" stroke="#e3e9e5" stroke-width="2"/><rect x="38" y="72" width="146" height="36" rx="6" fill="#fff"/><text x="111" y="97" text-anchor="middle" font-family="Manrope, sans-serif" font-weight="800" font-size="22" fill="#1f2b26">vai de <tspan fill="#0a8f43">manu</tspan></text><path d="M212 146V74q0-10 10-10h34q10 0 16 9l20 34q8 4 8 16v23z" fill="#0a8f43"/><path d="M224 74h32q6 0 10 6l16 26h-58z" fill="#1f2b26"/><rect x="226" y="114" width="12" height="4" rx="2" fill="#06622e"/><rect x="14" y="136" width="286" height="10" rx="3" fill="#3a4640"/><ellipse cx="294" cy="128" rx="5" ry="6" fill="#ffd54a"/><circle cx="64" cy="152" r="22" fill="#1b221e"/><circle cx="64" cy="152" r="12.1" fill="#d5dcd8"/><circle cx="64" cy="152" r="4.8" fill="#7d8983"/><circle cx="112" cy="152" r="22" fill="#1b221e"/><circle cx="112" cy="152" r="12.1" fill="#d5dcd8"/><circle cx="112" cy="152" r="4.8" fill="#7d8983"/><circle cx="260" cy="152" r="22" fill="#1b221e"/><circle cx="260" cy="152" r="12.1" fill="#d5dcd8"/><circle cx="260" cy="152" r="4.8" fill="#7d8983"/></svg>Frete</button>
+          </div>
+          <label>Modelo<input name="carro" placeholder="VW Gol" required></label>
+          <div class="duas"><label>Cor<input name="cor" placeholder="Branco" required></label><label>Placa<input name="placa" placeholder="ABC1D23" required></label></div>
+          <button class="botao">Enviar cadastro <span class="seta"><svg class="ic"><use href="#i-seta"/></svg></span></button>
+          <div class="rodape-cad"><span>Passo 3 de 4</span></div>
+        </form>
+
+        <div class="etapa pronto" data-etapa="4" hidden>
+          <div class="ok"><svg class="ic"><use href="#i-check"/></svg></div>
+          <h2>Tudo pronto!</h2>
+          <p class="ajuda">A central vai conferir seus dados. Você recebe uma mensagem no WhatsApp assim que for aprovado.</p>
+          <ul>
+            <li><svg class="ic"><use href="#i-presente"/></svg><span><b>3 viagens grátis</b> entram no seu saldo na aprovação.</span></li>
+            <li><svg class="ic"><use href="#i-relogio"/></svg><span>Depois é só ficar <b>online</b> e esperar a primeira chamada.</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bloco cinza" id="ganhos">
+    <div class="envolve">
+      <h2>Quanto você pode ganhar?</h2>
+      <p class="sub">Simule com a tabela de preços atual da central. Toda a corrida é sua: a central cobra só a viagem pré-paga.</p>
+      <div class="calc">
+        <div>
+          <div class="abas claras" role="tablist" aria-label="Veículo da simulação" style="margin-bottom:var(--e3)">
+            <button role="tab" aria-selected="false" data-valor="8.5">Moto</button>
+            <button role="tab" aria-selected="true" data-valor="11">Carro</button>
+            <button role="tab" aria-selected="false" data-valor="17">Van</button>
+            <button role="tab" aria-selected="false" data-valor="45">Frete</button>
+          </div>
+          <div class="controle">
+            <div class="controle-topo"><label for="porDia">Corridas por dia</label><output id="oPorDia">10</output></div>
+            <input type="range" id="porDia" min="1" max="30" value="10">
+            <div class="regua"><span>1</span><span>10</span><span>20</span><span>30</span></div>
+          </div>
+          <div class="controle">
+            <div class="controle-topo"><label for="dias">Dias por semana</label><output id="oDias">5</output></div>
+            <input type="range" id="dias" min="1" max="7" value="5">
+            <div class="regua"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span></div>
+          </div>
+        </div>
+        <div class="resultado" aria-live="polite">
+          <small>Você recebe por semana</small>
+          <div class="grande" id="liquido">R$ 0</div>
+          <dl>
+            <div><dt>Corridas na semana</dt><dd id="rCorridas">0</dd></div>
+            <div><dt>Valor das corridas</dt><dd id="rBruto">R$ 0</dd></div>
+            <div><dt>Viagens pré-pagas</dt><dd id="rCusto">− R$ 0</dd></div>
+          </dl>
+          <a class="botao claro" href="#cadastro" style="width:100%">Quero começar <span class="seta"><svg class="ic"><use href="#i-seta"/></svg></span></a>
+          <p class="nota">Estimativa com corridas de 3 km na tabela atual (moto R$ 8,50 · carro R$ 11,00 · van R$ 17,00 · frete R$ 45,00) e viagem a R$ 1,00. Combustível e manutenção não estão descontados.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bloco" id="como">
+    <div class="envolve">
+      <h2>Do cadastro à primeira corrida</h2>
+      <p class="sub">Tudo pelo site ou pelo WhatsApp da central.</p>
+      <div class="passos quatro">
+        <div class="passo"><h3>Cadastre-se</h3><p>WhatsApp, nome e os dados do veículo. Leva dois minutos.</p></div>
+        <div class="passo"><h3>Aprovação</h3><p>A central confere e avisa você no WhatsApp, já com 3 viagens grátis.</p></div>
+        <div class="passo"><h3>Fique online</h3><p>Pelo site ou mandando <code>ONLINE</code>. A corrida mais perto vai para você.</p></div>
+        <div class="passo"><h3>Aceite e dirija</h3><p>Aceite em 40 segundos, avise que chegou e finalize. O pagamento é direto com você.</p></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="envolve">
+    <a class="logo" href="/" style="font-size:20px"><img src="manu.png" alt="">vai de <b>manu</b></a>
+    <nav aria-label="Rodapé"><a href="/passageiro">Passageiro</a><a href="/motorista">Motorista</a><a href="/painel">Administração</a></nav>
+    <span>Corridas em Miranda · MS</span>
+  </div>
+</footer>
+
+<script>
+// protótipo: só navega entre as etapas, sem chamar o servidor
+const $ = (s, el = document) => el.querySelector(s);
+const etapas = [...document.querySelectorAll('.etapa')];
+function ir(n) {
+  etapas.forEach((e) => e.hidden = Number(e.dataset.etapa) !== n);
+  document.querySelectorAll('.cad-progresso i').forEach((i, k) => i.classList.toggle('feito', k < n));
+  const primeiro = $(`.etapa[data-etapa="${n}"] input`); if (primeiro) primeiro.focus();
+  if (n === 2) contar();
+}
+etapas.forEach((f) => { if (f.tagName === 'FORM') f.onsubmit = (e) => { e.preventDefault(); ir(Number(f.dataset.etapa) + 1); }; });
+$('[data-voltar]').onclick = () => ir(1);
+const caixas = [...document.querySelectorAll('.codigo input')];
+caixas.forEach((c, i) => {
+  c.oninput = () => { c.value = c.value.replace(/\D/g, ''); if (c.value && caixas[i + 1]) caixas[i + 1].focus(); };
+  c.onkeydown = (e) => { if (e.key === 'Backspace' && !c.value && caixas[i - 1]) caixas[i - 1].focus(); };
+});
+let relogio;
+function contar() {
+  let s = 56; clearInterval(relogio);
+  relogio = setInterval(() => { s--; $('#tempo').innerHTML = s > 0 ? `Reenviar código em ${s} s` : '<button type="button" class="link">Reenviar código</button>'; if (s <= 0) clearInterval(relogio); }, 1000);
+}
+document.querySelectorAll('.tipos button').forEach((b, _, todos) => b.onclick = () => todos.forEach((x) => x.setAttribute('aria-pressed', x === b)));
+
+// calculadora
+const real = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+let valor = 11;
+const abasCalc = [...document.querySelectorAll('.abas.claras [role=tab]')];
+abasCalc.forEach((a) => a.onclick = () => { abasCalc.forEach((x) => x.setAttribute('aria-selected', x === a)); valor = Number(a.dataset.valor); calcular(); });
+function calcular() {
+  const n = Number($('#porDia').value) * Number($('#dias').value);
+  $('#oPorDia').textContent = $('#porDia').value; $('#oDias').textContent = $('#dias').value;
+  $('#rCorridas').textContent = n;
+  $('#rBruto').textContent = real(n * valor);
+  $('#rCusto').textContent = '− ' + real(n * 1);
+  $('#liquido').textContent = real(n * valor - n);
+}
+$('#porDia').oninput = $('#dias').oninput = calcular;
+calcular();
+</script>
+</body>
+</html>

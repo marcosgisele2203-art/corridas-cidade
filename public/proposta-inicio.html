@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vai de Manu · Corridas em Miranda</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap">
+<link rel="stylesheet" href="proposta.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-carro" viewBox="0 0 24 24"><path d="M5 17H3.5a1 1 0 0 1-1-1v-3.2a2 2 0 0 1 .6-1.4L5 9.5l1.6-3.4A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.8 1.1L19 9.5l1.9 1.9a2 2 0 0 1 .6 1.4V16a1 1 0 0 1-1 1H19"/><path d="M5 9.5h14"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></symbol>
+  <symbol id="i-moto" viewBox="0 0 24 24"><circle cx="5.5" cy="16.5" r="3"/><circle cx="18.5" cy="16.5" r="3"/><path d="M5.5 16.5 9 10h5l2.5 6.5"/><path d="M14 10l1.5-4H18"/><path d="M8.5 16.5h7"/><path d="M9 10H6.5"/></symbol>
+  <symbol id="i-van" viewBox="0 0 24 24"><path d="M3 17V8a2 2 0 0 1 2-2h11l5 5v6h-2"/><path d="M15 6v5h6"/><path d="M3 11h12"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></symbol>
+  <symbol id="i-caminhao" viewBox="0 0 24 24"><path d="M2 16V6a1 1 0 0 1 1-1h11v11"/><path d="M14 9h4l3.5 4V16a1 1 0 0 1-1 1H20"/><circle cx="6.5" cy="17.5" r="2"/><circle cx="17.5" cy="17.5" r="2"/><path d="M8.5 17.5h7"/><path d="M2 16v1.5h2.5"/></symbol>
+  <symbol id="i-pessoa" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-volante" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/><path d="M3.5 10.5c3 1 5.5 1 8.5 1s5.5 0 8.5-1"/><path d="M10.5 14.2 8 20.5M13.5 14.2l2.5 6.3"/></symbol>
+  <symbol id="i-ajuda" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7v.5"/><path d="M12 17.2v.1"/></symbol>
+  <symbol id="i-seta" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-pino" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.5 2.5L16 9.5"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M4.5 19.5 5.6 16A8 8 0 1 1 8.4 18.6z"/><path d="M9 9.2c0 3 2.6 5.8 5.8 5.8l1.2-1.3-1.8-1-1 .8c-1-.4-2-1.4-2.4-2.4l.8-1-1-1.8z"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-cifrao" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M14.8 9.2c-.5-.9-1.6-1.4-2.8-1.4-1.6 0-2.8.8-2.8 2.1 0 3 5.7 1.5 5.7 4.3 0 1.3-1.3 2.1-2.9 2.1-1.3 0-2.4-.6-2.9-1.5M12 6v1.8M12 16.3V18"/></symbol>
+  <symbol id="i-presente" viewBox="0 0 24 24"><rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M5 12v8h14v-8M12 8v12"/><path d="M12 8C10 4 7 4.5 7 6.3 7 8 12 8 12 8zm0 0c2-4 5-3.5 5-1.7C17 8 12 8 12 8z"/></symbol>
+  <symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 3 5 6v5.5c0 4.3 3 7.8 7 9.5 4-1.7 7-5.2 7-9.5V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+</svg>
+
+<header class="topo">
+  <div class="envolve">
+    <a class="logo" href="/" aria-label="Vai de Manu, página inicial"><img src="manu.png" alt="">vai de <b>manu</b></a>
+    <nav class="menu" aria-label="Principal">
+      <a href="/passageiro"><svg class="ic"><use href="#i-pessoa"/></svg>Passageiro</a>
+      <a href="/motorista"><svg class="ic"><use href="#i-volante"/></svg>Motorista</a>
+      <a href="#como-funciona"><svg class="ic"><use href="#i-ajuda"/></svg>Como funciona</a>
+    </nav>
+    <a class="botao" href="/motorista">Quero ser motorista</a>
+    <button class="menu-cel so-cel" aria-label="Abrir menu"><svg class="ic"><use href="#i-menu"/></svg></button>
+  </div>
+</header>
+
+<main>
+  <section class="destaque">
+    <div class="destaque-texto">
+      <span class="selo"><svg class="ic"><use href="#i-pino"/></svg>Miranda · MS</span>
+      <h1>Sua corrida pela cidade, <span>sem complicação.</span></h1>
+      <p>Carro, moto, van ou frete. Marque no mapa, veja o valor antes de confirmar e o motorista mais perto vai até você.</p>
+      <div class="acoes">
+        <a class="botao" href="/passageiro">Pedir corrida <span class="seta"><svg class="ic"><use href="#i-seta"/></svg></span></a>
+        <a class="botao contorno" href="#whatsapp"><svg class="ic"><use href="#i-zap"/></svg>Pedir pelo WhatsApp</a>
+      </div>
+      <div class="garantias">
+        <span><svg class="ic"><use href="#i-check"/></svg>Sem baixar aplicativo</span>
+        <span><svg class="ic"><use href="#i-check"/></svg>Preço na hora</span>
+        <span><svg class="ic"><use href="#i-check"/></svg>Motoristas da cidade</span>
+      </div>
+    </div>
+    <div class="destaque-arte" aria-hidden="true">
+      <img src="img/manu/manu-celular.webp" alt="">
+      <div class="cartao-flutua"><span class="bola"><svg class="ic"><use href="#i-carro"/></svg></span><div><b>Motorista a caminho</b><small>chega em ~4 min</small></div></div>
+    </div>
+  </section>
+
+  <section class="bloco cinza" id="veiculos">
+    <div class="envolve">
+      <h2>Como você quer ir?</h2>
+      <p class="sub">Escolha o veículo certo para cada viagem. O valor é calculado pelas ruas e aparece antes de você confirmar.</p>
+      <div class="abas" role="tablist" aria-label="Tipos de veículo">
+        <button role="tab" aria-selected="false" aria-controls="tp-moto" id="ta-moto">Moto</button>
+        <button role="tab" aria-selected="true" aria-controls="tp-carro" id="ta-carro">Carro</button>
+        <button role="tab" aria-selected="false" aria-controls="tp-van" id="ta-van">Van</button>
+        <button role="tab" aria-selected="false" aria-controls="tp-frete" id="ta-frete">Frete</button>
+      </div>
+      <div class="painel-tipo" role="tabpanel" id="tp-moto" aria-labelledby="ta-moto" hidden><span class="disco"><svg class="ilus" viewBox="0 0 320 190" aria-hidden="true"><ellipse cx="160" cy="176" rx="130" ry="9" fill="#000" opacity=".18"/><path d="M150 132L84 150" stroke="#3a4640" stroke-width="8" stroke-linecap="round"/><path d="M242 150L214 84" stroke="#3a4640" stroke-width="8" stroke-linecap="round"/><rect x="132" y="112" width="58" height="34" rx="8" fill="#5d6a63"/><rect x="140" y="120" width="20" height="18" rx="3" fill="#7d8983"/><rect x="84" y="134" width="70" height="10" rx="5" fill="#aab4ae"/><path d="M58 116l58-10 4 12-54 8z" fill="#0a8f43"/><path d="M96 106q4-10 28-10l40 2-10 14-54 2z" fill="#1f2b26"/><path d="M150 112q8-26 44-28h18q8 12 0 28z" fill="#0a8f43"/><path d="M168 96q14-6 30-6" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".7"/><path d="M214 84l-14-14h-10" stroke="#1f2b26" stroke-width="6" stroke-linecap="round" fill="none"/><circle cx="228" cy="94" r="11" fill="#1f2b26"/><circle cx="230" cy="94" r="6.5" fill="#ffd54a"/><circle cx="84" cy="150" r="30" fill="#1b221e"/><circle cx="84" cy="150" r="16.5" fill="#d5dcd8"/><circle cx="84" cy="150" r="6.6" fill="#7d8983"/><circle cx="242" cy="150" r="30" fill="#1b221e"/><circle cx="242" cy="150" r="16.5" fill="#d5dcd8"/><circle cx="242" cy="150" r="6.6" fill="#7d8983"/></svg></span><div><small>Moto</small><h3>Rápida e econômica para ir sozinho.</h3><p>Ideal para trajetos curtos pela cidade, sem trânsito e pelo menor preço. O capacete é por conta do motorista.</p><div class="preco-grande">a partir de <b>R$ 6,00</b></div><a class="botao" href="/passageiro">Pedir moto <span class="seta"><svg class="ic"><use href="#i-seta"/></svg></span></a></div></div>
+      <div class="painel-tipo" role="tabpanel" id="tp-carro" aria-labelledby="ta-carro"><span class="disco"><svg class="ilus" viewBox="0 0 320 190" aria-hidden="true"><ellipse cx="163" cy="176" rx="140" ry="9" fill="#000" opacity=".18"/><path d="M28 150V118q2-14 18-17l46-7 34-30q8-7 20-7h66q13 0 21 8l30 29 22 5q12 3 12 17v34z" fill="#fff"/><path d="M28 132h268v18H28z" fill="#e3e9e5"/><path d="M28 124h268v6H28z" fill="#0a8f43"/><path d="M106 94l28-25q4-4 10-4h36v29z" fill="#1f2b26"/><path d="M188 65h24q8 0 14 6l24 23h-62z" fill="#1f2b26"/><path d="M184 68v62" stroke="#e3e9e5" stroke-width="2"/><rect x="190" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><rect x="140" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><ellipse cx="289" cy="110" rx="7" ry="5" fill="#ffd54a"/><rect x="28" y="106" width="8" height="12" rx="2" fill="#e0475b"/><path d="M244 92l8 2-2 6-8-2z" fill="#1f2b26"/><circle cx="86" cy="150" r="25" fill="#1b221e"/><circle cx="86" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="86" cy="150" r="5.5" fill="#7d8983"/><circle cx="242" cy="150" r="25" fill="#1b221e"/><circle cx="242" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="242" cy="150" r="5.5" fill="#7d8983"/></svg></span><div><small>Carro</small><h3>Conforto para até 4 pessoas.</h3><p>Para ir ao trabalho, ao mercado, à rodoviária ou voltar para casa à noite com segurança.</p><div class="preco-grande">a partir de <b>R$ 8,00</b></div><a class="botao" href="/passageiro">Pedir carro <span class="seta"><svg class="ic"><use href="#i-seta"/></svg></span></a></div></div>
+      <div class="painel-tipo" role="tabpanel" id="tp-van" aria-labelledby="ta-van" hidden><span class="disco"><svg class="ilus" viewBox="0 0 320 190" aria-hidden="true"><ellipse cx="160" cy="176" rx="145" ry="9" fill="#000" opacity=".18"/><path d="M22 150V72q0-18 18-18h176q16 0 26 12l40 42q14 4 14 20v22z" fill="#fff"/><path d="M22 132h274v18H22z" fill="#e3e9e5"/><path d="M22 116h274v10H22z" fill="#0a8f43"/><rect x="40" y="66" width="42" height="32" rx="5" fill="#1f2b26"/><rect x="90" y="66" width="42" height="32" rx="5" fill="#1f2b26"/><rect x="140" y="66" width="46" height="32" rx="5" fill="#1f2b26"/><path d="M196 66h26q8 0 14 7l28 29h-68z" fill="#1f2b26"/><path d="M192 60v70" stroke="#e3e9e5" stroke-width="2"/><ellipse cx="289" cy="122" rx="6" ry="5" fill="#ffd54a"/><rect x="22" y="100" width="7" height="14" rx="2" fill="#e0475b"/><circle cx="78" cy="150" r="24" fill="#1b221e"/><circle cx="78" cy="150" r="13.2" fill="#d5dcd8"/><circle cx="78" cy="150" r="5.3" fill="#7d8983"/><circle cx="246" cy="150" r="24" fill="#1b221e"/><circle cx="246" cy="150" r="13.2" fill="#d5dcd8"/><circle cx="246" cy="150" r="5.3" fill="#7d8983"/></svg></span><div><small>Van</small><h3>Para a família ou grupos maiores.</h3><p>Mais espaço para pessoas e bagagem: passeios, eventos e viagens em grupo.</p><div class="preco-grande">a partir de <b>R$ 15,00</b></div><a class="botao" href="/passageiro">Pedir van <span class="seta"><svg class="ic"><use href="#i-seta"/></svg></span></a></div></div>
+      <div class="painel-tipo" role="tabpanel" id="tp-frete" aria-labelledby="ta-frete" hidden><span class="disco"><svg class="ilus" viewBox="0 0 320 190" aria-hidden="true"><ellipse cx="160" cy="176" rx="148" ry="9" fill="#000" opacity=".18"/><rect x="16" y="40" width="190" height="98" rx="8" fill="#fff" stroke="#e3e9e5" stroke-width="3"/><path d="M54 46v86" stroke="#e3e9e5" stroke-width="2"/><path d="M92 46v86" stroke="#e3e9e5" stroke-width="2"/><path d="M130 46v86" stroke="#e3e9e5" stroke-width="2"/><path d="M168 46v86" stroke="#e3e9e5" stroke-width="2"/><rect x="38" y="72" width="146" height="36" rx="6" fill="#fff"/><text x="111" y="97" text-anchor="middle" font-family="Manrope, sans-serif" font-weight="800" font-size="22" fill="#1f2b26">vai de <tspan fill="#0a8f43">manu</tspan></text><path d="M212 146V74q0-10 10-10h34q10 0 16 9l20 34q8 4 8 16v23z" fill="#0a8f43"/><path d="M224 74h32q6 0 10 6l16 26h-58z" fill="#1f2b26"/><rect x="226" y="114" width="12" height="4" rx="2" fill="#06622e"/><rect x="14" y="136" width="286" height="10" rx="3" fill="#3a4640"/><ellipse cx="294" cy="128" rx="5" ry="6" fill="#ffd54a"/><circle cx="64" cy="152" r="22" fill="#1b221e"/><circle cx="64" cy="152" r="12.1" fill="#d5dcd8"/><circle cx="64" cy="152" r="4.8" fill="#7d8983"/><circle cx="112" cy="152" r="22" fill="#1b221e"/><circle cx="112" cy="152" r="12.1" fill="#d5dcd8"/><circle cx="112" cy="152" r="4.8" fill="#7d8983"/><circle cx="260" cy="152" r="22" fill="#1b221e"/><circle cx="260" cy="152" r="12.1" fill="#d5dcd8"/><circle cx="260" cy="152" r="4.8" fill="#7d8983"/></svg></span><div><small>Frete</small><h3>Mudança, móveis e cargas.</h3><p>Caminhão para levar o que não cabe no carro, com o valor combinado antes de sair.</p><div class="preco-grande">a partir de <b>R$ 60,00</b></div><a class="botao" href="/passageiro">Pedir frete <span class="seta"><svg class="ic"><use href="#i-seta"/></svg></span></a></div></div>
+    </div>
+  </section>
+
+  <section class="bloco" id="como-funciona">
+    <div class="envolve">
+      <h2>Pedir é simples assim</h2>
+      <p class="sub">Pelo site ou pelo WhatsApp, em menos de um minuto.</p>
+      <div class="passos">
+        <div class="passo"><h3>Marque saída e destino</h3><p>Use sua localização ou digite o endereço. Vale ponto de referência também.</p></div>
+        <div class="passo"><h3>Veja o valor e confirme</h3><p>Escolha o veículo e a forma de pagamento: dinheiro ou Pix, direto ao motorista.</p></div>
+        <div class="passo"><h3>O motorista vai até você</h3><p>Você recebe o nome, o veículo e a placa, e acompanha a chegada pela tela.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bloco" style="padding-top:0">
+    <div class="envolve">
+      <div class="motorista">
+        <div class="motorista-texto">
+          <span class="selo"><svg class="ic"><use href="#i-volante"/></svg>Para motoristas</span>
+          <h2>Dirija com a Vai de Manu</h2>
+          <p class="sub">Receba corridas perto de você, no horário que quiser, com uma central da sua cidade.</p>
+          <ul class="vantagens">
+            <li><svg class="ic"><use href="#i-cifrao"/></svg><div><b>Sem mensalidade</b><span>Você compra viagens só quando precisar.</span></div></li>
+            <li><svg class="ic"><use href="#i-presente"/></svg><div><b>3 viagens grátis</b><span>Assim que seu cadastro for aprovado.</span></div></li>
+            <li><svg class="ic"><use href="#i-relogio"/></svg><div><b>Seu horário</b><span>Fique online e offline quando quiser.</span></div></li>
+            <li><svg class="ic"><use href="#i-escudo"/></svg><div><b>Cadastro sem senha</b><span>Entre com um código no seu WhatsApp.</span></div></li>
+          </ul>
+          <a class="botao claro" href="/motorista">Quero ser motorista <span class="seta"><svg class="ic"><use href="#i-seta"/></svg></span></a>
+        </div>
+        <div class="motorista-arte" aria-hidden="true"><img src="img/manu/manu-joinha.webp" alt=""></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bloco cinza" id="whatsapp">
+    <div class="envolve">
+      <div class="whats" style="background:#fff">
+        <div><h2>Prefere o WhatsApp?</h2><p>Mande um “oi” para a central e peça sua corrida pela conversa.</p></div>
+        <a class="botao" href="#"><svg class="ic"><use href="#i-zap"/></svg>(67) 99820-7120</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="envolve">
+    <a class="logo" href="/" style="font-size:20px"><img src="manu.png" alt="">vai de <b>manu</b></a>
+    <nav aria-label="Rodapé"><a href="/passageiro">Passageiro</a><a href="/motorista">Motorista</a><a href="/painel">Administração</a></nav>
+    <span>Corridas em Miranda · MS</span>
+  </div>
+</footer>
+<script>
+const abas = [...document.querySelectorAll('[role=tab]')];
+function escolher(a) {
+  abas.forEach((b) => { const sel = b === a; b.setAttribute('aria-selected', sel); b.tabIndex = sel ? 0 : -1; document.getElementById(b.getAttribute('aria-controls')).hidden = !sel; });
+}
+abas.forEach((a, i) => {
+  a.tabIndex = a.getAttribute('aria-selected') === 'true' ? 0 : -1;
+  a.onclick = () => escolher(a);
+  a.onkeydown = (e) => { const d = { ArrowRight: 1, ArrowLeft: -1 }[e.key]; if (d) { const n = abas[(i + d + abas.length) % abas.length]; escolher(n); n.focus(); } };
+});
+</script>
+</body>
+</html>
