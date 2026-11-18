@@ -1,5 +1,5 @@
 /* Vai de Manu — PWA passageiro. Não armazenar APIs, rotas, endereços ou dados do usuário. */
-const CACHE_NAME = 'vai-manu-passageiro-shell-v1';
+const CACHE_NAME = 'vai-manu-passageiro-shell-v2';
 const STATIC = [
   '/passageiro.css', '/manu.png', '/favicon.png', '/apple-touch-icon.png',
   '/passageiro.webmanifest', '/offline-passageiro.html'
