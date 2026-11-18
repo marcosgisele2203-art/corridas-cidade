@@ -26,7 +26,24 @@
 .boas .miudo { color: rgba(255,255,255,.7); }
 .boas .miudo a { color: #fff; }
 
-/* 4 · cadastro */
+/* 4 · como quer trabalhar */
+.escolhas { display: grid; gap: 12px; }
+.escolha { display: grid; grid-template-columns: 1fr 96px; align-items: center; gap: 8px; padding: 14px 12px 14px 16px; border: 2px solid var(--borda); border-radius: 18px; cursor: pointer; }
+.escolha:has(input:checked) { border: 3px solid var(--verde); padding: 13px 11px 13px 15px; background: #f3faf5; }
+.escolha:has(input:focus-visible) { outline: 3px solid var(--verde); outline-offset: 2px; }
+.escolha input { position: absolute; opacity: 0; pointer-events: none; }
+.escolha b { display: block; font-size: 19px; margin: 6px 0 2px; }
+.escolha small { display: block; color: var(--suave); font-size: 14px; line-height: 1.45; }
+.escolha small strong { color: var(--texto); }
+.escolha svg { width: 96px; height: 56px; }
+.etq { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 800; padding: 2px 10px; border-radius: 8px; }
+.etq.pass { background: var(--verde-claro); color: var(--verde-escuro); }
+.etq.carga { background: #fff1cc; color: #7a5200; }
+.base.fixa { position: sticky; bottom: 0; background: #fff; margin: 0 calc(-1 * var(--e3)); padding: var(--e2) var(--e3) 0; }
+.tipo-escolhido { display: flex; justify-content: space-between; align-items: center; background: var(--fundo-2); border-radius: 14px; padding: 12px 16px; margin-bottom: var(--e2); }
+.tipo-escolhido button { border: 0; background: none; font: inherit; font-weight: 800; color: var(--verde-escuro); text-decoration: underline; cursor: pointer; }
+
+/* 5 · cadastro */
 .topo-cad { margin: calc(-1 * var(--e3)) calc(-1 * var(--e3)) 0; padding: var(--e3) var(--e3) 0; background: #eaf6ee; position: relative; overflow: hidden; }
 .topo-cad h1 { max-width: 230px; position: relative; z-index: 1; }
 .topo-cad .ilus { display: block; width: 300px; margin: -10px -40px -24px auto; }
@@ -43,7 +60,7 @@
 .tipos button[aria-pressed=true] { border-color: var(--verde); background: var(--verde-claro); }
 .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
 
-/* 5 · localização */
+/* 6 · localização */
 .loc { background: #f4f8f5; }
 .mapinha { width: 220px; height: 220px; border-radius: 50%; margin: var(--e3) auto var(--e4); background: #fff; border: 6px solid var(--verde-claro); position: relative; overflow: hidden; }
 .mapinha svg { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -54,7 +71,7 @@
 .garantias-loc span { color: var(--suave); font-size: 15px; }
 .loc .botao.contorno { border-color: transparent; color: var(--suave); }
 
-/* 6 · início do motorista */
+/* 7 · início do motorista */
 .inicio-mot { background: var(--fundo-2); padding: 0; }
 .cabeca { background: var(--verde-escuro); color: #fff; padding: var(--e3) var(--e3) 72px; border-radius: 0 0 32px 32px; }
 .cabeca .linha-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--e3); }
@@ -141,15 +158,30 @@
     </div>
     <div class="tempo" id="tempo">Reenviar código em 56 s</div>
     <div class="empurra"></div>
-    <div class="base"><button class="botao" id="proximoCodigo" disabled>Confirmar</button><p class="passo-n" id="passoCodigo">Passo 2 de 4</p></div>
+    <div class="base"><button class="botao" id="proximoCodigo" disabled>Confirmar</button><p class="passo-n" id="passoCodigo">Passo 2 de 5</p></div>
   </form>
 
-  <!-- 4 · cadastro -->
+  <!-- 4 · como quer trabalhar -->
+  <form class="tela" data-tela="tipo" hidden>
+    <button type="button" class="voltar" data-ir="codigo" aria-label="Voltar"><svg class="ic"><use href="#i-seta"/></svg></button>
+    <h1>Como você quer trabalhar?</h1>
+    <p class="ajuda" style="margin-bottom:var(--e3)">Escolha o veículo que você vai usar. Dá para mudar depois falando com a central.</p>
+    <div class="escolhas" role="radiogroup" aria-label="Tipo de veículo">
+        <label class="escolha"><input type="radio" name="tipo" value="moto"><span><span class="etq pass">Passageiros</span><b>Moto</b><small>Leve 1 passageiro por vez, com agilidade.</small><small><strong>Precisa:</strong> CNH categoria A</small><small><strong>Corridas:</strong> a partir de R$ 6,00</small></span><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="160" cy="176" rx="130" ry="9" fill="#000" opacity=".18"/><path d="M150 132L84 150" stroke="#3a4640" stroke-width="8" stroke-linecap="round"/><path d="M242 150L214 84" stroke="#3a4640" stroke-width="8" stroke-linecap="round"/><rect x="132" y="112" width="58" height="34" rx="8" fill="#5d6a63"/><rect x="140" y="120" width="20" height="18" rx="3" fill="#7d8983"/><rect x="84" y="134" width="70" height="10" rx="5" fill="#aab4ae"/><path d="M58 116l58-10 4 12-54 8z" fill="#0a8f43"/><path d="M96 106q4-10 28-10l40 2-10 14-54 2z" fill="#1f2b26"/><path d="M150 112q8-26 44-28h18q8 12 0 28z" fill="#0a8f43"/><path d="M168 96q14-6 30-6" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".7"/><path d="M214 84l-14-14h-10" stroke="#1f2b26" stroke-width="6" stroke-linecap="round" fill="none"/><circle cx="228" cy="94" r="11" fill="#1f2b26"/><circle cx="230" cy="94" r="6.5" fill="#ffd54a"/><circle cx="84" cy="150" r="30" fill="#1b221e"/><circle cx="84" cy="150" r="16.5" fill="#d5dcd8"/><circle cx="84" cy="150" r="6.6" fill="#7d8983"/><circle cx="242" cy="150" r="30" fill="#1b221e"/><circle cx="242" cy="150" r="16.5" fill="#d5dcd8"/><circle cx="242" cy="150" r="6.6" fill="#7d8983"/></svg></label>
+        <label class="escolha"><input type="radio" name="tipo" value="carro" checked><span><span class="etq pass">Passageiros</span><b>Carro</b><small>Até 4 passageiros com conforto.</small><small><strong>Precisa:</strong> CNH categoria B</small><small><strong>Corridas:</strong> a partir de R$ 8,00</small></span><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="163" cy="176" rx="140" ry="9" fill="#000" opacity=".18"/><path d="M28 150V118q2-14 18-17l46-7 34-30q8-7 20-7h66q13 0 21 8l30 29 22 5q12 3 12 17v34z" fill="#fff"/><path d="M28 132h268v18H28z" fill="#e3e9e5"/><path d="M28 124h268v6H28z" fill="#0a8f43"/><path d="M106 94l28-25q4-4 10-4h36v29z" fill="#1f2b26"/><path d="M188 65h24q8 0 14 6l24 23h-62z" fill="#1f2b26"/><path d="M184 68v62" stroke="#e3e9e5" stroke-width="2"/><rect x="190" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><rect x="140" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><ellipse cx="289" cy="110" rx="7" ry="5" fill="#ffd54a"/><rect x="28" y="106" width="8" height="12" rx="2" fill="#e0475b"/><path d="M244 92l8 2-2 6-8-2z" fill="#1f2b26"/><circle cx="86" cy="150" r="25" fill="#1b221e"/><circle cx="86" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="86" cy="150" r="5.5" fill="#7d8983"/><circle cx="242" cy="150" r="25" fill="#1b221e"/><circle cx="242" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="242" cy="150" r="5.5" fill="#7d8983"/></svg></label>
+        <label class="escolha"><input type="radio" name="tipo" value="van"><span><span class="etq pass">Passageiros</span><b>Van</b><small>Famílias, grupos e passeios.</small><small><strong>Precisa:</strong> CNH compatível com a lotação da van</small><small><strong>Corridas:</strong> a partir de R$ 15,00</small></span><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="160" cy="176" rx="145" ry="9" fill="#000" opacity=".18"/><path d="M22 150V72q0-18 18-18h176q16 0 26 12l40 42q14 4 14 20v22z" fill="#fff"/><path d="M22 132h274v18H22z" fill="#e3e9e5"/><path d="M22 116h274v10H22z" fill="#0a8f43"/><rect x="40" y="66" width="42" height="32" rx="5" fill="#1f2b26"/><rect x="90" y="66" width="42" height="32" rx="5" fill="#1f2b26"/><rect x="140" y="66" width="46" height="32" rx="5" fill="#1f2b26"/><path d="M196 66h26q8 0 14 7l28 29h-68z" fill="#1f2b26"/><path d="M192 60v70" stroke="#e3e9e5" stroke-width="2"/><ellipse cx="289" cy="122" rx="6" ry="5" fill="#ffd54a"/><rect x="22" y="100" width="7" height="14" rx="2" fill="#e0475b"/><circle cx="78" cy="150" r="24" fill="#1b221e"/><circle cx="78" cy="150" r="13.2" fill="#d5dcd8"/><circle cx="78" cy="150" r="5.3" fill="#7d8983"/><circle cx="246" cy="150" r="24" fill="#1b221e"/><circle cx="246" cy="150" r="13.2" fill="#d5dcd8"/><circle cx="246" cy="150" r="5.3" fill="#7d8983"/></svg></label>
+        <label class="escolha"><input type="radio" name="tipo" value="frete"><span><span class="etq carga">Carga</span><b>Frete</b><small>Mudanças, móveis e cargas.</small><small><strong>Precisa:</strong> CNH compatível com o caminhão</small><small><strong>Corridas:</strong> a partir de R$ 60,00</small></span><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="160" cy="176" rx="148" ry="9" fill="#000" opacity=".18"/><rect x="16" y="40" width="190" height="98" rx="8" fill="#fff" stroke="#e3e9e5" stroke-width="3"/><path d="M54 46v86" stroke="#e3e9e5" stroke-width="2"/><path d="M92 46v86" stroke="#e3e9e5" stroke-width="2"/><path d="M130 46v86" stroke="#e3e9e5" stroke-width="2"/><path d="M168 46v86" stroke="#e3e9e5" stroke-width="2"/><rect x="38" y="72" width="146" height="36" rx="6" fill="#fff"/><text x="111" y="97" text-anchor="middle" font-family="Manrope, sans-serif" font-weight="800" font-size="22" fill="#1f2b26">vai de <tspan fill="#0a8f43">manu</tspan></text><path d="M212 146V74q0-10 10-10h34q10 0 16 9l20 34q8 4 8 16v23z" fill="#0a8f43"/><path d="M224 74h32q6 0 10 6l16 26h-58z" fill="#1f2b26"/><rect x="226" y="114" width="12" height="4" rx="2" fill="#06622e"/><rect x="14" y="136" width="286" height="10" rx="3" fill="#3a4640"/><ellipse cx="294" cy="128" rx="5" ry="6" fill="#ffd54a"/><circle cx="64" cy="152" r="22" fill="#1b221e"/><circle cx="64" cy="152" r="12.1" fill="#d5dcd8"/><circle cx="64" cy="152" r="4.8" fill="#7d8983"/><circle cx="112" cy="152" r="22" fill="#1b221e"/><circle cx="112" cy="152" r="12.1" fill="#d5dcd8"/><circle cx="112" cy="152" r="4.8" fill="#7d8983"/><circle cx="260" cy="152" r="22" fill="#1b221e"/><circle cx="260" cy="152" r="12.1" fill="#d5dcd8"/><circle cx="260" cy="152" r="4.8" fill="#7d8983"/></svg></label>
+    </div>
+    <div class="empurra"></div>
+    <div class="base fixa"><button class="botao">Continuar</button><p class="passo-n">Passo 3 de 5</p></div>
+  </form>
+
+  <!-- 5 · cadastro -->
   <form class="tela" data-tela="cadastro" hidden style="padding-top:var(--e3)">
     <div class="topo-cad">
-      <button type="button" class="voltar" data-ir="codigo" aria-label="Voltar"><svg class="ic"><use href="#i-seta"/></svg></button>
+      <button type="button" class="voltar" data-ir="tipo" aria-label="Voltar"><svg class="ic"><use href="#i-seta"/></svg></button>
       <h1>Cadastre-se como motorista</h1>
-      <svg class="ilus" viewBox="0 0 320 190" aria-hidden="true"><ellipse cx="163" cy="176" rx="140" ry="9" fill="#000" opacity=".18"/><path d="M28 150V118q2-14 18-17l46-7 34-30q8-7 20-7h66q13 0 21 8l30 29 22 5q12 3 12 17v34z" fill="#fff"/><path d="M28 132h268v18H28z" fill="#e3e9e5"/><path d="M28 124h268v6H28z" fill="#0a8f43"/><path d="M106 94l28-25q4-4 10-4h36v29z" fill="#1f2b26"/><path d="M188 65h24q8 0 14 6l24 23h-62z" fill="#1f2b26"/><path d="M184 68v62" stroke="#e3e9e5" stroke-width="2"/><rect x="190" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><rect x="140" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><ellipse cx="289" cy="110" rx="7" ry="5" fill="#ffd54a"/><rect x="28" y="106" width="8" height="12" rx="2" fill="#e0475b"/><path d="M244 92l8 2-2 6-8-2z" fill="#1f2b26"/><circle cx="86" cy="150" r="25" fill="#1b221e"/><circle cx="86" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="86" cy="150" r="5.5" fill="#7d8983"/><circle cx="242" cy="150" r="25" fill="#1b221e"/><circle cx="242" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="242" cy="150" r="5.5" fill="#7d8983"/></svg>
+      <span class="ilus-tipo" data-tipo="moto" hidden><svg class="ilus" viewBox="0 0 320 190" aria-hidden="true"><ellipse cx="160" cy="176" rx="130" ry="9" fill="#000" opacity=".18"/><path d="M150 132L84 150" stroke="#3a4640" stroke-width="8" stroke-linecap="round"/><path d="M242 150L214 84" stroke="#3a4640" stroke-width="8" stroke-linecap="round"/><rect x="132" y="112" width="58" height="34" rx="8" fill="#5d6a63"/><rect x="140" y="120" width="20" height="18" rx="3" fill="#7d8983"/><rect x="84" y="134" width="70" height="10" rx="5" fill="#aab4ae"/><path d="M58 116l58-10 4 12-54 8z" fill="#0a8f43"/><path d="M96 106q4-10 28-10l40 2-10 14-54 2z" fill="#1f2b26"/><path d="M150 112q8-26 44-28h18q8 12 0 28z" fill="#0a8f43"/><path d="M168 96q14-6 30-6" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".7"/><path d="M214 84l-14-14h-10" stroke="#1f2b26" stroke-width="6" stroke-linecap="round" fill="none"/><circle cx="228" cy="94" r="11" fill="#1f2b26"/><circle cx="230" cy="94" r="6.5" fill="#ffd54a"/><circle cx="84" cy="150" r="30" fill="#1b221e"/><circle cx="84" cy="150" r="16.5" fill="#d5dcd8"/><circle cx="84" cy="150" r="6.6" fill="#7d8983"/><circle cx="242" cy="150" r="30" fill="#1b221e"/><circle cx="242" cy="150" r="16.5" fill="#d5dcd8"/><circle cx="242" cy="150" r="6.6" fill="#7d8983"/></svg></span><span class="ilus-tipo" data-tipo="carro"><svg class="ilus" viewBox="0 0 320 190" aria-hidden="true"><ellipse cx="163" cy="176" rx="140" ry="9" fill="#000" opacity=".18"/><path d="M28 150V118q2-14 18-17l46-7 34-30q8-7 20-7h66q13 0 21 8l30 29 22 5q12 3 12 17v34z" fill="#fff"/><path d="M28 132h268v18H28z" fill="#e3e9e5"/><path d="M28 124h268v6H28z" fill="#0a8f43"/><path d="M106 94l28-25q4-4 10-4h36v29z" fill="#1f2b26"/><path d="M188 65h24q8 0 14 6l24 23h-62z" fill="#1f2b26"/><path d="M184 68v62" stroke="#e3e9e5" stroke-width="2"/><rect x="190" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><rect x="140" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><ellipse cx="289" cy="110" rx="7" ry="5" fill="#ffd54a"/><rect x="28" y="106" width="8" height="12" rx="2" fill="#e0475b"/><path d="M244 92l8 2-2 6-8-2z" fill="#1f2b26"/><circle cx="86" cy="150" r="25" fill="#1b221e"/><circle cx="86" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="86" cy="150" r="5.5" fill="#7d8983"/><circle cx="242" cy="150" r="25" fill="#1b221e"/><circle cx="242" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="242" cy="150" r="5.5" fill="#7d8983"/></svg></span><span class="ilus-tipo" data-tipo="van" hidden><svg class="ilus" viewBox="0 0 320 190" aria-hidden="true"><ellipse cx="160" cy="176" rx="145" ry="9" fill="#000" opacity=".18"/><path d="M22 150V72q0-18 18-18h176q16 0 26 12l40 42q14 4 14 20v22z" fill="#fff"/><path d="M22 132h274v18H22z" fill="#e3e9e5"/><path d="M22 116h274v10H22z" fill="#0a8f43"/><rect x="40" y="66" width="42" height="32" rx="5" fill="#1f2b26"/><rect x="90" y="66" width="42" height="32" rx="5" fill="#1f2b26"/><rect x="140" y="66" width="46" height="32" rx="5" fill="#1f2b26"/><path d="M196 66h26q8 0 14 7l28 29h-68z" fill="#1f2b26"/><path d="M192 60v70" stroke="#e3e9e5" stroke-width="2"/><ellipse cx="289" cy="122" rx="6" ry="5" fill="#ffd54a"/><rect x="22" y="100" width="7" height="14" rx="2" fill="#e0475b"/><circle cx="78" cy="150" r="24" fill="#1b221e"/><circle cx="78" cy="150" r="13.2" fill="#d5dcd8"/><circle cx="78" cy="150" r="5.3" fill="#7d8983"/><circle cx="246" cy="150" r="24" fill="#1b221e"/><circle cx="246" cy="150" r="13.2" fill="#d5dcd8"/><circle cx="246" cy="150" r="5.3" fill="#7d8983"/></svg></span><span class="ilus-tipo" data-tipo="frete" hidden><svg class="ilus" viewBox="0 0 320 190" aria-hidden="true"><ellipse cx="160" cy="176" rx="148" ry="9" fill="#000" opacity=".18"/><rect x="16" y="40" width="190" height="98" rx="8" fill="#fff" stroke="#e3e9e5" stroke-width="3"/><path d="M54 46v86" stroke="#e3e9e5" stroke-width="2"/><path d="M92 46v86" stroke="#e3e9e5" stroke-width="2"/><path d="M130 46v86" stroke="#e3e9e5" stroke-width="2"/><path d="M168 46v86" stroke="#e3e9e5" stroke-width="2"/><rect x="38" y="72" width="146" height="36" rx="6" fill="#fff"/><text x="111" y="97" text-anchor="middle" font-family="Manrope, sans-serif" font-weight="800" font-size="22" fill="#1f2b26">vai de <tspan fill="#0a8f43">manu</tspan></text><path d="M212 146V74q0-10 10-10h34q10 0 16 9l20 34q8 4 8 16v23z" fill="#0a8f43"/><path d="M224 74h32q6 0 10 6l16 26h-58z" fill="#1f2b26"/><rect x="226" y="114" width="12" height="4" rx="2" fill="#06622e"/><rect x="14" y="136" width="286" height="10" rx="3" fill="#3a4640"/><ellipse cx="294" cy="128" rx="5" ry="6" fill="#ffd54a"/><circle cx="64" cy="152" r="22" fill="#1b221e"/><circle cx="64" cy="152" r="12.1" fill="#d5dcd8"/><circle cx="64" cy="152" r="4.8" fill="#7d8983"/><circle cx="112" cy="152" r="22" fill="#1b221e"/><circle cx="112" cy="152" r="12.1" fill="#d5dcd8"/><circle cx="112" cy="152" r="4.8" fill="#7d8983"/><circle cx="260" cy="152" r="22" fill="#1b221e"/><circle cx="260" cy="152" r="12.1" fill="#d5dcd8"/><circle cx="260" cy="152" r="4.8" fill="#7d8983"/></svg></span>
     </div>
     <div class="folha">
       <h2>Suas vantagens</h2>
@@ -161,20 +193,14 @@
       </div>
       <h2>Seus dados</h2>
       <label class="campo">Nome completo<input name="nome" autocomplete="name"></label>
-      <span class="campo" style="margin:0">Tipo de veículo</span>
-      <div class="tipos">
-        <button type="button" aria-pressed="false"><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="160" cy="176" rx="130" ry="9" fill="#000" opacity=".18"/><path d="M150 132L84 150" stroke="#3a4640" stroke-width="8" stroke-linecap="round"/><path d="M242 150L214 84" stroke="#3a4640" stroke-width="8" stroke-linecap="round"/><rect x="132" y="112" width="58" height="34" rx="8" fill="#5d6a63"/><rect x="140" y="120" width="20" height="18" rx="3" fill="#7d8983"/><rect x="84" y="134" width="70" height="10" rx="5" fill="#aab4ae"/><path d="M58 116l58-10 4 12-54 8z" fill="#0a8f43"/><path d="M96 106q4-10 28-10l40 2-10 14-54 2z" fill="#1f2b26"/><path d="M150 112q8-26 44-28h18q8 12 0 28z" fill="#0a8f43"/><path d="M168 96q14-6 30-6" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".7"/><path d="M214 84l-14-14h-10" stroke="#1f2b26" stroke-width="6" stroke-linecap="round" fill="none"/><circle cx="228" cy="94" r="11" fill="#1f2b26"/><circle cx="230" cy="94" r="6.5" fill="#ffd54a"/><circle cx="84" cy="150" r="30" fill="#1b221e"/><circle cx="84" cy="150" r="16.5" fill="#d5dcd8"/><circle cx="84" cy="150" r="6.6" fill="#7d8983"/><circle cx="242" cy="150" r="30" fill="#1b221e"/><circle cx="242" cy="150" r="16.5" fill="#d5dcd8"/><circle cx="242" cy="150" r="6.6" fill="#7d8983"/></svg>Moto</button>
-        <button type="button" aria-pressed="true"><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="163" cy="176" rx="140" ry="9" fill="#000" opacity=".18"/><path d="M28 150V118q2-14 18-17l46-7 34-30q8-7 20-7h66q13 0 21 8l30 29 22 5q12 3 12 17v34z" fill="#fff"/><path d="M28 132h268v18H28z" fill="#e3e9e5"/><path d="M28 124h268v6H28z" fill="#0a8f43"/><path d="M106 94l28-25q4-4 10-4h36v29z" fill="#1f2b26"/><path d="M188 65h24q8 0 14 6l24 23h-62z" fill="#1f2b26"/><path d="M184 68v62" stroke="#e3e9e5" stroke-width="2"/><rect x="190" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><rect x="140" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><ellipse cx="289" cy="110" rx="7" ry="5" fill="#ffd54a"/><rect x="28" y="106" width="8" height="12" rx="2" fill="#e0475b"/><path d="M244 92l8 2-2 6-8-2z" fill="#1f2b26"/><circle cx="86" cy="150" r="25" fill="#1b221e"/><circle cx="86" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="86" cy="150" r="5.5" fill="#7d8983"/><circle cx="242" cy="150" r="25" fill="#1b221e"/><circle cx="242" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="242" cy="150" r="5.5" fill="#7d8983"/></svg>Carro</button>
-        <button type="button" aria-pressed="false"><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="160" cy="176" rx="145" ry="9" fill="#000" opacity=".18"/><path d="M22 150V72q0-18 18-18h176q16 0 26 12l40 42q14 4 14 20v22z" fill="#fff"/><path d="M22 132h274v18H22z" fill="#e3e9e5"/><path d="M22 116h274v10H22z" fill="#0a8f43"/><rect x="40" y="66" width="42" height="32" rx="5" fill="#1f2b26"/><rect x="90" y="66" width="42" height="32" rx="5" fill="#1f2b26"/><rect x="140" y="66" width="46" height="32" rx="5" fill="#1f2b26"/><path d="M196 66h26q8 0 14 7l28 29h-68z" fill="#1f2b26"/><path d="M192 60v70" stroke="#e3e9e5" stroke-width="2"/><ellipse cx="289" cy="122" rx="6" ry="5" fill="#ffd54a"/><rect x="22" y="100" width="7" height="14" rx="2" fill="#e0475b"/><circle cx="78" cy="150" r="24" fill="#1b221e"/><circle cx="78" cy="150" r="13.2" fill="#d5dcd8"/><circle cx="78" cy="150" r="5.3" fill="#7d8983"/><circle cx="246" cy="150" r="24" fill="#1b221e"/><circle cx="246" cy="150" r="13.2" fill="#d5dcd8"/><circle cx="246" cy="150" r="5.3" fill="#7d8983"/></svg>Van</button>
-        <button type="button" aria-pressed="false"><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="160" cy="176" rx="148" ry="9" fill="#000" opacity=".18"/><rect x="16" y="40" width="190" height="98" rx="8" fill="#fff" stroke="#e3e9e5" stroke-width="3"/><path d="M54 46v86" stroke="#e3e9e5" stroke-width="2"/><path d="M92 46v86" stroke="#e3e9e5" stroke-width="2"/><path d="M130 46v86" stroke="#e3e9e5" stroke-width="2"/><path d="M168 46v86" stroke="#e3e9e5" stroke-width="2"/><rect x="38" y="72" width="146" height="36" rx="6" fill="#fff"/><text x="111" y="97" text-anchor="middle" font-family="Manrope, sans-serif" font-weight="800" font-size="22" fill="#1f2b26">vai de <tspan fill="#0a8f43">manu</tspan></text><path d="M212 146V74q0-10 10-10h34q10 0 16 9l20 34q8 4 8 16v23z" fill="#0a8f43"/><path d="M224 74h32q6 0 10 6l16 26h-58z" fill="#1f2b26"/><rect x="226" y="114" width="12" height="4" rx="2" fill="#06622e"/><rect x="14" y="136" width="286" height="10" rx="3" fill="#3a4640"/><ellipse cx="294" cy="128" rx="5" ry="6" fill="#ffd54a"/><circle cx="64" cy="152" r="22" fill="#1b221e"/><circle cx="64" cy="152" r="12.1" fill="#d5dcd8"/><circle cx="64" cy="152" r="4.8" fill="#7d8983"/><circle cx="112" cy="152" r="22" fill="#1b221e"/><circle cx="112" cy="152" r="12.1" fill="#d5dcd8"/><circle cx="112" cy="152" r="4.8" fill="#7d8983"/><circle cx="260" cy="152" r="22" fill="#1b221e"/><circle cx="260" cy="152" r="12.1" fill="#d5dcd8"/><circle cx="260" cy="152" r="4.8" fill="#7d8983"/></svg>Frete</button>
-      </div>
+      <div class="tipo-escolhido"><span>Veículo: <b id="tipoNome">Carro</b></span><button type="button" data-ir="tipo">Trocar</button></div>
       <label class="campo">Modelo<input name="carro" placeholder="VW Gol"></label>
       <div class="duas"><label class="campo">Cor<input name="cor" placeholder="Branco"></label><label class="campo">Placa<input name="placa" placeholder="ABC1D23"></label></div>
-      <div class="base" style="padding-top:var(--e1)"><button class="botao">Cadastrar agora</button><p class="passo-n">Passo 3 de 4</p></div>
+      <div class="base" style="padding-top:var(--e1)"><button class="botao">Cadastrar agora</button><p class="passo-n">Passo 4 de 5</p></div>
     </div>
   </form>
 
-  <!-- 5 · localização (explica antes de o celular perguntar) -->
+  <!-- 6 · localização (explica antes de o celular perguntar) -->
   <section class="tela loc" data-tela="loc" hidden>
     <div class="mapinha" aria-hidden="true">
       <svg viewBox="0 0 220 220">
@@ -196,11 +222,11 @@
     <div class="base">
       <button class="botao" data-ir="inicio">Permitir localização</button>
       <button class="botao contorno" data-ir="inicio">Agora não</button>
-      <p class="passo-n">Passo 4 de 4</p>
+      <p class="passo-n">Passo 5 de 5</p>
     </div>
   </section>
 
-  <!-- 6 · início do motorista -->
+  <!-- 7 · início do motorista -->
   <section class="tela inicio-mot" data-tela="inicio" hidden>
     <div class="cabeca">
       <div class="linha-topo"><span class="logo" style="color:#fff;font-size:22px"><img src="manu.png" alt="">vai de <b style="color:#8ee0ae">manu</b></span><button class="voltar" aria-label="Menu" style="color:#fff;margin:0"><svg class="ic" style="transform:none"><use href="#i-menu"/></svg></button></div>
@@ -227,7 +253,7 @@
 
 <div class="demo" aria-label="Telas do protótipo">
   <button data-ir="boas">1 Boas-vindas</button><button data-ir="fone">2 Telefone</button><button data-ir="codigo">3 Código</button>
-  <button data-ir="cadastro">4 Cadastro</button><button data-ir="loc">5 Localização</button><button data-ir="inicio">6 Início</button>
+  <button data-ir="tipo">4 Veículo</button><button data-ir="cadastro">5 Cadastro</button><button data-ir="loc">6 Localização</button><button data-ir="inicio">7 Início</button>
 </div>
 
 <script>
@@ -255,14 +281,21 @@ caixas.forEach((c, i) => {
   c.oninput = () => { c.value = c.value.replace(/\D/g, ''); if (c.value && caixas[i + 1]) caixas[i + 1].focus(); $('#proximoCodigo').disabled = caixas.some((x) => !x.value); };
   c.onkeydown = (e) => { if (e.key === 'Backspace' && !c.value && caixas[i - 1]) caixas[i - 1].focus(); };
 });
-document.querySelector('[data-tela="codigo"]').onsubmit = (e) => { e.preventDefault(); ir(modo === 'entrar' ? 'inicio' : 'cadastro'); };
+document.querySelector('[data-tela="codigo"]').onsubmit = (e) => { e.preventDefault(); ir(modo === 'entrar' ? 'inicio' : 'tipo'); };
+const NOMES = { moto: 'Moto', carro: 'Carro', van: 'Van', frete: 'Frete' };
+document.querySelector('[data-tela="tipo"]').onsubmit = (e) => {
+  e.preventDefault();
+  const t = document.querySelector('[name=tipo]:checked').value;
+  document.querySelectorAll('.ilus-tipo').forEach((x) => x.hidden = x.dataset.tipo !== t);
+  $('#tipoNome').textContent = NOMES[t];
+  ir('cadastro');
+};
 document.querySelector('[data-tela="cadastro"]').onsubmit = (e) => { e.preventDefault(); ir('loc'); };
 let relogio;
 function contar() {
   let s = 56; clearInterval(relogio); $('#tempo').textContent = `Reenviar código em ${s} s`;
   relogio = setInterval(() => { s--; $('#tempo').innerHTML = s > 0 ? `Reenviar código em ${s} s` : '<button type="button" class="link" style="background:none;border:0;font:inherit;font-weight:800;color:var(--verde-escuro);text-decoration:underline;cursor:pointer">Reenviar código</button>'; if (s <= 0) clearInterval(relogio); }, 1000);
 }
-document.querySelectorAll('.tipos button').forEach((b, _, todos) => b.onclick = () => todos.forEach((x) => x.setAttribute('aria-pressed', x === b)));
 $('#botaoOnline').onclick = () => {
   const on = $('.inicio-mot').classList.toggle('online');
   $('#statusTexto').textContent = on ? 'Você está online' : 'Você está offline';
