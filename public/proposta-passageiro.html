@@ -135,6 +135,23 @@
 .acoes-seg .emergencia { background: #fdecec; color: #b3261e; }
 .pode-cancelar { color: var(--suave); font-size: 14px; text-align: center; margin: 8px 0 0; }
 
+
+/* marcar no mapa: o pino fica parado no centro e o mapa anda por baixo */
+.pino-centro { position: absolute; z-index: 1; left: 50%; top: 35%; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+.pino-centro i { width: 30px; height: 30px; border-radius: 50%; background: var(--verde); border: 8px solid #fff; box-shadow: 0 6px 14px rgba(0,0,0,.25); animation: pula 1.4s ease-in-out infinite; }
+.pino-centro s { width: 4px; height: 22px; background: var(--texto); border-radius: 2px; margin-top: -2px; animation: pula 1.4s ease-in-out infinite; }
+.pino-centro b { width: 16px; height: 6px; border-radius: 50%; background: rgba(0,0,0,.25); }
+@keyframes pula { 50% { transform: translateY(-6px); } }
+.balao-pino { background: var(--texto); color: #fff; font-weight: 800; font-size: 14px; padding: 6px 12px; border-radius: 10px; margin-bottom: 8px; white-space: nowrap; }
+.ponto-escolhido { display: flex; gap: 12px; align-items: center; background: var(--fundo-2); border-radius: 16px; padding: 14px; margin-bottom: var(--e2); }
+.ponto-escolhido svg { color: var(--verde); }
+.ponto-escolhido b { display: block; }
+.ponto-escolhido span { color: var(--suave); font-size: 14px; }
+.busca-pc { position: relative; }
+.menu-pc { display: none; position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% - 16px); background: #fff; border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,.14); padding: 4px 16px; }
+.busca-pc:focus-within .menu-pc { display: block; }
+.menu-pc li:last-child button { border-bottom: 0; }
+
 /* computador: painel de pedido à esquerda e mapa grande à direita */
 .so-pc { display: none; }
 @media (min-width: 1000px) {
@@ -153,6 +170,7 @@
   .so-pc + .busca { display: none; }
   .titulo-pc { font-size: 22px; letter-spacing: -.4px; margin: 0 0 var(--e2); }
   [data-tela="inicio"] .folha h1 { font-size: 16px; color: var(--suave); margin-bottom: 4px; }
+  .pino-centro { grid-column: 2; grid-row: 1 / 3; position: relative; left: auto; top: auto; transform: translateY(-50%); align-self: center; justify-self: center; }
   .demo { left: auto; right: 16px; max-width: 420px; justify-content: flex-end; display: flex; }
 }
 </style>
@@ -216,12 +234,19 @@
       <h1>Olá, Maria!</h1>
       <div class="so-pc">
         <h2 class="titulo-pc">Peça uma viagem</h2>
-        <div class="enderecos">
-          <div class="trilho" aria-hidden="true"><i></i><s></s><b></b></div>
-          <div>
-            <label class="end-campo"><small>Embarque</small><input value="Minha localização atual"></label>
-            <label class="end-campo"><small>Destino</small><input placeholder="Para onde vamos?"></label>
+        <div class="busca-pc">
+          <div class="enderecos">
+            <div class="trilho" aria-hidden="true"><i></i><s></s><b></b></div>
+            <div>
+              <label class="end-campo"><small>Embarque</small><input id="embarquePc" placeholder="Local de embarque"></label>
+              <label class="end-campo"><small>Destino</small><input placeholder="Para onde vamos?"></label>
+            </div>
           </div>
+          <ul class="sugestoes menu-pc">
+            <li><button type="button"><span class="ico verde"><svg class="ic"><use href="#i-mira"/></svg></span><span><b>Usar minha localização</b></span></button></li>
+            <li><button type="button" data-ir="pino"><span class="ico"><svg class="ic"><use href="#i-pino"/></svg></span><span><b>Definir no mapa</b></span></button></li>
+            <li><button type="button"><span class="ico"><svg class="ic"><use href="#i-mic"/></svg></span><span><b>Falar o endereço</b></span></button></li>
+          </ul>
         </div>
         <button class="botao" data-ir="veiculo" style="width:100%;margin-bottom:var(--e2)">Ver preços</button>
       </div>
@@ -247,10 +272,26 @@
     </div>
     <ul class="sugestoes">
       <li><button data-ir="veiculo"><span class="ico verde"><svg class="ic"><use href="#i-pino"/></svg></span><span><b>Rodoviária</b><span>Miranda - MS · 2,9 km</span></span></button></li>
-      <li><button data-ir="veiculo"><span class="ico"><svg class="ic"><use href="#i-pino"/></svg></span><span><b>Escolher no mapa</b><span>Arraste o mapa até o ponto certo</span></span></button></li>
+      <li><button data-ir="pino"><span class="ico"><svg class="ic"><use href="#i-pino"/></svg></span><span><b>Escolher no mapa</b><span>Arraste o mapa até o ponto certo</span></span></button></li>
       <li><button><span class="ico"><svg class="ic"><use href="#i-mic"/></svg></span><span><b>Falar o endereço</b><span>Diga para onde vai, a gente escreve</span></span></button></li>
       <li><button><span class="ico"><svg class="ic"><use href="#i-mira"/></svg></span><span><b>Usar minha localização</b><span>Para o embarque</span></span></button></li>
     </ul>
+  </section>
+
+  <!-- 2b · marcar no mapa -->
+  <section class="tela com-mapa alto" data-tela="pino" hidden>
+    <svg data-centro="420" class="mapa" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <use href="#mapa-base" x="-400" width="400" height="800"/><use href="#mapa-base" width="400" height="800"/><use href="#mapa-base" x="400" width="400" height="800"/>
+    </svg>
+    <div class="pino-centro" aria-hidden="true"><span class="balao-pino">Embarque aqui</span><i></i><s></s><b></b></div>
+    <div class="flutua"><button type="button" class="pilula redonda" data-ir="enderecos" aria-label="Voltar"><svg class="ic"><use href="#i-seta"/></svg></button></div>
+    <div class="espaco-mapa"></div>
+    <div class="folha">
+      <h1>Escolha o local de embarque</h1>
+      <div class="ponto-escolhido"><svg class="ic"><use href="#i-pino"/></svg><div><b>Ponto marcado no mapa</b><span>Arraste o mapa para ajustar</span></div></div>
+      <label class="campo">Ponto de referência <span style="font-weight:500;color:var(--suave)">(opcional)</span><input placeholder="Ex.: portão azul, em frente à padaria"></label>
+      <div class="base" style="padding-top:0"><button class="botao" data-ir="veiculo">Confirmar embarque</button><button class="botao contorno" data-ir="enderecos" style="border-color:transparent">Cancelar</button></div>
+    </div>
   </section>
 
   <!-- 3 · veículo e pagamento -->
@@ -348,7 +389,7 @@
 </div>
 
 <div class="demo" aria-label="Telas do protótipo">
-  <button data-ir="inicio">1 Início</button><button data-ir="enderecos">2 Endereços</button><button data-ir="veiculo">3 Veículo</button>
+  <button data-ir="inicio">1 Início</button><button data-ir="enderecos">2 Endereços</button><button data-ir="pino">2b Mapa</button><button data-ir="veiculo">3 Veículo</button>
   <button data-ir="procurando">4 Procurando</button><button data-ir="caminho">5 A caminho</button>
 </div>
 
