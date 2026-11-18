@@ -25,7 +25,6 @@
     .hub-hero .hub-kicker { color:#a9e9c7; }
     .hub-hero h2 { font:800 clamp(28px,5vw,40px)/1.2 Manrope,sans-serif; letter-spacing:-1px; margin:14px 0; }
     .hub-hero p { color:#d1e6dc; line-height:1.6; max-width:440px; }
-    .hub-search { position:relative; z-index:1; background:white; color:#183d2d; border:0; border-radius:16px; padding:19px 22px; display:flex; justify-content:space-between; width:100%; max-width:510px; font-weight:700; text-align:left; cursor:pointer; }
     .hub-section-title { font:800 20px Manrope,sans-serif; margin-bottom:16px; letter-spacing:-.5px; }
     .hub-services { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:28px; }
     .hub-service { background:white; color:var(--graphite); border:1px solid #e1e9e4; border-radius:22px; padding:24px; text-align:left; cursor:pointer; transition:transform .15s,border-color .15s; }
@@ -107,7 +106,6 @@
       <section class="hub-hero" aria-labelledby="hub-hero-title">
         <span class="hub-kicker">Vai com você</span><h2 id="hub-hero-title">Seu próximo destino<br>começa aqui.</h2>
         <p>De carro ou de moto, planeje seu caminho pela cidade em poucos toques.</p>
-        <button type="button" class="hub-search" data-hub-choose><span>Escolher Carro ou Moto</span><span aria-hidden="true">→</span></button>
       </section>
       <section aria-labelledby="hub-services-title"><h2 class="hub-section-title" id="hub-services-title" tabindex="-1">Primeiro, como você quer ir?</h2>
         <div class="hub-services">
@@ -241,7 +239,6 @@
       document.querySelectorAll('[data-hub-help]').forEach(button => button.addEventListener('click', () => document.getElementById('hub-help').showModal()));
       back.addEventListener('click', showHome); navHome.addEventListener('click', showHome);
       navRide.addEventListener('click', () => showRide());
-      document.querySelector('[data-hub-choose]').addEventListener('click', chooseVehicle);
       document.querySelector('.brand').href = '/passageiro.html';
     })();
   </script>
