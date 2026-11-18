@@ -63,7 +63,12 @@
 
   // ---------------------------------------------------------------- mapa com o pino parado no centro
   // ignorarAte: movimentos feitos pelo próprio site (GPS, busca, troca de tela) não mudam o ponto escolhido
-  let mapa = null, mexeuNoMapa = false, ignorarAte = 0, timerEndereco = null, rodadaEndereco = 0;
+  // a consulta do nome da rua é separada para o embarque e o destino: uma não cancela a outra
+  let mapa = null, mexeuNoMapa = false, ignorarAte = 0;
+  const timerEndereco = { busca: null, destino: null }, rodadaEndereco = { busca: 0, destino: 0 };
+  const PROCURANDO = 'Procurando o endereço…';
+  // texto que vai para a central: nunca "Procurando…", mesmo se o nome da rua ainda não chegou
+  const textoDe = (tipo) => (viagem[tipo].texto === PROCURANDO ? 'Ponto marcado no mapa' : viagem[tipo].texto);
   if (window.L && typeof window.mapaFundo === 'function') {
     mapa = L.map('mapa', { zoomControl: true, attributionControl: true }).setView(CIDADE, 15);
     mapaFundo(mapa);
@@ -83,21 +88,22 @@
 
   // ponto escolhido no mapa ou pelo GPS: pergunta à central o nome da rua e do bairro
   function marcar(tipo, ponto, texto) {
-    viagem[tipo] = { ponto, texto: texto || 'Procurando o endereço…' };
+    viagem[tipo] = { ponto, texto: texto || PROCURANDO };
     mostrarEndereco(tipo);
+    clearTimeout(timerEndereco[tipo]);
+    const rodada = ++rodadaEndereco[tipo];
     if (texto) return;
-    clearTimeout(timerEndereco);
-    const rodada = ++rodadaEndereco;
-    timerEndereco = setTimeout(async () => {
+    timerEndereco[tipo] = setTimeout(async () => {
       let nome = 'Ponto marcado no mapa';
       try {
         const d = await api('GET', '/api/publico/endereco-do-ponto?' + new URLSearchParams({ lat: String(ponto.lat), lng: String(ponto.lng) }));
         const rua = String(d.rua || '').trim(), bairro = String(d.bairro || '').trim();
         if (rua || bairro) nome = [rua, bairro && 'Bairro ' + bairro].filter(Boolean).join(', ');
       } catch { /* sem nome de rua o ponto do mapa continua valendo */ }
-      if (rodada !== rodadaEndereco || viagem[tipo]?.ponto !== ponto) return;
+      if (rodada !== rodadaEndereco[tipo] || viagem[tipo]?.ponto !== ponto) return;
       viagem[tipo].texto = nome;
       mostrarEndereco(tipo);
+      if (etapa === 'confirmar') mostrarResumo(); // o nome chegou depois de a pessoa avançar
     }, 350);
   }
   function mostrarEndereco(tipo) {
@@ -270,12 +276,15 @@
       : p === undefined ? 'Calculando o valor…' : p === null ? `Chamar ${nome}` : `Chamar ${nome} · ${reais(p)}`;
     if (p === undefined) botao.disabled = true;
   }
+  function mostrarResumo() {
+    const ref = lido('vai-manu-referencia');
+    $('resumoBusca').textContent = textoDe('busca') + (ref ? ' · ' + ref : '');
+    $('resumoDestino').textContent = textoDe('destino');
+  }
   function prepararConfirmacao() {
     $('erroPedido').textContent = '';
     cotacao = null;
-    const ref = lido('vai-manu-referencia');
-    $('resumoBusca').textContent = viagem.busca.texto + (ref ? ' · ' + ref : '');
-    $('resumoDestino').textContent = viagem.destino.texto;
+    mostrarResumo();
     const tipos = central.tipos.length ? central.tipos : ['moto', 'carro'];
     const lista = $('veiculos');
     const antes = tipoEscolhido();
@@ -324,7 +333,7 @@
       if (!cotacao || cotacao.tipo !== tipo || cotacao.pagamento !== pagamento()) {
         const c = await api('POST', '/api/passageiro/cotacao', {
           nome, telefone: fone, tipo, pagamento: pagamento(),
-          origem: viagem.busca.texto + (ref ? ' · Referência: ' + ref : ''), destino: viagem.destino.texto,
+          origem: textoDe('busca') + (ref ? ' · Referência: ' + ref : ''), destino: textoDe('destino'),
           origemPonto: viagem.busca.ponto, destinoPonto: viagem.destino.ponto,
         });
         cotacao = { ...c, tipo, pagamento: pagamento() };

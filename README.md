@@ -217,7 +217,7 @@ com o mesmo nome em `public/artes/` (JPG).
 
 O passageiro pede pelo site só com nome e WhatsApp, sem confirmar código. Para segurar trote:
 - cada número só pode ter **uma corrida em andamento**;
-- no máximo **6 pedidos por hora por aparelho** e **4 por hora por número**;
+- no máximo **6 pedidos por hora por aparelho**, **4 por hora por número** e **20 por hora por rede** (muita gente divide a mesma internet);
 - o dono do número recebe no WhatsApp o aviso do pedido e pode mandar **CANCELAR**;
 - quem pediu só acompanha e cancela **aquela** corrida na tela, nunca as outras do mesmo número.
 

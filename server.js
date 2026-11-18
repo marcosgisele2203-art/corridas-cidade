@@ -840,9 +840,20 @@ rota('POST', '/api/passageiro/sair', false, async ({ res }) => {
   res.setHeader('Set-Cookie', ['cp_sessao=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0', 'cp_viagem=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0']);
   return { ok: true };
 });
-// telefone do pedido: o da sessão antiga, se houver; senão o que a pessoa digitou
+// telefone do pedido: sempre o que a pessoa digitou (pode ser o de outra pessoa); a sessão antiga
+// por código só vale quando a tela não mandou número nenhum
 function telefoneDoPedido(req, b) {
-  try { return sessaoPassageiro(req); } catch { return telefoneBR(b.telefone); }
+  if (String(b.telefone || '').trim()) return telefoneBR(b.telefone);
+  return sessaoPassageiro(req);
+}
+// identificador do aparelho para o limite de pedidos: muita gente divide o mesmo IP (casa, operadora),
+// então o limite por aparelho usa um cookie, e o limite por IP fica mais folgado
+function aparelho(req, res) {
+  const m = /(?:^|;\s*)cp_aparelho=([a-f0-9]{32})/.exec(req.headers.cookie || '');
+  if (m) return m[1];
+  const id = crypto.randomBytes(16).toString('hex');
+  if (res) res.setHeader('Set-Cookie', `cp_aparelho=${id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${365 * 86400}${cookieSeguro(req)}`);
+  return id;
 }
 // acesso a uma corrida pedida por este navegador (vale 1 dia)
 const assinaturaViagem = (id, exp) => hashPassageiro('viagem:' + id, exp);
@@ -862,8 +873,9 @@ function acessoCorrida(req, id) {
   return { onde: 'c.id = $1 AND c.passageiro_tel = $2', params: [id, sessaoPassageiro(req)] };
 }
 // Cotação: o servidor calcula km e preço (a mesma conta do WhatsApp) e assina o resultado por 5 minutos.
-rota('POST', '/api/passageiro/cotacao', false, async ({ req }) => {
+rota('POST', '/api/passageiro/cotacao', false, async ({ req, res }) => {
   limitar('cotacao:' + ipDe(req), 30, 15 * 60_000);
+  aparelho(req, res); // garante o cookie do aparelho antes do pedido
   const b = await lerCorpo(req, 4096), tel = telefoneDoPedido(req, b), cfg = await lerConfig();
   const nome = texto(b.nome, 80), origem = texto(b.origem, 180), destino = texto(b.destino, 180), tipo = texto(b.tipo, 20);
   const pagamento = ['dinheiro', 'cartao', 'pix'].includes(b.pagamento) ? b.pagamento : null;
@@ -884,7 +896,8 @@ rota('POST', '/api/passageiro/cotacao', false, async ({ req }) => {
 });
 rota('POST', '/api/passageiro/pedir', false, async ({ req, res }) => {
   // lê e confere o pedido ANTES de entrar na fila do robô: uma conexão lenta não pode travar o atendimento de todos
-  limitar('pedir:' + ipDe(req), 10, 15 * 60_000);
+  // por rede é folgado: muita gente divide o mesmo IP; o limite apertado é por aparelho e por número (abaixo)
+  limitar('pedir:' + ipDe(req), 30, 15 * 60_000);
   const b = await lerCorpo(req, 8192), partes = String(b.token || '').split('.');
   if (partes.length !== 2) throw new Erro(400, 'Faça a cotação de novo.');
   let q;
@@ -893,8 +906,9 @@ rota('POST', '/api/passageiro/pedir', false, async ({ req, res }) => {
   const tel = String(q.tel || ''), sig = hashPassageiro(tel, partes[0]);
   if (sig.length !== partes[1].length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(partes[1]))) throw new Erro(400, 'Cotação inválida. Faça de novo.');
   if (q.exp < Date.now()) throw new Erro(400, 'A cotação venceu. Faça de novo.');
-  // sem código, segura trote em série: pedidos por aparelho e por número na última hora
-  limitar('pedir-h:' + ipDe(req), 6, 60 * 60_000);
+  // sem código, segura trote em série: pedidos por aparelho, por número e por rede na última hora
+  limitar('pedir-aparelho:' + aparelho(req), 6, 60 * 60_000);
+  limitar('pedir-ip-h:' + ipDe(req), 20, 60 * 60_000);
   limitar('pedir-tel:' + tel, 4, 60 * 60_000);
   return bot.rodar(async () => {
     const cfg = await lerConfig();
