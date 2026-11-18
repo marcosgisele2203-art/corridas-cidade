@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Pedir corrida · Vai de Manu</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap">
+<link rel="stylesheet" href="proposta.css">
+<link rel="stylesheet" href="proposta-app.css">
+<style>
+/* telas com mapa no fundo e uma folha de opções presa embaixo */
+.com-mapa { padding: 0; position: relative; background: #eef2ec; }
+.mapa { position: absolute; inset: 0 0 auto 0; width: 100%; height: 62%; display: block; }
+.com-mapa.alto .mapa { height: 70%; }
+.mapa.curto { height: 34%; }
+.flutua { position: absolute; top: calc(var(--e2) + env(safe-area-inset-top)); left: var(--e2); right: var(--e2); display: flex; justify-content: space-between; gap: 8px; z-index: 2; }
+.pilula { display: inline-flex; align-items: center; gap: 8px; background: #fff; border-radius: 999px; padding: 8px 16px 8px 8px; font-weight: 800; box-shadow: 0 6px 18px rgba(0,0,0,.12); }
+.pilula img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; object-position: top; background: var(--verde-claro); }
+.pilula b { color: var(--verde); }
+.pilula.so-texto { padding: 8px 16px; font-size: 15px; }
+.pilula.so-texto svg { width: 18px; height: 18px; color: var(--verde); }
+.pilula.redonda { padding: 0; width: 50px; height: 50px; justify-content: center; border: 0; cursor: pointer; color: var(--texto); }
+.pilula.redonda svg { transform: scaleX(-1); }
+.folha { margin-top: auto; position: relative; z-index: 2; background: #fff; border-radius: 28px 28px 0 0; padding: 12px var(--e3) calc(var(--e3) + env(safe-area-inset-bottom)); box-shadow: 0 -10px 30px rgba(0,0,0,.10); }
+.folha::before { content: ''; display: block; width: 44px; height: 5px; border-radius: 3px; background: var(--borda); margin: 0 auto var(--e2); }
+.folha h1 { font-size: 28px; letter-spacing: -.8px; margin: 0 0 var(--e2); }
+.espaco-mapa { flex: 1; min-height: 38vh; }
+.alto .espaco-mapa { min-height: 48vh; }
+
+/* início */
+.busca { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 64px; padding: 0 18px; border: 0; border-radius: 18px; background: var(--fundo-2); font: inherit; font-size: 20px; font-weight: 800; color: var(--texto); cursor: pointer; text-align: left; }
+.busca .quadrado { width: 14px; height: 14px; background: var(--texto); border-radius: 3px; flex: none; }
+.busca .agora { margin-left: auto; font-size: 14px; background: #fff; border-radius: 999px; padding: 6px 12px; display: flex; gap: 6px; align-items: center; }
+.busca .agora svg { width: 16px; height: 16px; }
+.rapidos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: var(--e2) 0; }
+.rapido { border: 0; background: #eaf6ee; border-radius: 20px; padding: 12px 14px 14px; text-align: left; font: inherit; cursor: pointer; color: var(--texto); }
+.rapido svg { display: block; width: 100%; height: 58px; margin-bottom: 6px; }
+.rapido b { display: block; font-size: 18px; }
+.rapido span { font-size: 14px; color: var(--suave); }
+.whats-linha { display: flex; align-items: center; gap: 10px; color: var(--suave); font-size: 15px; justify-content: center; }
+.whats-linha svg { color: var(--verde); width: 20px; height: 20px; }
+.whats-linha a { color: var(--verde-escuro); font-weight: 800; text-decoration: underline; }
+
+/* endereços */
+.enderecos { display: grid; grid-template-columns: 24px 1fr; gap: 0 12px; background: var(--fundo-2); border-radius: 20px; padding: 10px 14px; margin-bottom: var(--e3); }
+.trilho { display: flex; flex-direction: column; align-items: center; padding: 22px 0; }
+.trilho i { width: 12px; height: 12px; border-radius: 50%; background: var(--verde); box-shadow: 0 0 0 4px #cdebd8; }
+.trilho s { flex: 1; width: 2px; background: #c3cbc6; margin: 6px 0; }
+.trilho b { width: 12px; height: 12px; background: var(--texto); border-radius: 3px; }
+.end-campo { display: block; padding: 8px 0; }
+.end-campo + .end-campo { border-top: 1px solid var(--borda); }
+.end-campo small { display: block; font-size: 13px; font-weight: 800; color: var(--suave); text-transform: uppercase; letter-spacing: 1px; }
+.end-campo input { width: 100%; border: 0; background: none; font: inherit; font-size: 18px; font-weight: 700; color: var(--texto); padding: 2px 0; }
+.end-campo input:focus { outline: none; }
+.end-campo.ativo input { caret-color: var(--verde); }
+.sugestoes { list-style: none; margin: 0; padding: 0; }
+.sugestoes li button { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 64px; padding: 8px 0; border: 0; border-bottom: 1px solid var(--borda); background: none; font: inherit; text-align: left; cursor: pointer; color: var(--texto); }
+.sugestoes .ico { width: 44px; height: 44px; border-radius: 50%; background: var(--fundo-2); display: grid; place-items: center; flex: none; color: var(--suave); }
+.sugestoes .ico svg { width: 22px; height: 22px; }
+.sugestoes .ico.verde { background: var(--verde-claro); color: var(--verde); }
+.sugestoes b { display: block; font-size: 17px; }
+.sugestoes span span { color: var(--suave); font-size: 14px; }
+
+/* veículo e pagamento */
+.trajeto { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: var(--e2); }
+.trajeto b { font-size: 22px; letter-spacing: -.5px; }
+.trajeto span { color: var(--suave); font-size: 15px; font-weight: 700; }
+.veiculos-lista { display: grid; gap: 10px; margin-bottom: var(--e2); }
+.opcao { display: grid; grid-template-columns: 80px 1fr auto; align-items: center; gap: 10px; padding: 4px 14px 4px 6px; border: 2px solid var(--borda); border-radius: 18px; cursor: pointer; }
+.opcao:has(input:checked) { border-color: var(--verde); background: #f3faf5; }
+.opcao input { position: absolute; opacity: 0; pointer-events: none; }
+.opcao svg { width: 80px; height: 46px; }
+.opcao b { display: block; font-size: 18px; }
+.opcao small { color: var(--suave); font-size: 14px; }
+.opcao .valor { font-size: 20px; font-weight: 800; }
+.opcao:has(input:focus-visible) { outline: 3px solid var(--verde); outline-offset: 2px; }
+.pagamento { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 6px; }
+.pagamento label { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; border-radius: 14px; background: var(--fundo-2); font-weight: 800; font-size: 15px; cursor: pointer; border: 2px solid transparent; }
+.pagamento label:has(input:checked) { border-color: var(--texto); background: #fff; }
+.pagamento input { position: absolute; opacity: 0; }
+.pagamento svg { width: 20px; height: 20px; }
+.contato { display: grid; grid-template-columns: 1fr 1.2fr; gap: 8px; margin: var(--e1) 0 4px; }
+.contato label { font-size: 13px; font-weight: 800; color: var(--suave); }
+.contato input { display: block; width: 100%; margin-top: 4px; min-height: 48px; padding: 0 12px; border: 0; border-radius: 12px; background: var(--fundo-2); font: inherit; font-size: 16px; font-weight: 700; color: var(--texto); }
+.contato input:focus { outline: 2px solid var(--verde); }
+.nota-paga { color: var(--suave); font-size: 14px; text-align: center; margin: 4px 0 0; }
+
+/* procurando */
+.radar circle { transform-origin: 120px 620px; animation: radar 2.2s ease-out infinite; }
+.radar circle:nth-child(2) { animation-delay: .7s; }
+.radar circle:nth-child(3) { animation-delay: 1.4s; }
+@keyframes radar { from { transform: scale(.2); opacity: .55; } to { transform: scale(1.6); opacity: 0; } }
+.barra-busca { height: 6px; border-radius: 3px; background: var(--fundo-2); overflow: hidden; margin-bottom: var(--e3); }
+.barra-busca i { display: block; width: 40%; height: 100%; background: var(--verde); border-radius: 3px; animation: vai 1.4s ease-in-out infinite; }
+@keyframes vai { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+.resumo { display: grid; grid-template-columns: 24px 1fr; gap: 0 12px; padding: 14px; background: var(--fundo-2); border-radius: 18px; margin: var(--e2) 0; font-size: 15px; }
+.resumo .trilho { padding: 6px 0; }
+.resumo p { margin: 0; padding: 4px 0; font-weight: 700; }
+.resumo p small { display: block; color: var(--suave); font-weight: 700; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; }
+.resumo .linha-valor { grid-column: 1 / -1; display: flex; justify-content: space-between; border-top: 1px solid var(--borda); margin-top: 8px; padding-top: 10px; font-weight: 800; }
+
+/* motorista a caminho */
+.chegada { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.chegada small { color: var(--verde); font-weight: 800; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
+.chegada h1 { margin: 2px 0 0; }
+.minutos { background: var(--verde); color: #fff; border-radius: 16px; padding: 8px 14px; text-align: center; line-height: 1.1; flex: none; }
+.minutos b { display: block; font-size: 26px; }
+.minutos span { font-size: 12px; font-weight: 700; }
+.etapas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: var(--e2) 0; }
+.etapas i { height: 5px; border-radius: 3px; background: var(--borda); }
+.etapas i.feito { background: var(--verde); }
+.etapas-nomes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; font-size: 12px; font-weight: 700; color: var(--suave); margin: -8px 0 var(--e2); }
+.etapas-nomes .agora { color: var(--texto); }
+.motorista-card { display: flex; align-items: center; gap: 14px; padding: var(--e2) 0; border-top: 1px solid var(--borda); border-bottom: 1px solid var(--borda); }
+.avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--verde-claro); color: var(--verde-escuro); display: grid; place-items: center; font-weight: 800; font-size: 20px; flex: none; }
+.motorista-card b { display: block; font-size: 18px; }
+.motorista-card small { color: var(--suave); font-weight: 700; }
+.motorista-card .estrela { color: #e0a100; }
+.carro-placa { margin-left: auto; text-align: right; }
+.carro-placa svg { width: 86px; height: 46px; display: block; margin-left: auto; }
+.placa { display: inline-block; border: 2px solid #1b221e; border-radius: 6px; overflow: hidden; font-weight: 800; letter-spacing: 1.5px; font-size: 15px; text-align: center; min-width: 96px; }
+.placa::before { content: 'BRASIL'; display: block; background: #2b49a3; color: #fff; font-size: 8px; letter-spacing: 2px; line-height: 12px; }
+.placa span { display: block; padding: 2px 8px; }
+.embarque-cod { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #eaf6ee; border-radius: 18px; padding: 14px 16px; margin-top: var(--e2); }
+.embarque-cod b { display: block; }
+.embarque-cod span { color: var(--suave); font-size: 14px; }
+.embarque-cod strong { font-size: 32px; letter-spacing: 6px; font-weight: 800; color: var(--verde-escuro); }
+.acoes-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.acoes-seg button, .acoes-seg a { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; border-radius: 14px; border: 0; background: var(--fundo-2); font: inherit; font-weight: 800; font-size: 15px; color: var(--texto); cursor: pointer; }
+.acoes-seg svg { width: 20px; height: 20px; }
+.acoes-seg .emergencia { background: #fdecec; color: #b3261e; }
+.pode-cancelar { color: var(--suave); font-size: 14px; text-align: center; margin: 8px 0 0; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-carro" viewBox="0 0 24 24"><path d="M5 17H3.5a1 1 0 0 1-1-1v-3.2a2 2 0 0 1 .6-1.4L5 9.5l1.6-3.4A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.8 1.1L19 9.5l1.9 1.9a2 2 0 0 1 .6 1.4V16a1 1 0 0 1-1 1H19"/><path d="M5 9.5h14"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></symbol>
+  <symbol id="i-moto" viewBox="0 0 24 24"><circle cx="5.5" cy="16.5" r="3"/><circle cx="18.5" cy="16.5" r="3"/><path d="M5.5 16.5 9 10h5l2.5 6.5"/><path d="M14 10l1.5-4H18"/><path d="M8.5 16.5h7"/><path d="M9 10H6.5"/></symbol>
+  <symbol id="i-van" viewBox="0 0 24 24"><path d="M3 17V8a2 2 0 0 1 2-2h11l5 5v6h-2"/><path d="M15 6v5h6"/><path d="M3 11h12"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></symbol>
+  <symbol id="i-caminhao" viewBox="0 0 24 24"><path d="M2 16V6a1 1 0 0 1 1-1h11v11"/><path d="M14 9h4l3.5 4V16a1 1 0 0 1-1 1H20"/><circle cx="6.5" cy="17.5" r="2"/><circle cx="17.5" cy="17.5" r="2"/><path d="M8.5 17.5h7"/><path d="M2 16v1.5h2.5"/></symbol>
+  <symbol id="i-pessoa" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-volante" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/><path d="M3.5 10.5c3 1 5.5 1 8.5 1s5.5 0 8.5-1"/><path d="M10.5 14.2 8 20.5M13.5 14.2l2.5 6.3"/></symbol>
+  <symbol id="i-ajuda" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7v.5"/><path d="M12 17.2v.1"/></symbol>
+  <symbol id="i-seta" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-pino" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.5 2.5L16 9.5"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M4.5 19.5 5.6 16A8 8 0 1 1 8.4 18.6z"/><path d="M9 9.2c0 3 2.6 5.8 5.8 5.8l1.2-1.3-1.8-1-1 .8c-1-.4-2-1.4-2.4-2.4l.8-1-1-1.8z"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-cifrao" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M14.8 9.2c-.5-.9-1.6-1.4-2.8-1.4-1.6 0-2.8.8-2.8 2.1 0 3 5.7 1.5 5.7 4.3 0 1.3-1.3 2.1-2.9 2.1-1.3 0-2.4-.6-2.9-1.5M12 6v1.8M12 16.3V18"/></symbol>
+  <symbol id="i-presente" viewBox="0 0 24 24"><rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M5 12v8h14v-8M12 8v12"/><path d="M12 8C10 4 7 4.5 7 6.3 7 8 12 8 12 8zm0 0c2-4 5-3.5 5-1.7C17 8 12 8 12 8z"/></symbol>
+  <symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 3 5 6v5.5c0 4.3 3 7.8 7 9.5 4-1.7 7-5.2 7-9.5V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+</svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-compartilhar" viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></symbol>
+  <symbol id="i-mira" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></symbol>
+  <symbol id="i-nota" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9.5v5M18 9.5v5"/></symbol>
+  <symbol id="i-cartao" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6 15h4"/></symbol>
+  <symbol id="i-pix" viewBox="0 0 24 24"><path d="m12 3 4.2 4.2-4.2 4.3-4.2-4.3zM12 12.5l4.2 4.3L12 21l-4.2-4.2zM3 12l4.2-4.2 4.3 4.2-4.3 4.2zM12.5 12l4.3-4.2L21 12l-4.2 4.2z"/></symbol>
+  <!-- mapa desenhado da cidade (no app real é o mapa de verdade) -->
+  <symbol id="mapa-base" viewBox="0 0 400 800">
+    <rect width="400" height="800" fill="#eef2ec"/>
+    <rect x="215" y="185" width="130" height="60" rx="10" fill="#d4ebd7"/>
+    <rect x="25" y="275" width="80" height="60" rx="10" fill="#d4ebd7"/>
+    <path d="M-30 760C60 700 150 760 250 700s170-60 200-100" stroke="#cfe3f2" stroke-width="40" fill="none"/>
+    <g stroke="#fff" stroke-width="12">
+      <path d="M0 80h400M0 170h400M0 260h400M0 350h400M0 440h400M0 530h400M0 620h400"/>
+      <path d="M40 0v800M120 0v800M200 0v800M280 0v800M360 0v800"/>
+    </g>
+    <g stroke="#fff" stroke-width="22"><path d="M-20 600 420 120"/></g>
+    <g stroke="#f6e7a8" stroke-width="10"><path d="M-20 600 420 120"/></g>
+  </symbol>
+</svg>
+
+<div class="app">
+
+  <!-- 1 · início -->
+  <section class="tela com-mapa" data-tela="inicio">
+    <svg class="mapa" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <use href="#mapa-base" width="400" height="800"/>
+      <g class="radar"><circle cx="120" cy="620" r="50" fill="#0a8f43"/></g>
+      <circle cx="120" cy="620" r="14" fill="#fff"/><circle cx="120" cy="620" r="9" fill="#0a8f43"/>
+    </svg>
+    <div class="flutua">
+      <span class="pilula"><img src="manu.png" alt="">vai de <b>manu</b></span>
+      <span class="pilula so-texto"><svg class="ic"><use href="#i-pino"/></svg>Miranda, MS</span>
+    </div>
+    <div class="espaco-mapa"></div>
+    <div class="folha">
+      <h1>Olá, Maria!</h1>
+      <button class="busca" data-ir="enderecos"><span class="quadrado"></span>Para onde vamos?<span class="agora"><svg class="ic"><use href="#i-relogio"/></svg>Agora</span></button>
+      <div class="rapidos">
+        <button class="rapido" data-ir="enderecos"><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="160" cy="176" rx="130" ry="9" fill="#000" opacity=".18"/><path d="M150 132L84 150" stroke="#3a4640" stroke-width="8" stroke-linecap="round"/><path d="M242 150L214 84" stroke="#3a4640" stroke-width="8" stroke-linecap="round"/><rect x="132" y="112" width="58" height="34" rx="8" fill="#5d6a63"/><rect x="140" y="120" width="20" height="18" rx="3" fill="#7d8983"/><rect x="84" y="134" width="70" height="10" rx="5" fill="#aab4ae"/><path d="M58 116l58-10 4 12-54 8z" fill="#0a8f43"/><path d="M96 106q4-10 28-10l40 2-10 14-54 2z" fill="#1f2b26"/><path d="M150 112q8-26 44-28h18q8 12 0 28z" fill="#0a8f43"/><path d="M168 96q14-6 30-6" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".7"/><path d="M214 84l-14-14h-10" stroke="#1f2b26" stroke-width="6" stroke-linecap="round" fill="none"/><circle cx="228" cy="94" r="11" fill="#1f2b26"/><circle cx="230" cy="94" r="6.5" fill="#ffd54a"/><circle cx="84" cy="150" r="30" fill="#1b221e"/><circle cx="84" cy="150" r="16.5" fill="#d5dcd8"/><circle cx="84" cy="150" r="6.6" fill="#7d8983"/><circle cx="242" cy="150" r="30" fill="#1b221e"/><circle cx="242" cy="150" r="16.5" fill="#d5dcd8"/><circle cx="242" cy="150" r="6.6" fill="#7d8983"/></svg><b>Moto</b><span>a partir de R$ 6,00</span></button>
+        <button class="rapido" data-ir="enderecos"><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="163" cy="176" rx="140" ry="9" fill="#000" opacity=".18"/><path d="M28 150V118q2-14 18-17l46-7 34-30q8-7 20-7h66q13 0 21 8l30 29 22 5q12 3 12 17v34z" fill="#fff"/><path d="M28 132h268v18H28z" fill="#e3e9e5"/><path d="M28 124h268v6H28z" fill="#0a8f43"/><path d="M106 94l28-25q4-4 10-4h36v29z" fill="#1f2b26"/><path d="M188 65h24q8 0 14 6l24 23h-62z" fill="#1f2b26"/><path d="M184 68v62" stroke="#e3e9e5" stroke-width="2"/><rect x="190" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><rect x="140" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><ellipse cx="289" cy="110" rx="7" ry="5" fill="#ffd54a"/><rect x="28" y="106" width="8" height="12" rx="2" fill="#e0475b"/><path d="M244 92l8 2-2 6-8-2z" fill="#1f2b26"/><circle cx="86" cy="150" r="25" fill="#1b221e"/><circle cx="86" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="86" cy="150" r="5.5" fill="#7d8983"/><circle cx="242" cy="150" r="25" fill="#1b221e"/><circle cx="242" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="242" cy="150" r="5.5" fill="#7d8983"/></svg><b>Carro</b><span>a partir de R$ 8,00</span></button>
+      </div>
+      <p class="whats-linha"><svg class="ic"><use href="#i-zap"/></svg>Prefere conversar? <a href="#">Peça pelo WhatsApp</a></p>
+    </div>
+  </section>
+
+  <!-- 2 · endereços -->
+  <section class="tela" data-tela="enderecos" hidden>
+    <button type="button" class="voltar" data-ir="inicio" aria-label="Voltar"><svg class="ic"><use href="#i-seta"/></svg></button>
+    <h1 style="font-size:28px;margin-bottom:var(--e2)">Para onde vamos?</h1>
+    <div class="enderecos">
+      <div class="trilho" aria-hidden="true"><i></i><s></s><b></b></div>
+      <div>
+        <label class="end-campo"><small>Embarque</small><input value="Minha localização atual"></label>
+        <label class="end-campo ativo"><small>Destino</small><input id="destino" value="Rodo" placeholder="Digite o endereço ou um lugar"></label>
+      </div>
+    </div>
+    <ul class="sugestoes">
+      <li><button data-ir="veiculo"><span class="ico verde"><svg class="ic"><use href="#i-pino"/></svg></span><span><b>Rodoviária</b><span>Miranda - MS · 2,9 km</span></span></button></li>
+      <li><button data-ir="veiculo"><span class="ico"><svg class="ic"><use href="#i-pino"/></svg></span><span><b>Escolher no mapa</b><span>Arraste o mapa até o ponto certo</span></span></button></li>
+      <li><button><span class="ico"><svg class="ic"><use href="#i-mic"/></svg></span><span><b>Falar o endereço</b><span>Diga para onde vai, a gente escreve</span></span></button></li>
+      <li><button><span class="ico"><svg class="ic"><use href="#i-mira"/></svg></span><span><b>Usar minha localização</b><span>Para o embarque</span></span></button></li>
+    </ul>
+  </section>
+
+  <!-- 3 · veículo e pagamento -->
+  <form class="tela com-mapa" data-tela="veiculo" hidden>
+    <svg class="mapa curto" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <use href="#mapa-base" width="400" height="800"/>
+      <path d="M40 440H200v-90h160" stroke="#fff" stroke-width="16" fill="none" stroke-linejoin="round"/>
+      <path d="M40 440H200v-90h160" stroke="#0a8f43" stroke-width="8" fill="none" stroke-linejoin="round"/>
+      <circle cx="40" cy="440" r="13" fill="#fff"/><circle cx="40" cy="440" r="8" fill="#0a8f43"/>
+      <rect x="348" y="338" width="24" height="24" rx="5" fill="#14201a" stroke="#fff" stroke-width="4"/>
+      <g transform="translate(244 290)"><rect width="112" height="34" rx="17" fill="#fff"/><text x="56" y="22" text-anchor="middle" font-family="Manrope, sans-serif" font-weight="800" font-size="14" fill="#14201a">Rodoviária</text></g>
+    </svg>
+    <div class="flutua"><button type="button" class="pilula redonda" data-ir="enderecos" aria-label="Voltar"><svg class="ic"><use href="#i-seta"/></svg></button></div>
+    <div class="espaco-mapa" style="min-height:24vh"></div>
+    <div class="folha">
+      <div class="trajeto"><b>Até a Rodoviária</b><span>2,9 km · ~8 min</span></div>
+      <div class="veiculos-lista" role="radiogroup" aria-label="Veículo">
+        <label class="opcao"><input type="radio" name="veiculo" value="moto"><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="160" cy="176" rx="130" ry="9" fill="#000" opacity=".18"/><path d="M150 132L84 150" stroke="#3a4640" stroke-width="8" stroke-linecap="round"/><path d="M242 150L214 84" stroke="#3a4640" stroke-width="8" stroke-linecap="round"/><rect x="132" y="112" width="58" height="34" rx="8" fill="#5d6a63"/><rect x="140" y="120" width="20" height="18" rx="3" fill="#7d8983"/><rect x="84" y="134" width="70" height="10" rx="5" fill="#aab4ae"/><path d="M58 116l58-10 4 12-54 8z" fill="#0a8f43"/><path d="M96 106q4-10 28-10l40 2-10 14-54 2z" fill="#1f2b26"/><path d="M150 112q8-26 44-28h18q8 12 0 28z" fill="#0a8f43"/><path d="M168 96q14-6 30-6" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".7"/><path d="M214 84l-14-14h-10" stroke="#1f2b26" stroke-width="6" stroke-linecap="round" fill="none"/><circle cx="228" cy="94" r="11" fill="#1f2b26"/><circle cx="230" cy="94" r="6.5" fill="#ffd54a"/><circle cx="84" cy="150" r="30" fill="#1b221e"/><circle cx="84" cy="150" r="16.5" fill="#d5dcd8"/><circle cx="84" cy="150" r="6.6" fill="#7d8983"/><circle cx="242" cy="150" r="30" fill="#1b221e"/><circle cx="242" cy="150" r="16.5" fill="#d5dcd8"/><circle cx="242" cy="150" r="6.6" fill="#7d8983"/></svg><span><b>Moto</b><small>1 passageiro · rápida</small></span><span class="valor">R$ 8,50</span></label>
+        <label class="opcao"><input type="radio" name="veiculo" value="carro" checked><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="163" cy="176" rx="140" ry="9" fill="#000" opacity=".18"/><path d="M28 150V118q2-14 18-17l46-7 34-30q8-7 20-7h66q13 0 21 8l30 29 22 5q12 3 12 17v34z" fill="#fff"/><path d="M28 132h268v18H28z" fill="#e3e9e5"/><path d="M28 124h268v6H28z" fill="#0a8f43"/><path d="M106 94l28-25q4-4 10-4h36v29z" fill="#1f2b26"/><path d="M188 65h24q8 0 14 6l24 23h-62z" fill="#1f2b26"/><path d="M184 68v62" stroke="#e3e9e5" stroke-width="2"/><rect x="190" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><rect x="140" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><ellipse cx="289" cy="110" rx="7" ry="5" fill="#ffd54a"/><rect x="28" y="106" width="8" height="12" rx="2" fill="#e0475b"/><path d="M244 92l8 2-2 6-8-2z" fill="#1f2b26"/><circle cx="86" cy="150" r="25" fill="#1b221e"/><circle cx="86" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="86" cy="150" r="5.5" fill="#7d8983"/><circle cx="242" cy="150" r="25" fill="#1b221e"/><circle cx="242" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="242" cy="150" r="5.5" fill="#7d8983"/></svg><span><b>Carro</b><small>até 4 passageiros</small></span><span class="valor">R$ 11,00</span></label>
+      </div>
+      <div class="pagamento" role="radiogroup" aria-label="Forma de pagamento">
+        <label><input type="radio" name="pag" value="dinheiro" checked><svg class="ic"><use href="#i-nota"/></svg>Dinheiro</label>
+        <label><input type="radio" name="pag" value="pix"><svg class="ic"><use href="#i-pix"/></svg>Pix</label>
+        <label><input type="radio" name="pag" value="cartao"><svg class="ic"><use href="#i-cartao"/></svg>Cartão</label>
+      </div>
+      <div class="contato">
+        <label>Seu nome<input name="nome" autocomplete="given-name" placeholder="Maria"></label>
+        <label>WhatsApp<input name="telefone" inputmode="tel" autocomplete="tel" placeholder="67 99999-9999"></label>
+      </div>
+      <p class="nota-paga">Você paga direto ao motorista. Avisamos pelo WhatsApp quando ele chegar.</p>
+      <div class="base"><button class="botao" id="pedir">Pedir carro · R$ 11,00</button></div>
+    </div>
+  </form>
+
+  <!-- 4 · procurando motorista -->
+  <section class="tela com-mapa alto" data-tela="procurando" hidden>
+    <svg class="mapa" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <use href="#mapa-base" width="400" height="800"/>
+      <g class="radar"><circle cx="120" cy="620" r="70" fill="#0a8f43"/><circle cx="120" cy="620" r="70" fill="#0a8f43"/><circle cx="120" cy="620" r="70" fill="#0a8f43"/></g>
+      <circle cx="120" cy="620" r="14" fill="#fff"/><circle cx="120" cy="620" r="9" fill="#0a8f43"/>
+    </svg>
+    <div class="espaco-mapa"></div>
+    <div class="folha">
+      <h1>Procurando o motorista mais perto</h1>
+      <div class="barra-busca"><i></i></div>
+      <p class="ajuda" style="margin:0">Estamos chamando os carros online, um de cada vez. Você também recebe o aviso no WhatsApp.</p>
+      <div class="resumo">
+        <div class="trilho" aria-hidden="true"><i></i><s></s><b></b></div>
+        <div><p><small>Embarque</small>Minha localização atual</p><p><small>Destino</small>Rodoviária</p></div>
+        <div class="linha-valor"><span>Carro · Dinheiro</span><span>R$ 11,00</span></div>
+      </div>
+      <div class="base" style="padding-top:0"><button class="botao contorno" data-ir="inicio">Cancelar pedido</button></div>
+    </div>
+  </section>
+
+  <!-- 5 · motorista a caminho -->
+  <section class="tela com-mapa" data-tela="caminho" hidden>
+    <svg class="mapa curto" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <use href="#mapa-base" width="400" height="800"/>
+      <path d="M300 260H200v90H40" stroke="#fff" stroke-width="16" fill="none" stroke-linejoin="round"/>
+      <path d="M300 260H200v90H40" stroke="#14201a" stroke-width="7" fill="none" stroke-linejoin="round" stroke-dasharray="2 12" stroke-linecap="round"/>
+      <circle cx="40" cy="350" r="13" fill="#fff"/><circle cx="40" cy="350" r="8" fill="#0a8f43"/>
+      <g transform="translate(296 240)"><rect width="40" height="40" rx="12" fill="#0a8f43" stroke="#fff" stroke-width="4"/><path d="M11 25v-5l3-6h12l3 6v5zM11 20h18" stroke="#fff" stroke-width="2.5" fill="none" stroke-linejoin="round"/><circle cx="15" cy="27" r="2.5" fill="#fff"/><circle cx="25" cy="27" r="2.5" fill="#fff"/></g>
+    </svg>
+    <div class="espaco-mapa" style="min-height:24vh"></div>
+    <div class="folha">
+      <div class="chegada">
+        <div><small>Motorista a caminho</small><h1>Pedro está indo até você</h1></div>
+        <div class="minutos"><b>4</b><span>min</span></div>
+      </div>
+      <div class="etapas" aria-hidden="true"><i class="feito"></i><i class="feito"></i><i></i><i></i></div>
+      <div class="etapas-nomes"><span>Aceitou</span><span class="agora">A caminho</span><span>Chegou</span><span>Em viagem</span></div>
+      <div class="motorista-card">
+        <span class="avatar">PL</span>
+        <div><b>Pedro Lima</b><small><span class="estrela">★</span> 4,9 · Onix branco</small></div>
+        <div class="carro-placa"><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="163" cy="176" rx="140" ry="9" fill="#000" opacity=".18"/><path d="M28 150V118q2-14 18-17l46-7 34-30q8-7 20-7h66q13 0 21 8l30 29 22 5q12 3 12 17v34z" fill="#fff"/><path d="M28 132h268v18H28z" fill="#e3e9e5"/><path d="M28 124h268v6H28z" fill="#0a8f43"/><path d="M106 94l28-25q4-4 10-4h36v29z" fill="#1f2b26"/><path d="M188 65h24q8 0 14 6l24 23h-62z" fill="#1f2b26"/><path d="M184 68v62" stroke="#e3e9e5" stroke-width="2"/><rect x="190" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><rect x="140" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><ellipse cx="289" cy="110" rx="7" ry="5" fill="#ffd54a"/><rect x="28" y="106" width="8" height="12" rx="2" fill="#e0475b"/><path d="M244 92l8 2-2 6-8-2z" fill="#1f2b26"/><circle cx="86" cy="150" r="25" fill="#1b221e"/><circle cx="86" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="86" cy="150" r="5.5" fill="#7d8983"/><circle cx="242" cy="150" r="25" fill="#1b221e"/><circle cx="242" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="242" cy="150" r="5.5" fill="#7d8983"/></svg><span class="placa"><span>XYZ9K87</span></span></div>
+      </div>
+      <div class="embarque-cod">
+        <div><b>Código de embarque</b><span>Fale ao motorista antes de entrar no carro.</span></div>
+        <strong aria-label="Código 4 8 2 6">4826</strong>
+      </div>
+      <div class="acoes-seg">
+        <button type="button"><svg class="ic"><use href="#i-compartilhar"/></svg>Compartilhar</button>
+        <a href="tel:190" class="emergencia"><svg class="ic"><use href="#i-escudo"/></svg>Emergência 190</a>
+      </div>
+      <div class="resumo" style="margin-bottom:var(--e1)">
+        <div class="trilho" aria-hidden="true"><i></i><s></s><b></b></div>
+        <div><p><small>Embarque</small>Minha localização atual</p><p><small>Destino</small>Rodoviária</p></div>
+        <div class="linha-valor"><span>Carro · Dinheiro</span><span>R$ 11,00</span></div>
+      </div>
+      <div class="base" style="padding-top:var(--e1)"><button class="botao contorno" data-ir="inicio">Cancelar corrida</button></div>
+      <p class="pode-cancelar">Dá para cancelar até o motorista chegar.</p>
+    </div>
+  </section>
+</div>
+
+<div class="demo" aria-label="Telas do protótipo">
+  <button data-ir="inicio">1 Início</button><button data-ir="enderecos">2 Endereços</button><button data-ir="veiculo">3 Veículo</button>
+  <button data-ir="procurando">4 Procurando</button><button data-ir="caminho">5 A caminho</button>
+</div>
+
+<script>
+// protótipo: só troca de tela, sem chamar o servidor
+const $ = (s) => document.querySelector(s);
+function ir(nome) {
+  document.querySelectorAll('.tela').forEach((t) => t.hidden = t.dataset.tela !== nome);
+  window.scrollTo(0, 0);
+  try { history.replaceState(null, '', '#' + nome); } catch {}
+}
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-ir]'); if (b) { e.preventDefault(); ir(b.dataset.ir); } });
+const PRECO = { moto: 'R$ 8,50', carro: 'R$ 11,00' };
+document.querySelectorAll('[name=veiculo]').forEach((r) => r.onchange = () => { $('#pedir').textContent = `Pedir ${r.value} · ${PRECO[r.value]}`; });
+document.querySelector('[data-tela="veiculo"]').onsubmit = (e) => { e.preventDefault(); ir('procurando'); setTimeout(() => { if (!document.querySelector('[data-tela="procurando"]').hidden) ir('caminho'); }, 4000); };
+function pelaHash() { const t = location.hash.slice(1); if (document.querySelector(`[data-tela="${t}"]`)) ir(t); }
+addEventListener('hashchange', pelaHash);
+pelaHash();
+</script>
+</body>
+</html>

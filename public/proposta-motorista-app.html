@@ -10,26 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap">
 <link rel="stylesheet" href="proposta.css">
+<link rel="stylesheet" href="proposta-app.css">
 <style>
-/* app do motorista: uma tela por vez, botões presos embaixo, como app de celular */
-html, body { height: 100%; }
-body { background: #dfe5e1; }
-.app { max-width: 460px; min-height: 100dvh; margin: 0 auto; background: #fff; position: relative; box-shadow: 0 0 60px rgba(0,0,0,.12); }
-.tela { min-height: 100dvh; display: flex; flex-direction: column; padding: var(--e3); padding-bottom: calc(var(--e3) + env(safe-area-inset-bottom)); animation: entra .25s ease; }
-.tela[hidden] { display: none; }
-@keyframes entra { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
-.voltar { width: 48px; height: 48px; margin: -8px 0 var(--e2) -12px; border: 0; background: none; border-radius: 50%; display: grid; place-items: center; cursor: pointer; color: var(--texto); }
-.voltar:hover { background: var(--fundo-2); }
-.voltar svg { width: 28px; height: 28px; transform: scaleX(-1); }
-.tela h1 { font-size: 34px; letter-spacing: -1.2px; line-height: 1.1; margin: 0 0 var(--e1); }
-.tela .ajuda { color: var(--suave); margin: 0 0 var(--e4); font-size: 17px; }
-.empurra { flex: 1; }
-.base { display: grid; gap: 12px; padding-top: var(--e3); }
-.base .botao { width: 100%; min-height: 58px; font-size: 18px; }
-.botao:disabled { background: var(--fundo-2); border-color: var(--fundo-2); color: #a3ada7; cursor: not-allowed; }
-.miudo { font-size: 14px; color: var(--suave); text-align: center; margin: 0; }
-.miudo a { color: var(--verde-escuro); font-weight: 700; text-decoration: underline; }
-
 /* 1 · boas-vindas */
 .boas { background: var(--verde-escuro); color: #fff; overflow: hidden; position: relative; }
 .boas::before { content: ''; position: absolute; width: 520px; height: 520px; border-radius: 50%; border: 80px solid rgba(255,255,255,.06); right: -260px; top: 120px; }
@@ -44,27 +26,6 @@ body { background: #dfe5e1; }
 .boas .miudo { color: rgba(255,255,255,.7); }
 .boas .miudo a { color: #fff; }
 
-/* 2 · telefone */
-.ddi { align-self: center; display: inline-flex; align-items: center; gap: 10px; border: 2px solid var(--borda); border-radius: 999px; padding: 8px 18px; font-weight: 800; font-size: 18px; margin-bottom: var(--e3); }
-.ddi .bandeira { width: 30px; height: 20px; border-radius: 4px; background: #229e45; position: relative; overflow: hidden; }
-.ddi .bandeira::before { content: ''; position: absolute; inset: 3px 4px; background: #f8e509; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
-.ddi .bandeira::after { content: ''; position: absolute; width: 8px; height: 8px; border-radius: 50%; background: #2b49a3; left: 11px; top: 6px; }
-.numero { border: 0; border-bottom: 3px solid var(--borda); font: inherit; font-size: 34px; font-weight: 700; letter-spacing: 1px; text-align: center; padding: 8px 0; width: 100%; color: var(--texto); background: none; }
-.numero:focus { outline: none; border-color: var(--verde); }
-.numero::placeholder { color: #c3cbc6; }
-.aceite { display: flex; gap: 12px; align-items: flex-start; font-size: 15px; color: var(--suave); cursor: pointer; }
-.aceite input { appearance: none; flex: none; width: 26px; height: 26px; border: 2px solid #b9c3bd; border-radius: 50%; margin: 0; cursor: pointer; display: grid; place-items: center; }
-.aceite input:checked { background: var(--verde); border-color: var(--verde); }
-.aceite input:checked::after { content: ''; width: 7px; height: 12px; border: solid #fff; border-width: 0 3px 3px 0; transform: translateY(-2px) rotate(45deg); }
-.aceite a { color: var(--verde-escuro); font-weight: 700; text-decoration: underline; }
-
-/* 3 · código */
-.codigo { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
-.codigo input { width: 100%; height: 64px; text-align: center; font: inherit; font-size: 30px; font-weight: 800; border: 2px solid var(--borda); border-radius: 14px; color: var(--texto); }
-.codigo input:focus { outline: none; border-color: var(--verde); box-shadow: 0 0 0 4px var(--verde-claro); }
-.tempo { color: var(--suave); font-size: 15px; margin-top: var(--e2); text-align: center; }
-.passo-n { text-align: center; color: var(--suave); font-weight: 700; font-size: 14px; }
-
 /* 4 · cadastro */
 .topo-cad { margin: calc(-1 * var(--e3)) calc(-1 * var(--e3)) 0; padding: var(--e3) var(--e3) 0; background: #eaf6ee; position: relative; overflow: hidden; }
 .topo-cad h1 { max-width: 230px; position: relative; z-index: 1; }
@@ -76,9 +37,6 @@ body { background: #dfe5e1; }
 .carrossel svg { color: var(--verde); width: 30px; height: 30px; margin-bottom: var(--e1); }
 .carrossel b { display: block; font-size: 19px; line-height: 1.2; margin-bottom: 4px; }
 .carrossel span { color: var(--suave); font-size: 15px; }
-.campo { display: block; font-weight: 700; font-size: 15px; margin-bottom: var(--e2); }
-.campo input { display: block; width: 100%; font: inherit; font-size: 18px; min-height: 56px; padding: 0 16px; margin-top: 6px; border: 0; border-radius: 14px; background: var(--fundo-2); color: var(--texto); }
-.campo input:focus { outline: 2px solid var(--verde); }
 .tipos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 6px 0 var(--e2); }
 .tipos button { font: inherit; font-weight: 700; font-size: 14px; border: 2px solid var(--fundo-2); background: var(--fundo-2); border-radius: 14px; padding: 6px 2px 8px; cursor: pointer; color: var(--texto); }
 .tipos button svg { display: block; width: 100%; height: 40px; }
@@ -123,11 +81,6 @@ body { background: #dfe5e1; }
 .lista a .ico { width: 40px; height: 40px; border-radius: 12px; background: var(--verde-claro); color: var(--verde); display: grid; place-items: center; }
 .lista a .ico svg { width: 22px; height: 22px; }
 .lista a > svg { margin-left: auto; color: #b9c3bd; width: 20px; height: 20px; }
-
-/* setas para navegar no protótipo (só no computador) */
-.demo { position: fixed; left: 16px; bottom: 16px; display: flex; gap: 6px; flex-wrap: wrap; max-width: calc(50vw - 260px); }
-.demo button { font: inherit; font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--borda); background: #fff; cursor: pointer; }
-@media (max-width: 1000px) { .demo { display: none; } }
 </style>
 </head>
 <body>
