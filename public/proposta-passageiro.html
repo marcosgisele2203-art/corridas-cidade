@@ -136,6 +136,24 @@
 .pode-cancelar { color: var(--suave); font-size: 14px; text-align: center; margin: 8px 0 0; }
 
 
+/* escolha da viagem */
+.titulo-folha { text-align: center; font-size: 20px; letter-spacing: -.3px; margin: 0 0 var(--e2); }
+.sub-folha { text-align: center; color: var(--suave); font-size: 14px; font-weight: 700; margin: -12px 0 var(--e2); }
+.chips { display: flex; gap: 8px; margin-bottom: var(--e2); flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: 999px; background: var(--fundo-2); border: 0; font: inherit; font-weight: 700; font-size: 15px; color: var(--texto); }
+.chip svg { width: 18px; height: 18px; }
+button.chip { cursor: pointer; }
+.chip[aria-pressed=true] { background: var(--texto); color: #fff; }
+.chip.leve { background: none; color: var(--suave); margin-left: auto; }
+.lotacao { font-style: normal; font-weight: 700; font-size: 14px; color: var(--suave); display: inline-flex; align-items: center; gap: 2px; margin-left: 4px; }
+.lotacao svg { width: 15px; height: 15px; }
+.selo-op { display: inline-block; font-style: normal; font-size: 12px; font-weight: 800; color: #fff; background: var(--verde); border-radius: 6px; padding: 1px 8px; margin-top: 2px; }
+.vazio-viagem { text-align: center; padding: var(--e2) var(--e1) var(--e1); }
+.vazio-viagem .alerta { width: 64px; height: 64px; border-radius: 50%; background: #fff1cc; color: #7a5200; display: grid; place-items: center; margin: 0 auto var(--e2); }
+.vazio-viagem .alerta svg { width: 32px; height: 32px; }
+.vazio-viagem b { font-size: 19px; display: block; }
+.vazio-viagem p { color: var(--suave); margin: 6px 0 0; }
+
 /* marcar no mapa: o pino fica parado no centro e o mapa anda por baixo */
 .pino-centro { position: absolute; z-index: 1; left: 50%; top: 35%; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; pointer-events: none; }
 .pino-centro i { width: 30px; height: 30px; border-radius: 50%; background: var(--verde); border: 8px solid #fff; box-shadow: 0 6px 14px rgba(0,0,0,.25); animation: pula 1.4s ease-in-out infinite; }
@@ -296,21 +314,30 @@
 
   <!-- 3 · veículo e pagamento -->
   <form class="tela com-mapa" data-tela="veiculo" hidden>
-    <svg data-centro="360" class="mapa curto" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <svg data-centro="300" class="mapa curto" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       <use href="#mapa-base" x="-400" width="400" height="800"/><use href="#mapa-base" width="400" height="800"/><use href="#mapa-base" x="400" width="400" height="800"/>
-      <path d="M40 440H200v-90h160" stroke="#fff" stroke-width="16" fill="none" stroke-linejoin="round"/>
-      <path d="M40 440H200v-90h160" stroke="#0a8f43" stroke-width="8" fill="none" stroke-linejoin="round"/>
-      <circle cx="40" cy="440" r="13" fill="#fff"/><circle cx="40" cy="440" r="8" fill="#0a8f43"/>
-      <rect x="348" y="338" width="24" height="24" rx="5" fill="#14201a" stroke="#fff" stroke-width="4"/>
-      <g transform="translate(244 290)"><rect width="112" height="34" rx="17" fill="#fff"/><text x="56" y="22" text-anchor="middle" font-family="Manrope, sans-serif" font-weight="800" font-size="14" fill="#14201a">Rodoviária</text></g>
+      <path d="M40 360H200v-90h160" stroke="#fff" stroke-width="16" fill="none" stroke-linejoin="round"/>
+      <path d="M40 360H200v-90h160" stroke="#0a8f43" stroke-width="8" fill="none" stroke-linejoin="round"/>
+      <circle cx="40" cy="360" r="13" fill="#fff"/><circle cx="40" cy="360" r="8" fill="#0a8f43"/>
+      <rect x="348" y="258" width="24" height="24" rx="5" fill="#14201a" stroke="#fff" stroke-width="4"/>
+      <g transform="translate(20 384)" font-family="Manrope, sans-serif" font-weight="800">
+        <rect width="196" height="40" rx="8" fill="#fff"/><rect width="44" height="40" rx="8" fill="#14201a"/><rect x="36" width="8" height="40" fill="#14201a"/>
+        <text x="22" y="18" text-anchor="middle" font-size="14" fill="#fff">4</text><text x="22" y="32" text-anchor="middle" font-size="10" fill="#fff">min</text>
+        <text x="54" y="25" font-size="13" fill="#14201a">De Minha localização ›</text>
+      </g>
+      <g transform="translate(226 286)" font-family="Manrope, sans-serif" font-weight="800">
+        <rect width="150" height="34" rx="8" fill="#fff"/><text x="12" y="22" font-size="13" fill="#14201a">Para Rodoviária ›</text>
+      </g>
     </svg>
     <div class="flutua"><button type="button" class="pilula redonda" data-ir="enderecos" aria-label="Voltar"><svg class="ic"><use href="#i-seta"/></svg></button></div>
     <div class="espaco-mapa" style="min-height:24vh"></div>
     <div class="folha">
-      <div class="trajeto"><b>Até a Rodoviária</b><span>2,9 km · ~8 min</span></div>
+      <h2 class="titulo-folha">Escolha uma viagem</h2>
+      <p class="sub-folha">2,9 km até a Rodoviária</p>
+      <div class="chips"><span class="chip"><svg class="ic"><use href="#i-relogio"/></svg>Agora</span><button type="button" class="chip" id="paraQuem" aria-pressed="false"><svg class="ic"><use href="#i-pessoa"/></svg><span>Para mim</span> ▾</button></div>
       <div class="veiculos-lista" role="radiogroup" aria-label="Veículo">
-        <label class="opcao"><input type="radio" name="veiculo" value="moto"><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="160" cy="176" rx="130" ry="9" fill="#000" opacity=".18"/><path d="M150 132L84 150" stroke="#3a4640" stroke-width="8" stroke-linecap="round"/><path d="M242 150L214 84" stroke="#3a4640" stroke-width="8" stroke-linecap="round"/><rect x="132" y="112" width="58" height="34" rx="8" fill="#5d6a63"/><rect x="140" y="120" width="20" height="18" rx="3" fill="#7d8983"/><rect x="84" y="134" width="70" height="10" rx="5" fill="#aab4ae"/><path d="M58 116l58-10 4 12-54 8z" fill="#0a8f43"/><path d="M96 106q4-10 28-10l40 2-10 14-54 2z" fill="#1f2b26"/><path d="M150 112q8-26 44-28h18q8 12 0 28z" fill="#0a8f43"/><path d="M168 96q14-6 30-6" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".7"/><path d="M214 84l-14-14h-10" stroke="#1f2b26" stroke-width="6" stroke-linecap="round" fill="none"/><circle cx="228" cy="94" r="11" fill="#1f2b26"/><circle cx="230" cy="94" r="6.5" fill="#ffd54a"/><circle cx="84" cy="150" r="30" fill="#1b221e"/><circle cx="84" cy="150" r="16.5" fill="#d5dcd8"/><circle cx="84" cy="150" r="6.6" fill="#7d8983"/><circle cx="242" cy="150" r="30" fill="#1b221e"/><circle cx="242" cy="150" r="16.5" fill="#d5dcd8"/><circle cx="242" cy="150" r="6.6" fill="#7d8983"/></svg><span><b>Moto</b><small>1 passageiro · rápida</small></span><span class="valor">R$ 8,50</span></label>
-        <label class="opcao"><input type="radio" name="veiculo" value="carro" checked><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="163" cy="176" rx="140" ry="9" fill="#000" opacity=".18"/><path d="M28 150V118q2-14 18-17l46-7 34-30q8-7 20-7h66q13 0 21 8l30 29 22 5q12 3 12 17v34z" fill="#fff"/><path d="M28 132h268v18H28z" fill="#e3e9e5"/><path d="M28 124h268v6H28z" fill="#0a8f43"/><path d="M106 94l28-25q4-4 10-4h36v29z" fill="#1f2b26"/><path d="M188 65h24q8 0 14 6l24 23h-62z" fill="#1f2b26"/><path d="M184 68v62" stroke="#e3e9e5" stroke-width="2"/><rect x="190" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><rect x="140" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><ellipse cx="289" cy="110" rx="7" ry="5" fill="#ffd54a"/><rect x="28" y="106" width="8" height="12" rx="2" fill="#e0475b"/><path d="M244 92l8 2-2 6-8-2z" fill="#1f2b26"/><circle cx="86" cy="150" r="25" fill="#1b221e"/><circle cx="86" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="86" cy="150" r="5.5" fill="#7d8983"/><circle cx="242" cy="150" r="25" fill="#1b221e"/><circle cx="242" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="242" cy="150" r="5.5" fill="#7d8983"/></svg><span><b>Carro</b><small>até 4 passageiros</small></span><span class="valor">R$ 11,00</span></label>
+        <label class="opcao"><input type="radio" name="veiculo" value="moto"><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="160" cy="176" rx="130" ry="9" fill="#000" opacity=".18"/><path d="M150 132L84 150" stroke="#3a4640" stroke-width="8" stroke-linecap="round"/><path d="M242 150L214 84" stroke="#3a4640" stroke-width="8" stroke-linecap="round"/><rect x="132" y="112" width="58" height="34" rx="8" fill="#5d6a63"/><rect x="140" y="120" width="20" height="18" rx="3" fill="#7d8983"/><rect x="84" y="134" width="70" height="10" rx="5" fill="#aab4ae"/><path d="M58 116l58-10 4 12-54 8z" fill="#0a8f43"/><path d="M96 106q4-10 28-10l40 2-10 14-54 2z" fill="#1f2b26"/><path d="M150 112q8-26 44-28h18q8 12 0 28z" fill="#0a8f43"/><path d="M168 96q14-6 30-6" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".7"/><path d="M214 84l-14-14h-10" stroke="#1f2b26" stroke-width="6" stroke-linecap="round" fill="none"/><circle cx="228" cy="94" r="11" fill="#1f2b26"/><circle cx="230" cy="94" r="6.5" fill="#ffd54a"/><circle cx="84" cy="150" r="30" fill="#1b221e"/><circle cx="84" cy="150" r="16.5" fill="#d5dcd8"/><circle cx="84" cy="150" r="6.6" fill="#7d8983"/><circle cx="242" cy="150" r="30" fill="#1b221e"/><circle cx="242" cy="150" r="16.5" fill="#d5dcd8"/><circle cx="242" cy="150" r="6.6" fill="#7d8983"/></svg><span><b>Moto <i class="lotacao"><svg class="ic"><use href="#i-pessoa"/></svg>1</i></b><small class="chega" data-min="6">a ~6 min</small><em class="selo-op">Mais em conta</em></span><span class="valor">R$ 8,50</span></label>
+        <label class="opcao"><input type="radio" name="veiculo" value="carro" checked><svg viewBox="0 30 320 160" aria-hidden="true"><ellipse cx="163" cy="176" rx="140" ry="9" fill="#000" opacity=".18"/><path d="M28 150V118q2-14 18-17l46-7 34-30q8-7 20-7h66q13 0 21 8l30 29 22 5q12 3 12 17v34z" fill="#fff"/><path d="M28 132h268v18H28z" fill="#e3e9e5"/><path d="M28 124h268v6H28z" fill="#0a8f43"/><path d="M106 94l28-25q4-4 10-4h36v29z" fill="#1f2b26"/><path d="M188 65h24q8 0 14 6l24 23h-62z" fill="#1f2b26"/><path d="M184 68v62" stroke="#e3e9e5" stroke-width="2"/><rect x="190" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><rect x="140" y="102" width="14" height="4" rx="2" fill="#b9c3bd"/><ellipse cx="289" cy="110" rx="7" ry="5" fill="#ffd54a"/><rect x="28" y="106" width="8" height="12" rx="2" fill="#e0475b"/><path d="M244 92l8 2-2 6-8-2z" fill="#1f2b26"/><circle cx="86" cy="150" r="25" fill="#1b221e"/><circle cx="86" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="86" cy="150" r="5.5" fill="#7d8983"/><circle cx="242" cy="150" r="25" fill="#1b221e"/><circle cx="242" cy="150" r="13.8" fill="#d5dcd8"/><circle cx="242" cy="150" r="5.5" fill="#7d8983"/></svg><span><b>Carro <i class="lotacao"><svg class="ic"><use href="#i-pessoa"/></svg>4</i></b><small class="chega" data-min="4">a ~4 min</small></span><span class="valor">R$ 11,00</span></label>
       </div>
       <div class="pagamento" role="radiogroup" aria-label="Forma de pagamento">
         <label><input type="radio" name="pag" value="dinheiro" checked><svg class="ic"><use href="#i-nota"/></svg>Dinheiro</label>
@@ -318,13 +345,38 @@
         <label><input type="radio" name="pag" value="cartao"><svg class="ic"><use href="#i-cartao"/></svg>Cartão</label>
       </div>
       <div class="contato">
-        <label>Seu nome<input name="nome" autocomplete="given-name" placeholder="Maria"></label>
-        <label>WhatsApp<input name="telefone" inputmode="tel" autocomplete="tel" placeholder="67 99999-9999"></label>
+        <label><span class="rot-nome">Seu nome</span><input name="nome" autocomplete="given-name" placeholder="Maria"></label>
+        <label><span class="rot-fone">Seu WhatsApp</span><input name="telefone" inputmode="tel" autocomplete="tel" placeholder="67 99999-9999"></label>
       </div>
       <p class="nota-paga">Você paga direto ao motorista. Avisamos pelo WhatsApp quando ele chegar.</p>
       <div class="base"><button class="botao" id="pedir">Pedir carro · R$ 11,00</button></div>
     </div>
   </form>
+
+  <!-- 3b · ninguém disponível -->
+  <section class="tela com-mapa" data-tela="indisponivel" hidden>
+    <svg data-centro="300" class="mapa curto" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <use href="#mapa-base" x="-400" width="400" height="800"/><use href="#mapa-base" width="400" height="800"/><use href="#mapa-base" x="400" width="400" height="800"/>
+      <path d="M40 360H200v-90h160" stroke="#fff" stroke-width="16" fill="none" stroke-linejoin="round"/>
+      <path d="M40 360H200v-90h160" stroke="#9aa59f" stroke-width="8" fill="none" stroke-linejoin="round"/>
+      <circle cx="40" cy="360" r="13" fill="#fff"/><circle cx="40" cy="360" r="8" fill="#0a8f43"/>
+      <rect x="348" y="258" width="24" height="24" rx="5" fill="#14201a" stroke="#fff" stroke-width="4"/>
+    </svg>
+    <div class="flutua"><button type="button" class="pilula redonda" data-ir="enderecos" aria-label="Voltar"><svg class="ic"><use href="#i-seta"/></svg></button></div>
+    <div class="espaco-mapa" style="min-height:24vh"></div>
+    <div class="folha">
+      <h2 class="titulo-folha">Escolha uma viagem</h2>
+      <div class="vazio-viagem">
+        <span class="alerta"><svg class="ic"><use href="#i-relogio"/></svg></span>
+        <b>Nenhum motorista online agora</b>
+        <p>Os motoristas da central estão ocupados ou offline. Tente de novo em alguns minutos ou fale com a central.</p>
+      </div>
+      <div class="base">
+        <a class="botao contorno" href="#"><svg class="ic"><use href="#i-zap"/></svg>Falar com a central</a>
+        <button class="botao" disabled>Pedir</button>
+      </div>
+    </div>
+  </section>
 
   <!-- 4 · procurando motorista -->
   <section class="tela com-mapa alto" data-tela="procurando" hidden>
@@ -389,7 +441,7 @@
 </div>
 
 <div class="demo" aria-label="Telas do protótipo">
-  <button data-ir="inicio">1 Início</button><button data-ir="enderecos">2 Endereços</button><button data-ir="pino">2b Mapa</button><button data-ir="veiculo">3 Veículo</button>
+  <button data-ir="inicio">1 Início</button><button data-ir="enderecos">2 Endereços</button><button data-ir="pino">2b Mapa</button><button data-ir="veiculo">3 Veículo</button><button data-ir="indisponivel">3b Sem motorista</button>
   <button data-ir="procurando">4 Procurando</button><button data-ir="caminho">5 A caminho</button>
 </div>
 
@@ -413,6 +465,18 @@ function enquadrar() {
   });
 }
 enquadrar(); addEventListener('resize', enquadrar);
+// hora estimada de chegada ao destino (chegada do motorista + ~8 min de viagem)
+document.querySelectorAll('.chega').forEach((el) => {
+  const t = new Date(Date.now() + (Number(el.dataset.min) + 8) * 60000);
+  el.textContent += ' · chega às ' + t.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+});
+$('#paraQuem').onclick = (e) => {
+  const outra = e.currentTarget.getAttribute('aria-pressed') !== 'true';
+  e.currentTarget.setAttribute('aria-pressed', outra);
+  e.currentTarget.querySelector('span').textContent = outra ? 'Para outra pessoa' : 'Para mim';
+  $('.rot-nome').textContent = outra ? 'Nome de quem vai' : 'Seu nome';
+  $('.rot-fone').textContent = outra ? 'WhatsApp de quem vai' : 'Seu WhatsApp';
+};
 function pelaHash() { const t = location.hash.slice(1); if (document.querySelector(`[data-tela="${t}"]`)) ir(t); }
 addEventListener('hashchange', pelaHash);
 pelaHash();
