@@ -146,3 +146,6 @@ footer a:hover { color: var(--texto); }
   .menu-aberto .menu a { min-height: 48px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* van e frete: pedidos pelo WhatsApp da central */
+.so-whats { font-size: 15px; color: var(--suave); margin: 10px 0 0; }
