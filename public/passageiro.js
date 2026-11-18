@@ -718,6 +718,8 @@
     const botao = el('button', { type: 'button', className: 'continue-button', textContent: 'Continuar' });
     const status = aviso(msg || 'Diga seu nome e o WhatsApp de quem vai. Avisamos por lá quando o motorista chegar.');
     botao.onclick = async () => {
+      if (botao.disabled) return;
+      botao.disabled = true; // um toque só: dois toques seguidos fariam duas cotações com dados diferentes
       try {
         if (nome.value.trim().length < 2) throw new Error('Diga seu nome.');
         const digitos = fone.value.replace(/\D/g, '');
@@ -726,6 +728,7 @@
         telefone = fone.value.trim();
         await prepararPedido();
       } catch (e) { status.textContent = e.message; status.classList.add('erro'); }
+      finally { botao.disabled = false; }
     };
     mostrar(el('strong', { textContent: 'Pedir esta corrida' }), status, nome, fone, botao);
   }
