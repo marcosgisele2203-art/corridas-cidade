@@ -491,7 +491,11 @@ rota('GET', '/api/publico/inicio', false, async () => {
   const cfg = await lerConfig();
   const numero = await numeroCentral(cfg).catch(() => '');
   return { nome: cfg.nome, cidade: cfg.cidade, aceitando: cfg.aceitando, numero,
-    passageiro: numero ? linkWhats(numero, 'Oi! Quero uma corrida') : '', tipos: ORDEM.filter((t) => cfg.precos[t].ativo) };
+    passageiro: numero ? linkWhats(numero, 'Oi! Quero uma corrida') : '', tipos: ORDEM.filter((t) => cfg.precos[t].ativo),
+    // preço mínimo de cada veículo ativo (o "a partir de" da página inicial), se a central cobra viagens dos
+    // motoristas e as viagens grátis do motorista novo (só valem com a cobrança ligada)
+    minimos: Object.fromEntries(ORDEM.filter((t) => cfg.precos[t].ativo).map((t) => [t, Number(cfg.precos[t].minimo) || 0])),
+    cobranca: !!cfg.cobranca_ativa, gratis: cfg.cobranca_ativa ? Number(cfg.creditos_boas_vindas) || 0 : 0 };
 });
 // Valor estimado para a prévia do site: a mesma conta da cotação e do WhatsApp (km pelas ruas no servidor).
 rota('POST', '/api/publico/estimativa', false, async ({ req }) => {
