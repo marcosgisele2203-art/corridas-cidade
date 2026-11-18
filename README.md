@@ -119,7 +119,7 @@ Também existe uma **comissão %** por corrida (padrão 0%), só para controle n
 | Endereço | Quem usa | O que tem |
 |---|---|---|
 | `/` | Todo mundo | Página inicial com 3 cartões: **Sou passageiro** (abre o site do passageiro; o número da central no rodapé abre o WhatsApp), **Sou motorista** e **Administração** |
-| `/passageiro` | Passageiro | **Pedir corrida pelo site**: marca embarque e destino no mapa (ou busca o endereço), escolhe carro ou moto e o pagamento, vê o valor da central e confirma o WhatsApp com um código de 6 números. Depois de pedir, acompanha a corrida na tela (motorista, placa, situação) e pode cancelar até o motorista chegar. Instala como app no celular |
+| `/passageiro` | Passageiro | **Pedir corrida pelo site**: marca embarque e destino no mapa (ou busca o endereço), escolhe carro ou moto e o pagamento, vê o valor da central e informa nome e WhatsApp (sem código: o celular guarda para a próxima vez). Depois de pedir, acompanha a corrida na tela (motorista, placa, situação) e pode cancelar até o motorista chegar. Instala como app no celular |
 | `/motorista` | Motorista | **Cadastro pelo site** (tipo, modelo, cor pela paleta, placa) e **entrada sem senha**: digita o WhatsApp e recebe um código de 6 números nele. Dentro: ficar **online/offline**, saldo, **comprar viagens** (QR Code e copia e cola do Pix na tela; as viagens entram sozinhas quando o Mercado Pago aprova), **ofertas de corrida na tela** (aceitar, cheguei, iniciar, finalizar, ver a rota no mapa), **GPS pelo navegador** (a posição só é enviada com a página aberta e online), **meu relatório** com período e impressão, e **meu cadastro** (modelo, cor e placa; a central é avisada das mudanças) |
 | `/painel` | Central (senha `ADMIN_SENHA`) | Tudo da administração, abaixo |
 
@@ -212,6 +212,14 @@ O cliente que manda "oi" recebe o *Bem-vindo* junto com uma arte da Vai de Manu 
 pessoa; nas outras vezes vai só o texto). Em Configurações dá para escolher a arte ou deixar **Automática**: com van ou
 caminhão ligados vai a de todos os veículos; só carro e moto, a de carro e moto. Para trocar uma arte, salve outra imagem
 com o mesmo nome em `public/artes/` (JPG).
+
+## Pedido pelo site sem código
+
+O passageiro pede pelo site só com nome e WhatsApp, sem confirmar código. Para segurar trote:
+- cada número só pode ter **uma corrida em andamento**;
+- no máximo **6 pedidos por hora por aparelho** e **4 por hora por número**;
+- o dono do número recebe no WhatsApp o aviso do pedido e pode mandar **CANCELAR**;
+- quem pediu só acompanha e cancela **aquela** corrida na tela, nunca as outras do mesmo número.
 
 ## Privacidade da localização
 

@@ -819,52 +819,52 @@ rota('POST','/api/publico/acompanhamento',false,async ({ req })=>{
 });
 
 // ---------------------------------------------------------------- pedido de corrida pelo site do passageiro
-// O passageiro confirma o WhatsApp com um código de 6 números. Sem código não há pedido:
-// ninguém consegue chamar corrida no nome de outro número.
+// O passageiro pede direto, só com nome e WhatsApp (sem código). Para segurar trote:
+// - uma corrida em andamento por número, e limite de pedidos por aparelho e por número;
+// - o dono do número recebe no WhatsApp o aviso do pedido e pode mandar CANCELAR;
+// - o navegador que pediu ganha acesso só àquela corrida (cookie cp_viagem), nunca às outras do número.
+// A sessão antiga por código (cookie cp_sessao) continua valendo para quem já tinha.
 const hashPassageiro = (t, c) => crypto.createHmac('sha256', 'passageiro:' + segredoMotorista).update(t + ':' + c).digest('hex');
 function sessaoPassageiro(req) {
   const m = /(?:^|;\s*)cp_sessao=(\d+)\.(\d+)\.([a-f0-9]{64})/.exec(req.headers.cookie || '');
-  if (!m || Number(m[2]) < Date.now()) throw new Erro(401, 'Confirme seu WhatsApp para pedir a corrida.');
+  if (!m || Number(m[2]) < Date.now()) throw new Erro(401, 'Peça a corrida de novo por esta tela.');
   const sig = hashPassageiro(m[1], m[2]);
-  if (!crypto.timingSafeEqual(Buffer.from(m[3]), Buffer.from(sig))) throw new Erro(401, 'Confirme seu WhatsApp novamente.');
+  if (!crypto.timingSafeEqual(Buffer.from(m[3]), Buffer.from(sig))) throw new Erro(401, 'Peça a corrida de novo por esta tela.');
   return m[1];
 }
 const cookieSeguro = (req) => (String(req.headers['x-forwarded-proto'] || '').includes('https') ? '; Secure' : '');
 rota('GET', '/api/passageiro/eu', false, async ({ req }) => {
   try { return { telefone: sessaoPassageiro(req) }; } catch { return { telefone: null }; }
 });
-rota('POST', '/api/passageiro/codigo', false, async ({ req }) => {
-  limitar('pc-ip:' + ipDe(req), 6, 15 * 60_000);
-  const b = await lerCorpo(req), tel = telefoneBR(b.telefone);
-  limitar('pc-tel:' + tel, 3, 15 * 60_000);
-  const codigo = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
-  await pool.query(`INSERT INTO passageiro_codigos (telefone, codigo_hash, expira_em) VALUES ($1, $2, now() + interval '10 minutes')
-    ON CONFLICT (telefone) DO UPDATE SET codigo_hash = EXCLUDED.codigo_hash, expira_em = EXCLUDED.expira_em, tentativas = 0`, [tel, hashPassageiro(tel, codigo)]);
-  const cfg = await lerConfig();
-  whats.texto(tel, `🔐 Seu código para pedir corrida pelo site da ${cfg.nome}: *${codigo}*\n\nVale 10 minutos. Não passe para ninguém.`);
-  return { ok: true };
-});
-rota('POST', '/api/passageiro/entrar', false, async ({ req, res }) => {
-  limitar('pe-ip:' + ipDe(req), 15, 15 * 60_000);
-  const b = await lerCorpo(req), tel = telefoneBR(b.telefone), codigo = soDigitos(b.codigo);
-  const { rows: [c] } = await pool.query(
-    'UPDATE passageiro_codigos SET tentativas = tentativas + 1 WHERE telefone = $1 AND expira_em > now() AND tentativas < 5 RETURNING codigo_hash', [tel]);
-  if (!c || codigo.length !== 6) throw new Erro(400, 'Código vencido. Peça um novo.');
-  const a = Buffer.from(hashPassageiro(tel, codigo)), e = Buffer.from(c.codigo_hash);
-  if (a.length !== e.length || !crypto.timingSafeEqual(a, e)) throw new Erro(400, 'Código errado. Confira no seu WhatsApp.');
-  await pool.query('DELETE FROM passageiro_codigos WHERE telefone = $1', [tel]);
-  const exp = String(Date.now() + 30 * 86400_000), sig = hashPassageiro(tel, exp);
-  res.setHeader('Set-Cookie', `cp_sessao=${tel}.${exp}.${sig}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${30 * 86400}${cookieSeguro(req)}`);
-  return { ok: true, telefone: tel };
-});
 rota('POST', '/api/passageiro/sair', false, async ({ res }) => {
-  res.setHeader('Set-Cookie', 'cp_sessao=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+  res.setHeader('Set-Cookie', ['cp_sessao=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0', 'cp_viagem=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0']);
   return { ok: true };
 });
+// telefone do pedido: o da sessão antiga, se houver; senão o que a pessoa digitou
+function telefoneDoPedido(req, b) {
+  try { return sessaoPassageiro(req); } catch { return telefoneBR(b.telefone); }
+}
+// acesso a uma corrida pedida por este navegador (vale 1 dia)
+const assinaturaViagem = (id, exp) => hashPassageiro('viagem:' + id, exp);
+function cookieViagem(req, id) {
+  const exp = String(Date.now() + 86400_000);
+  return `cp_viagem=${id}.${exp}.${assinaturaViagem(id, exp)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${cookieSeguro(req)}`;
+}
+function viagemDoNavegador(req, id) {
+  const m = /(?:^|;\s*)cp_viagem=(\d+)\.(\d+)\.([a-f0-9]{64})/.exec(req.headers.cookie || '');
+  if (!m || Number(m[1]) !== id || Number(m[2]) < Date.now()) return false;
+  const sig = Buffer.from(assinaturaViagem(m[1], m[2]));
+  return crypto.timingSafeEqual(Buffer.from(m[3]), sig);
+}
+// filtro da consulta: a corrida deste navegador, ou as corridas do número da sessão antiga
+function acessoCorrida(req, id) {
+  if (viagemDoNavegador(req, id)) return { onde: 'c.id = $1', params: [id] };
+  return { onde: 'c.id = $1 AND c.passageiro_tel = $2', params: [id, sessaoPassageiro(req)] };
+}
 // Cotação: o servidor calcula km e preço (a mesma conta do WhatsApp) e assina o resultado por 5 minutos.
 rota('POST', '/api/passageiro/cotacao', false, async ({ req }) => {
   limitar('cotacao:' + ipDe(req), 30, 15 * 60_000);
-  const tel = sessaoPassageiro(req), b = await lerCorpo(req, 4096), cfg = await lerConfig();
+  const b = await lerCorpo(req, 4096), tel = telefoneDoPedido(req, b), cfg = await lerConfig();
   const nome = texto(b.nome, 80), origem = texto(b.origem, 180), destino = texto(b.destino, 180), tipo = texto(b.tipo, 20);
   const pagamento = ['dinheiro', 'cartao', 'pix'].includes(b.pagamento) ? b.pagamento : null;
   if (!cfg.aceitando) throw new Erro(400, 'A central não está aceitando corridas agora.');
@@ -882,21 +882,26 @@ rota('POST', '/api/passageiro/cotacao', false, async ({ req }) => {
   const corpo = Buffer.from(JSON.stringify(q)).toString('base64url');
   return { km, valor, token: corpo + '.' + hashPassageiro(tel, corpo) };
 });
-rota('POST', '/api/passageiro/pedir', false, async ({ req }) => {
+rota('POST', '/api/passageiro/pedir', false, async ({ req, res }) => {
   // lê e confere o pedido ANTES de entrar na fila do robô: uma conexão lenta não pode travar o atendimento de todos
   limitar('pedir:' + ipDe(req), 10, 15 * 60_000);
-  const tel = sessaoPassageiro(req), b = await lerCorpo(req, 8192), partes = String(b.token || '').split('.');
+  const b = await lerCorpo(req, 8192), partes = String(b.token || '').split('.');
   if (partes.length !== 2) throw new Erro(400, 'Faça a cotação de novo.');
-  const sig = hashPassageiro(tel, partes[0]);
+  let q;
+  try { q = JSON.parse(Buffer.from(partes[0], 'base64url').toString('utf8')); } catch { throw new Erro(400, 'Cotação inválida. Faça de novo.'); }
+  // o telefone vem da cotação, que o servidor assinou: ninguém troca o número ou o preço no caminho
+  const tel = String(q.tel || ''), sig = hashPassageiro(tel, partes[0]);
   if (sig.length !== partes[1].length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(partes[1]))) throw new Erro(400, 'Cotação inválida. Faça de novo.');
-  const q = JSON.parse(Buffer.from(partes[0], 'base64url').toString('utf8'));
-  if (q.tel !== tel || q.exp < Date.now()) throw new Erro(400, 'A cotação venceu. Faça de novo.');
+  if (q.exp < Date.now()) throw new Erro(400, 'A cotação venceu. Faça de novo.');
+  // sem código, segura trote em série: pedidos por aparelho e por número na última hora
+  limitar('pedir-h:' + ipDe(req), 6, 60 * 60_000);
+  limitar('pedir-tel:' + tel, 4, 60 * 60_000);
   return bot.rodar(async () => {
     const cfg = await lerConfig();
     if (!cfg.aceitando || !cfg.precos[q.tipo]?.ativo) throw new Erro(400, 'Esse veículo não está disponível agora.');
     if (geo.preco(q.km, cfg.precos[q.tipo]) !== q.valor) throw new Erro(400, 'O preço mudou. Faça a cotação de novo.');
     const { rows: [jaFeito] } = await pool.query('SELECT corrida_id FROM passageiro_pedidos WHERE token = $1', [q.nonce]);
-    if (jaFeito) return { id: jaFeito.corrida_id };
+    if (jaFeito) { res.setHeader('Set-Cookie', cookieViagem(req, jaFeito.corrida_id)); return { id: jaFeito.corrida_id }; }
     const { rows: [ativa] } = await pool.query("SELECT id FROM corridas WHERE passageiro_tel = $1 AND status IN ('procurando', 'aceita', 'chegou', 'em_andamento') LIMIT 1", [tel]);
     if (ativa) throw new Erro(409, 'Você já tem uma corrida em andamento.');
     const client = await pool.connect();
@@ -914,23 +919,24 @@ rota('POST', '/api/passageiro/pedir', false, async ({ req }) => {
       await client.query('COMMIT');
     } catch (e) { await client.query('ROLLBACK'); throw e; } finally { client.release(); }
     whats.texto(tel, `🔎 Corrida #${corrida.id} pedida pelo site. Procurando motorista...\nPara cancelar, mande *CANCELAR*.`);
+    res.setHeader('Set-Cookie', cookieViagem(req, corrida.id));
     await bot.despachar(corrida.id);
     return { id: corrida.id };
   });
 });
 rota('GET', '/api/passageiro/viagem/:id', false, async ({ req, p }) => {
-  const tel = sessaoPassageiro(req);
+  const a = acessoCorrida(req, Number(p.id));
   const { rows: [c] } = await pool.query(`SELECT c.id, c.status, c.tipo, c.origem_texto, c.destino_texto, c.km, c.valor_estimado, c.valor_final,
       m.nome AS motorista_nome, m.carro, m.cor, m.placa
-    FROM corridas c LEFT JOIN motoristas m ON m.id = c.motorista_id WHERE c.id = $1 AND c.passageiro_tel = $2`, [Number(p.id), tel]);
+    FROM corridas c LEFT JOIN motoristas m ON m.id = c.motorista_id WHERE ${a.onde}`, a.params);
   if (!c) throw new Erro(404, 'Corrida não encontrada.');
   return c;
 });
 rota('POST', '/api/passageiro/viagem/:id/cancelar', false, async ({ req, p }) => {
-  const tel = sessaoPassageiro(req);
+  const a = acessoCorrida(req, Number(p.id));
   limitar('pcancelar:' + ipDe(req), 30, 60_000);
   return bot.rodar(async () => {
-    const { rows: [c] } = await pool.query('SELECT * FROM corridas WHERE id = $1 AND passageiro_tel = $2', [Number(p.id), tel]);
+    const { rows: [c] } = await pool.query(`SELECT c.* FROM corridas c WHERE ${a.onde}`, a.params);
     if (!c) throw new Erro(404, 'Corrida não encontrada.');
     if (c.status === 'cancelada') return { ok: true };
     if (!['procurando', 'aceita', 'chegou'].includes(c.status)) throw new Erro(409, 'A corrida já começou ou terminou.');

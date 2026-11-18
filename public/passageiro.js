@@ -689,7 +689,7 @@
 
 
   // ---------------------------------------------------------------- pedir a corrida de verdade
-  // 1) o passageiro confirma o WhatsApp com um código de 6 números;
+  // 1) o passageiro diz o nome e o WhatsApp (sem código; o celular guarda para a próxima vez);
   // 2) a central calcula o valor (a mesma conta do WhatsApp) e assina a cotação por 5 minutos;
   // 3) "Pedir corrida" cria a corrida e chama o motorista mais perto. A tela acompanha a situação.
   const guardar = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} };
@@ -711,32 +711,23 @@
   const aviso = (txt, erro = false) => el('p', { className: 'pedido-aviso' + (erro ? ' erro' : ''), textContent: txt, role: 'status' });
   const mostrar = (...filhos) => { pedido.replaceChildren(...filhos); pedido.hidden = false; };
 
+  // nome e WhatsApp de quem vai na corrida (sem código: o celular guarda para a próxima vez)
   function formularioEntrar(msg) {
     const nome = el('input', { type: 'text', autocomplete: 'name', placeholder: 'Seu nome', value: lido('vai-manu-nome'), maxLength: 80 });
     const fone = el('input', { type: 'tel', autocomplete: 'tel', inputMode: 'tel', placeholder: 'WhatsApp com DDD', value: lido('vai-manu-fone') });
-    const codigo = el('input', { type: 'text', inputMode: 'numeric', autocomplete: 'one-time-code', placeholder: 'Código de 6 números', maxLength: 6, hidden: true });
-    const botao = el('button', { type: 'button', className: 'continue-button', textContent: 'Receber código no WhatsApp' });
-    const status = aviso(msg || 'Para pedir a corrida, confirme seu WhatsApp. Mandamos um código para ele.');
-    let etapa = 'codigo';
+    const botao = el('button', { type: 'button', className: 'continue-button', textContent: 'Continuar' });
+    const status = aviso(msg || 'Diga seu nome e o WhatsApp de quem vai. Avisamos por lá quando o motorista chegar.');
     botao.onclick = async () => {
-      botao.disabled = true;
       try {
         if (nome.value.trim().length < 2) throw new Error('Diga seu nome.');
+        const digitos = fone.value.replace(/\D/g, '');
+        if (digitos.length < 10 || digitos.length > 13) throw new Error('WhatsApp inválido. Use DDD + número.');
         guardar('vai-manu-nome', nome.value.trim()); guardar('vai-manu-fone', fone.value.trim());
-        if (etapa === 'codigo') {
-          await api('POST', '/api/passageiro/codigo', { telefone: fone.value });
-          etapa = 'entrar'; codigo.hidden = false; codigo.focus();
-          botao.textContent = 'Confirmar código';
-          status.textContent = 'Enviamos o código para o seu WhatsApp. Ele vale 10 minutos.';
-        } else {
-          const r = await api('POST', '/api/passageiro/entrar', { telefone: fone.value, codigo: codigo.value });
-          telefone = r.telefone;
-          await prepararPedido();
-        }
+        telefone = fone.value.trim();
+        await prepararPedido();
       } catch (e) { status.textContent = e.message; status.classList.add('erro'); }
-      finally { botao.disabled = false; }
     };
-    mostrar(el('strong', { textContent: 'Pedir esta corrida' }), status, nome, fone, codigo, botao);
+    mostrar(el('strong', { textContent: 'Pedir esta corrida' }), status, nome, fone, botao);
   }
 
   async function prepararPedido() {
@@ -744,6 +735,7 @@
     cotacao = null;
     const versao = versaoPedido;
     if (!origemPoint || !destinoPoint) return;
+    if (!telefone) telefone = lido('vai-manu-fone') || null;
     if (!telefone) return formularioEntrar();
     // espera terminar a identificação da rua (até 8 s) para a cotação levar o endereço certo, não "Identificando…"
     for (let i = 0; i < 40 && (addressControllers.origin || addressControllers.destination); i++) {
@@ -756,7 +748,7 @@
     try {
       const extras = dropoffLines().join(' · ');
       cotacao = await api('POST', '/api/passageiro/cotacao', {
-        nome, tipo: veiculo, pagamento: paymentInputs.find((i) => i.checked)?.value || '',
+        nome, telefone, tipo: veiculo, pagamento: paymentInputs.find((i) => i.checked)?.value || '',
         // se a rua ainda não foi identificada, manda o ponto do mapa (nunca o texto "Identificando…")
         origem: /^Identificando/.test(origemInput.value) ? pointLabel(origemPoint) : origemInput.value,
         destino: (/^Identificando/.test(destinoInput.value) ? pointLabel(destinoPoint) : destinoInput.value) + (extras ? ' · ' + extras : ''),
@@ -764,7 +756,7 @@
       });
     } catch (e) {
       if (versao !== versaoPedido) return; // a viagem mudou enquanto calculava
-      if (e.status === 401) { telefone = null; return formularioEntrar(); }
+      if (e.status === 400 && /WhatsApp/.test(e.message)) { telefone = null; return formularioEntrar(e.message); }
       return mostrar(aviso(e.message, true));
     }
     if (versao !== versaoPedido) { cotacao = null; return; }
@@ -782,7 +774,7 @@
         pedido.append(aviso(e.message, true));
       }
     };
-    const sair = el('button', { type: 'button', className: 'link-sair', textContent: 'Não é você? Trocar número' });
+    const sair = el('button', { type: 'button', className: 'link-sair', textContent: 'Trocar nome ou WhatsApp' });
     sair.onclick = async () => { await api('POST', '/api/passageiro/sair').catch(() => {}); telefone = null; formularioEntrar(); };
     mostrar(el('strong', { textContent: 'Valor da central: ' + reais(cotacao.valor) }),
       aviso(`${String(cotacao.km).replace('.', ',')} km pelas ruas. Você paga direto ao motorista (${paymentLabel() || 'dinheiro ou Pix'}). Válido por 5 minutos.`),
@@ -828,11 +820,10 @@
     if (!fim) timerAcompanhar = setTimeout(() => acompanhar(id), 5000);
   }
 
-  api('GET', '/api/passageiro/eu').then((r) => {
-    telefone = r.telefone;
-    const aberta = Number(lido('vai-manu-corrida'));
-    if (telefone && aberta) acompanhar(aberta);
-  }).catch(() => {});
+  // corrida aberta neste celular: volta a acompanhar (o servidor só mostra a corrida pedida por este navegador)
+  api('GET', '/api/passageiro/eu').then((r) => { telefone = r.telefone || lido('vai-manu-fone') || null; }).catch(() => {});
+  const aberta = Number(lido('vai-manu-corrida'));
+  if (aberta) acompanhar(aberta);
 
   window.addEventListener('pagehide', () => {
     if (gpsWatch !== null && navigator.geolocation) navigator.geolocation.clearWatch(gpsWatch);
