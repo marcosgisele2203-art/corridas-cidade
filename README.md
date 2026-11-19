@@ -161,6 +161,7 @@ OSRM_URL=https://router.project-osrm.org     (opcional: servidor de rotas; esse 
 ROTA_PELAS_RUAS=nao                          (opcional: volta a usar só linha reta × 1,3)
 GOOGLE_MAPS_KEY=AIza...                      (opcional: Google Maps para achar o endereço digitado)
 CARTO_KEY=...                                (opcional: mapa de fundo CARTO Voyager, mais bonito no celular)
+GOOGLE_MAPS_KEY_SITE=AIza...                 (opcional: mapa do Google na tela do passageiro; chave separada, travada no domínio)
 ```
 
 **Chave do Google Maps (opcional).** No Google Cloud, ative a **Geocoding API** e a **Places API (New)**, crie uma chave
@@ -170,6 +171,16 @@ continuam vindo do OpenStreetMap; o Google só é consultado quando ele não ach
 fica guardado na memória para não gastar a cota a cada letra. Quando o passageiro **marca um ponto no mapa**, a rua e o **bairro**
 vêm primeiro do Google (Geocoding API), porque o OpenStreetMap quase não tem os bairros da cidade. Sem a chave, ou se o Google falhar, o
 sistema usa o OpenStreetMap como antes. A chave fica só no servidor e nunca vai para as páginas.
+
+**Mapa do Google na tela do passageiro (opcional).** Com `GOOGLE_MAPS_KEY_SITE`, o mapa do `/passageiro` (quando a pessoa
+toca em *Marcar no mapa* ou *Ajustar no mapa*) é o **Google Maps**, sem lojas nem pontos de ônibus, só ruas e bairros. Essa
+chave **aparece no navegador**, então é uma chave **diferente** da `GOOGLE_MAPS_KEY`:
+1. No Google Cloud, em *APIs e serviços*, ative a **Maps JavaScript API**.
+2. Crie uma chave nova. Em *Restrições do aplicativo*, escolha **Sites** e coloque o endereço do site (ex.:
+   `https://seu-site.easypanel.host/*`). Em *Restrições de API*, deixe só a **Maps JavaScript API**.
+3. Coloque um limite diário em *Cotas* e cole a chave em `GOOGLE_MAPS_KEY_SITE` no Easypanel.
+
+Sem a chave, se ela for recusada ou se o Google não carregar, a tela volta sozinha para o mapa aberto (OpenStreetMap/CARTO).
 
 **Mapa de fundo CARTO Voyager (opcional).** Os mapas do site (passageiro, motorista, painel e link de acompanhamento)
 usam o CARTO Voyager quando `CARTO_KEY` está preenchida; sem ela, continuam no OpenStreetMap padrão. Peça a chave grátis em
