@@ -284,3 +284,39 @@ test('sem número digitado, ou se o Google só achar a rua, não muda nada', asy
     assert.strictEqual(lista[0].properties.name, 'Rua Oriel Xavier');
   } finally { delete process.env.GOOGLE_MAPS_KEY; }
 });
+
+// ---- aldeias e zona rural
+test('aldeia que o Google chama de "localidade" vale; a própria cidade não', async () => {
+  process.env.GOOGLE_MAPS_KEY = 'chave-teste';
+  try {
+    let corpo;
+    simularInternet((url, opcoes) => {
+      if (url.includes('nominatim')) return MIRANDA;
+      if (url.includes('photon')) return { body: { features: [] } };
+      corpo = JSON.parse(opcoes.body);
+      return { body: { places: [
+        { types: ['locality', 'political'], displayName: { text: 'Miranda' }, location: { latitude: -20.24, longitude: -56.378 } },
+        { types: ['locality', 'political'], displayName: { text: 'Aldeia Moreira' }, location: { latitude: -20.215, longitude: -56.36 },
+          addressComponents: [{ longText: 'Miranda', types: ['administrative_area_level_2', 'political'] }] },
+      ] } };
+    });
+    const lista = await geo.sugerirEnderecos('Birro : Aldeia Moreira', cfg);
+    assert.strictEqual(corpo.textQuery, 'Aldeia Moreira, Miranda, MS', 'tira o "Birro :" do começo');
+    assert.strictEqual(lista.length, 1);
+    assert.strictEqual(lista[0].properties.name, 'Aldeia Moreira');
+    assert.deepStrictEqual(lista[0].geometry.coordinates, [-56.36, -20.215]);
+  } finally { delete process.env.GOOGLE_MAPS_KEY; }
+});
+
+test('no WhatsApp, aldeia digitada também é encontrada pelo Google', async () => {
+  process.env.GOOGLE_MAPS_KEY = 'chave-teste';
+  try {
+    simularInternet((url) => {
+      if (url.includes('nominatim')) return MIRANDA;
+      if (url.includes('geocode')) return { body: { status: 'OK', results: [{ types: ['locality', 'political'],
+        address_components: [{ long_name: 'Aldeia Passarinho', types: ['locality', 'political'] }], geometry: { location: { lat: -20.2, lng: -56.35 } } }] } };
+      return { body: { places: [] } };
+    });
+    assert.deepStrictEqual(await geo.buscarEndereco('Aldeia Passarinho', cfg), { lat: -20.2, lng: -56.35 });
+  } finally { delete process.env.GOOGLE_MAPS_KEY; }
+});
