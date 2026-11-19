@@ -91,6 +91,13 @@ h2 { font-size: 22px; letter-spacing: -.3px; margin: var(--e3) 0 var(--e1); }
 /* botão principal de cada tela sempre à vista no celular */
 .fixo:not(:disabled) { position: sticky; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 5; box-shadow: 0 10px 28px rgba(0,0,0,.18); }
 
+/* links grandes (ações secundárias) */
+.link-grande { display: inline-flex; align-items: center; gap: 8px; min-height: 52px; padding: 0 4px; margin-top: 8px; border: 0; background: none;
+  color: var(--verde-escuro); font-weight: 800; font-size: 19px; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.links-endereco { display: flex; flex-wrap: wrap; gap: 0 20px; }
+.dica-mapa { margin: 0 0 var(--e2); padding: 14px 16px; border-radius: 14px; background: var(--aviso); color: var(--aviso-texto); font-weight: 800; }
+#digitarBox { margin-top: 12px; }
+
 /* resumo do trajeto */
 .trajeto { display: grid; grid-template-columns: 22px 1fr; gap: 0 12px; padding: 14px 16px; border-radius: var(--raio); background: var(--fundo-2); margin-top: var(--e1); }
 .trilho { display: flex; flex-direction: column; align-items: center; padding: 30px 0 14px; }
