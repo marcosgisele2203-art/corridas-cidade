@@ -119,7 +119,7 @@ Também existe uma **comissão %** por corrida (padrão 0%), só para controle n
 | Endereço | Quem usa | O que tem |
 |---|---|---|
 | `/` | Todo mundo | Página inicial com 3 cartões: **Sou passageiro** (abre o site do passageiro; o número da central no rodapé abre o WhatsApp), **Sou motorista** e **Administração** |
-| `/passageiro` | Passageiro | **Chamar corrida em 3 telas, com letra grande**: 1) *Onde te buscar?* (arrasta o mapa até o pino, usa o GPS ou digita; ponto de referência opcional); 2) *Para onde vai?* (escreve, fala no microfone ou marca no mapa); 3) *Confira e chame* (veículos ligados nas Configurações com o valor da central, Dinheiro/Pix/Cartão, nome e WhatsApp, sem código). Depois acompanha a corrida na tela (motorista, carro, placa, situação) e pode cancelar até o motorista chegar. O botão "Falar com a central" fica sempre no topo. Instala como app no celular |
+| `/passageiro` | Passageiro | **Chamar corrida em 3 telas, com letra grande**: 1) *Onde te buscar?* (dois botões grandes: usar onde está agora, pelo GPS, ou escrever o endereço; o mapa só aparece se a pessoa pedir; ponto de referência opcional); 2) *Para onde vai?* (escreve, fala no microfone ou marca no mapa); 3) *Confira e chame* (veículos ligados nas Configurações com o valor da central, Dinheiro/Pix/Cartão, nome e WhatsApp, sem código). Depois acompanha a corrida na tela (motorista, carro, placa, situação) e pode cancelar até o motorista chegar. O botão "Falar com a central" fica sempre no topo. Instala como app no celular |
 | `/motorista` | Motorista | **Cadastro pelo site** (tipo, modelo, cor pela paleta, placa) e **entrada sem senha**: digita o WhatsApp e recebe um código de 6 números nele. Dentro: ficar **online/offline**, saldo, **comprar viagens** (QR Code e copia e cola do Pix na tela; as viagens entram sozinhas quando o Mercado Pago aprova), **ofertas de corrida na tela** (aceitar, cheguei, iniciar, finalizar, ver a rota no mapa), **GPS pelo navegador** (a posição só é enviada com a página aberta e online), **meu relatório** com período e impressão, e **meu cadastro** (modelo, cor e placa; a central é avisada das mudanças) |
 | `/painel` | Central (senha `ADMIN_SENHA`) | Tudo da administração, abaixo |
 
@@ -161,6 +161,7 @@ OSRM_URL=https://router.project-osrm.org     (opcional: servidor de rotas; esse 
 ROTA_PELAS_RUAS=nao                          (opcional: volta a usar só linha reta × 1,3)
 GOOGLE_MAPS_KEY=AIza...                      (opcional: Google Maps para achar o endereço digitado)
 CARTO_KEY=...                                (opcional: mapa de fundo CARTO Voyager, mais bonito no celular)
+GOOGLE_MAPS_KEY_SITE=AIza...                 (opcional: mapa do Google na tela do passageiro; chave separada, travada no domínio)
 ```
 
 **Chave do Google Maps (opcional).** No Google Cloud, ative a **Geocoding API** e a **Places API (New)**, crie uma chave
@@ -170,6 +171,16 @@ continuam vindo do OpenStreetMap; o Google só é consultado quando ele não ach
 fica guardado na memória para não gastar a cota a cada letra. Quando o passageiro **marca um ponto no mapa**, a rua e o **bairro**
 vêm primeiro do Google (Geocoding API), porque o OpenStreetMap quase não tem os bairros da cidade. Sem a chave, ou se o Google falhar, o
 sistema usa o OpenStreetMap como antes. A chave fica só no servidor e nunca vai para as páginas.
+
+**Mapa do Google na tela do passageiro (opcional).** Com `GOOGLE_MAPS_KEY_SITE`, o mapa do `/passageiro` (quando a pessoa
+toca em *Marcar no mapa* ou *Ajustar no mapa*) é o **Google Maps**, sem lojas nem pontos de ônibus, só ruas e bairros. Essa
+chave **aparece no navegador**, então é uma chave **diferente** da `GOOGLE_MAPS_KEY`:
+1. No Google Cloud, em *APIs e serviços*, ative a **Maps JavaScript API**.
+2. Crie uma chave nova. Em *Restrições do aplicativo*, escolha **Sites** e coloque o endereço do site (ex.:
+   `https://seu-site.easypanel.host/*`). Em *Restrições de API*, deixe só a **Maps JavaScript API**.
+3. Coloque um limite diário em *Cotas* e cole a chave em `GOOGLE_MAPS_KEY_SITE` no Easypanel.
+
+Sem a chave, se ela for recusada ou se o Google não carregar, a tela volta sozinha para o mapa aberto (OpenStreetMap/CARTO).
 
 **Mapa de fundo CARTO Voyager (opcional).** Os mapas do site (passageiro, motorista, painel e link de acompanhamento)
 usam o CARTO Voyager quando `CARTO_KEY` está preenchida; sem ela, continuam no OpenStreetMap padrão. Peça a chave grátis em

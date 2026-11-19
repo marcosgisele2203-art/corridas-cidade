@@ -30,6 +30,7 @@
   const viagem = { busca: null, destino: null }; // { ponto: {lat,lng}, texto }
   let central = { aceitando: true, tipos: ['moto', 'carro'] };
   let etapa = 'busca';
+  let mapaBuscaAberto = false; // na tela 1 o mapa só aparece se a pessoa pedir
   let precos = {}, rodadaPrecos = 0, cotacao = null;
 
   // ---------------------------------------------------------------- telas e botão "voltar" do celular
@@ -38,14 +39,14 @@
     etapa = nova;
     TELAS.forEach((t) => { $('tela-' + t).hidden = t !== nova; });
     // o mapa aparece para marcar o embarque e, se a pessoa pedir, o destino
-    const comMapa = nova === 'busca' || (nova === 'destino' && !$('destinoNoMapa').hidden);
+    const comMapa = (nova === 'busca' && mapaBuscaAberto) || (nova === 'destino' && !$('destinoNoMapa').hidden);
     document.body.classList.toggle('sem-mapa', !comMapa || !mapa);
     document.body.classList.toggle('destino', nova === 'destino');
     $('balaoPino').textContent = nova === 'destino' ? 'Levar até aqui' : 'Te buscamos aqui';
     if (mapa && comMapa) setTimeout(() => {
       // o mapa estava escondido: ajusta o tamanho e volta para o ponto já escolhido, sem mudar nada
       ignorarAte = Date.now() + 600;
-      mapa.invalidateSize({ pan: false });
+      mapa.redimensionar();
       const alvo = viagem[nova === 'busca' ? 'busca' : 'destino'];
       if (alvo) levarMapaPara(alvo.ponto);
     }, 50);
@@ -69,21 +70,79 @@
   const PROCURANDO = 'Procurando o endereço…';
   // texto que vai para a central: nunca "Procurando…", mesmo se o nome da rua ainda não chegou
   const textoDe = (tipo) => (viagem[tipo].texto === PROCURANDO ? 'Ponto marcado no mapa' : viagem[tipo].texto);
-  if (window.L && typeof window.mapaFundo === 'function') {
-    mapa = L.map('mapa', { zoomControl: true, attributionControl: true }).setView(CIDADE, 15);
-    mapaFundo(mapa);
-    mapa.on('movestart', () => $('mapaCaixa').classList.add('movendo'));
-    mapa.on('dragstart', () => { mexeuNoMapa = true; });
-    mapa.on('moveend', () => {
-      $('mapaCaixa').classList.remove('movendo');
-      if (Date.now() < ignorarAte || !mexeuNoMapa) return;
-      const c = mapa.getCenter(), ponto = { lat: c.lat, lng: c.lng };
-      if (etapa === 'busca') marcar('busca', ponto);
-      else if (etapa === 'destino') marcar('destino', ponto);
+  // Dois mapas possíveis, usados do mesmo jeito (centro, irPara, redimensionar):
+  // Google Maps, se o Easypanel tiver GOOGLE_MAPS_KEY_SITE; senão (ou se o Google falhar) o mapa aberto (Leaflet).
+  let alvoDoSite = null; // ponto para onde o próprio site levou o mapa: chegar nele não conta como escolha
+  function aoParar() {
+    $('mapaCaixa').classList.remove('movendo');
+    const ponto = mapa.centro();
+    if (alvoDoSite && Math.abs(alvoDoSite.lat - ponto.lat) < 1e-6 && Math.abs(alvoDoSite.lng - ponto.lng) < 1e-6) return;
+    alvoDoSite = null;
+    if (Date.now() < ignorarAte || !mexeuNoMapa) return;
+    if (etapa === 'busca') marcar('busca', ponto);
+    else if (etapa === 'destino') marcar('destino', ponto);
+  }
+  function criarMapaAberto() {
+    if (!window.L || typeof window.mapaFundo !== 'function') return null;
+    const m = L.map('mapa', { zoomControl: true, attributionControl: true }).setView(CIDADE, 15);
+    mapaFundo(m);
+    m.on('movestart', () => $('mapaCaixa').classList.add('movendo'));
+    m.on('dragstart', () => { mexeuNoMapa = true; });
+    m.on('moveend', aoParar);
+    return {
+      centro: () => { const c = m.getCenter(); return { lat: c.lat, lng: c.lng }; },
+      irPara: (p) => m.setView([p.lat, p.lng], 17, { animate: false }),
+      redimensionar: () => m.invalidateSize({ pan: false }),
+    };
+  }
+  function criarMapaGoogle() {
+    const g = window.google.maps;
+    const m = new g.Map($('mapa'), {
+      center: { lat: CIDADE[0], lng: CIDADE[1] }, zoom: 15, gestureHandling: 'greedy', clickableIcons: false,
+      disableDefaultUI: true, zoomControl: true,
+      // mapa limpo: sem lojas, pontos turísticos e linhas de ônibus, só ruas e bairros
+      styles: [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }, { featureType: 'transit', stylers: [{ visibility: 'off' }] }],
     });
-  } else {
-    $('mapaErro').hidden = false;
-    document.body.classList.add('sem-mapa');
+    m.addListener('dragstart', () => { mexeuNoMapa = true; $('mapaCaixa').classList.add('movendo'); });
+    m.addListener('idle', aoParar);
+    return {
+      centro: () => { const c = m.getCenter(); return { lat: c.lat(), lng: c.lng() }; },
+      irPara: (p) => { m.setCenter(p); m.setZoom(17); },
+      redimensionar: () => {}, // o Google se ajusta sozinho quando o mapa aparece
+    };
+  }
+  function carregarGoogle(chave) {
+    return new Promise((ok, falhou) => {
+      const tempo = setTimeout(() => falhou(new Error('Google Maps demorou')), 12000);
+      window.__vaiManuGoogle = () => { clearTimeout(tempo); ok(); };
+      const sc = document.createElement('script');
+      sc.src = 'https://maps.googleapis.com/maps/api/js?' + new URLSearchParams({ key: chave, language: 'pt-BR', region: 'BR', callback: '__vaiManuGoogle', loading: 'async' });
+      sc.async = true;
+      sc.onerror = () => { clearTimeout(tempo); falhou(new Error('Google Maps não carregou')); };
+      document.head.append(sc);
+    });
+  }
+  let usandoGoogle = false;
+  function usarMapaAberto() {
+    if (mapa && !usandoGoogle) return mapa;
+    usandoGoogle = false;
+    $('mapa').replaceChildren();
+    mapa = criarMapaAberto();
+    if (!mapa) $('mapaErro').hidden = false;
+    return mapa;
+  }
+  // chave recusada pelo Google (domínio não liberado, cobrança desligada...): volta para o mapa aberto
+  window.gm_authFailure = () => { if (usandoGoogle) { usarMapaAberto(); mostrarMapaSeAberto(); } };
+  const mapaPronto = (window.MAPA_GOOGLE
+    ? carregarGoogle(window.MAPA_GOOGLE).then(() => { usandoGoogle = true; mapa = criarMapaGoogle(); return mapa; }).catch(usarMapaAberto)
+    : Promise.resolve(usarMapaAberto())
+  ).then((m) => { mostrarMapaSeAberto(); return m; });
+  // o mapa chegou depois de a pessoa abrir a tela com mapa: ajusta e centraliza
+  function mostrarMapaSeAberto() {
+    if (!mapa || document.body.classList.contains('sem-mapa')) return;
+    mapa.redimensionar();
+    const alvo = viagem[etapa === 'destino' ? 'destino' : 'busca'];
+    if (alvo) levarMapaPara(alvo.ponto);
   }
 
   // ponto escolhido no mapa ou pelo GPS: pergunta à central o nome da rua e do bairro
@@ -109,21 +168,51 @@
   function mostrarEndereco(tipo) {
     const caixa = $(tipo === 'busca' ? 'enderecoBusca' : 'enderecoDestino');
     const v = viagem[tipo];
-    caixa.querySelector('span').textContent = v ? v.texto : (tipo === 'busca' ? 'Escolha o ponto no mapa' : 'Arraste o mapa até o lugar');
+    caixa.querySelector('span').textContent = v ? v.texto : (tipo === 'busca' ? '' : 'Arraste o mapa até o lugar');
     caixa.classList.toggle('vazio', !v);
-    $(tipo === 'busca' ? 'confirmarBusca' : 'confirmarDestino').disabled = !v;
+    if (tipo === 'destino') { $('confirmarDestino').disabled = !v; return; }
+    // tela 1: as opções somem quando já há endereço ou o mapa está aberto
+    $('opcoesBusca').hidden = !!v || mapaBuscaAberto;
+    $('buscaEscolhida').hidden = !v;
+    $('confirmarBusca').hidden = !v;
+    $('dicaMapaBusca').hidden = !mapaBuscaAberto;
+    $('ajustarBusca').hidden = mapaBuscaAberto;
+    $('fecharMapaBusca').hidden = !(mapaBuscaAberto && !v);
+  }
+  async function abrirMapaBusca() {
+    if (!mapa) { $('erroBusca').textContent = 'Abrindo o mapa…'; await mapaPronto; $('erroBusca').textContent = ''; }
+    if (!mapa) { $('erroBusca').textContent = 'O mapa não carregou. Use “Usar onde estou agora” ou escreva o endereço.'; return; }
+    mapaBuscaAberto = true;
+    mexeuNoMapa = false;
+    document.body.classList.remove('sem-mapa');
+    mostrarEndereco('busca');
+    setTimeout(() => {
+      ignorarAte = Date.now() + 600;
+      mapa.redimensionar();
+      if (viagem.busca) levarMapaPara(viagem.busca.ponto);
+      $('mapaCaixa').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  }
+  function trocarBusca() {
+    viagem.busca = null;
+    mapaBuscaAberto = false;
+    document.body.classList.add('sem-mapa');
+    $('erroBusca').textContent = '';
+    mostrarEndereco('busca');
+    window.scrollTo(0, 0);
   }
   function levarMapaPara(ponto) {
     if (!mapa) return;
     ignorarAte = Date.now() + 600;
-    mapa.setView([ponto.lat, ponto.lng], 17, { animate: false });
+    alvoDoSite = { lat: ponto.lat, lng: ponto.lng };
+    mapa.irPara(ponto);
   }
 
   // ---------------------------------------------------------------- tela 1: onde te buscar
   $('usarGps').addEventListener('click', () => {
     const erro = $('erroBusca');
     erro.textContent = '';
-    if (!navigator.geolocation || !window.isSecureContext) { erro.textContent = 'Este celular não deixou usar a localização. Arraste o mapa ou digite o endereço.'; return; }
+    if (!navigator.geolocation || !window.isSecureContext) { erro.textContent = 'Este celular não deixou usar a localização. Escreva o endereço.'; return; }
     const botao = $('usarGps');
     botao.disabled = true; botao.lastChild.textContent = 'Procurando você…';
     navigator.geolocation.getCurrentPosition((pos) => {
@@ -134,10 +223,19 @@
       marcar('busca', ponto);
     }, (e) => {
       botao.disabled = false; botao.lastChild.textContent = 'Usar onde estou agora';
-      erro.textContent = e.code === 1 ? 'Para usar onde você está, toque em “Permitir” quando o celular perguntar. Ou arraste o mapa.'
-        : 'Não achamos sua localização. Arraste o mapa ou digite o endereço.';
+      erro.textContent = e.code === 1 ? 'Para usar onde você está, toque em “Permitir” quando o celular perguntar. Ou escreva o endereço.'
+        : 'Não achamos sua localização. Escreva o endereço.';
     }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 });
   });
+  $('abrirDigitar').addEventListener('click', () => {
+    $('abrirDigitar').hidden = true;
+    $('digitarBox').hidden = false;
+    $('digitarBusca').focus();
+  });
+  $('mapaBusca').addEventListener('click', abrirMapaBusca);
+  $('ajustarBusca').addEventListener('click', abrirMapaBusca);
+  $('trocarBusca').addEventListener('click', trocarBusca);
+  $('fecharMapaBusca').addEventListener('click', trocarBusca);
   $('confirmarBusca').addEventListener('click', () => {
     if (!viagem.busca) return;
     guardar('vai-manu-referencia', $('referencia').value.trim());
@@ -213,7 +311,8 @@
   });
 
   // ---------------------------------------------------------------- tela 2: para onde vai
-  $('mapaDestino').addEventListener('click', () => {
+  $('mapaDestino').addEventListener('click', async () => {
+    if (!mapa) { $('erroDestino').textContent = 'Abrindo o mapa…'; await mapaPronto; $('erroDestino').textContent = ''; }
     if (!mapa) { $('erroDestino').textContent = 'O mapa não carregou. Escreva o lugar no campo acima.'; return; }
     $('destinoNoMapa').hidden = false;
     document.body.classList.remove('sem-mapa');
@@ -222,7 +321,7 @@
     viagem.destino = null; mostrarEndereco('destino');
     setTimeout(() => {
       ignorarAte = Date.now() + 600;
-      mapa.invalidateSize({ pan: false });
+      mapa.redimensionar();
       if (viagem.busca) levarMapaPara(viagem.busca.ponto);
       $('mapaCaixa').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
@@ -406,6 +505,7 @@
     clearTimeout(timerCorrida); rodadaCorrida++;
     viagem.destino = null;
     $('digitarDestino').value = ''; $('destinoNoMapa').hidden = true;
+    mapaBuscaAberto = false;
     mostrarEndereco('busca');
     try { history.replaceState({ etapa: 'busca' }, ''); } catch {}
     irPara('busca', { historico: false });

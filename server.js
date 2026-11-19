@@ -987,7 +987,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET') {
       if (url.pathname === '/mapa-fundo.js') {
         res.writeHead(200, { 'Content-Type': MIME['.js'], 'Cache-Control': 'no-cache' });
-        return res.end(mapaFundo.script(process.env.CARTO_KEY));
+        return res.end(mapaFundo.script(process.env.CARTO_KEY, process.env.GOOGLE_MAPS_KEY_SITE));
       }
       const pagina = { '/': 'inicio.html', '/painel': 'index.html', '/motorista': 'motorista.html', '/passageiro': 'passageiro.html' }[url.pathname.replace(/\/+$/, '') || '/'];
       if (pagina) return arquivo(res, pagina) || json(res, 404, { erro: 'Não encontrado' });
