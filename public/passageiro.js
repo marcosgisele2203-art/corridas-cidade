@@ -30,6 +30,7 @@
   const viagem = { busca: null, destino: null }; // { ponto: {lat,lng}, texto }
   let central = { aceitando: true, tipos: ['moto', 'carro'] };
   let etapa = 'busca';
+  let mapaBuscaAberto = false; // na tela 1 o mapa só aparece se a pessoa pedir
   let precos = {}, rodadaPrecos = 0, cotacao = null;
 
   // ---------------------------------------------------------------- telas e botão "voltar" do celular
@@ -38,7 +39,7 @@
     etapa = nova;
     TELAS.forEach((t) => { $('tela-' + t).hidden = t !== nova; });
     // o mapa aparece para marcar o embarque e, se a pessoa pedir, o destino
-    const comMapa = nova === 'busca' || (nova === 'destino' && !$('destinoNoMapa').hidden);
+    const comMapa = (nova === 'busca' && mapaBuscaAberto) || (nova === 'destino' && !$('destinoNoMapa').hidden);
     document.body.classList.toggle('sem-mapa', !comMapa || !mapa);
     document.body.classList.toggle('destino', nova === 'destino');
     $('balaoPino').textContent = nova === 'destino' ? 'Levar até aqui' : 'Te buscamos aqui';
@@ -109,9 +110,37 @@
   function mostrarEndereco(tipo) {
     const caixa = $(tipo === 'busca' ? 'enderecoBusca' : 'enderecoDestino');
     const v = viagem[tipo];
-    caixa.querySelector('span').textContent = v ? v.texto : (tipo === 'busca' ? 'Escolha o ponto no mapa' : 'Arraste o mapa até o lugar');
+    caixa.querySelector('span').textContent = v ? v.texto : (tipo === 'busca' ? '' : 'Arraste o mapa até o lugar');
     caixa.classList.toggle('vazio', !v);
-    $(tipo === 'busca' ? 'confirmarBusca' : 'confirmarDestino').disabled = !v;
+    if (tipo === 'destino') { $('confirmarDestino').disabled = !v; return; }
+    // tela 1: as opções somem quando já há endereço ou o mapa está aberto
+    $('opcoesBusca').hidden = !!v || mapaBuscaAberto;
+    $('buscaEscolhida').hidden = !v;
+    $('confirmarBusca').hidden = !v;
+    $('dicaMapaBusca').hidden = !mapaBuscaAberto;
+    $('ajustarBusca').hidden = mapaBuscaAberto;
+    $('fecharMapaBusca').hidden = !(mapaBuscaAberto && !v);
+  }
+  function abrirMapaBusca() {
+    if (!mapa) { $('erroBusca').textContent = 'O mapa não carregou. Use “Usar onde estou agora” ou escreva o endereço.'; return; }
+    mapaBuscaAberto = true;
+    mexeuNoMapa = false;
+    document.body.classList.remove('sem-mapa');
+    mostrarEndereco('busca');
+    setTimeout(() => {
+      ignorarAte = Date.now() + 600;
+      mapa.invalidateSize({ pan: false });
+      if (viagem.busca) levarMapaPara(viagem.busca.ponto);
+      $('mapaCaixa').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  }
+  function trocarBusca() {
+    viagem.busca = null;
+    mapaBuscaAberto = false;
+    document.body.classList.add('sem-mapa');
+    $('erroBusca').textContent = '';
+    mostrarEndereco('busca');
+    window.scrollTo(0, 0);
   }
   function levarMapaPara(ponto) {
     if (!mapa) return;
@@ -123,7 +152,7 @@
   $('usarGps').addEventListener('click', () => {
     const erro = $('erroBusca');
     erro.textContent = '';
-    if (!navigator.geolocation || !window.isSecureContext) { erro.textContent = 'Este celular não deixou usar a localização. Arraste o mapa ou digite o endereço.'; return; }
+    if (!navigator.geolocation || !window.isSecureContext) { erro.textContent = 'Este celular não deixou usar a localização. Escreva o endereço.'; return; }
     const botao = $('usarGps');
     botao.disabled = true; botao.lastChild.textContent = 'Procurando você…';
     navigator.geolocation.getCurrentPosition((pos) => {
@@ -134,10 +163,19 @@
       marcar('busca', ponto);
     }, (e) => {
       botao.disabled = false; botao.lastChild.textContent = 'Usar onde estou agora';
-      erro.textContent = e.code === 1 ? 'Para usar onde você está, toque em “Permitir” quando o celular perguntar. Ou arraste o mapa.'
-        : 'Não achamos sua localização. Arraste o mapa ou digite o endereço.';
+      erro.textContent = e.code === 1 ? 'Para usar onde você está, toque em “Permitir” quando o celular perguntar. Ou escreva o endereço.'
+        : 'Não achamos sua localização. Escreva o endereço.';
     }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 });
   });
+  $('abrirDigitar').addEventListener('click', () => {
+    $('abrirDigitar').hidden = true;
+    $('digitarBox').hidden = false;
+    $('digitarBusca').focus();
+  });
+  $('mapaBusca').addEventListener('click', abrirMapaBusca);
+  $('ajustarBusca').addEventListener('click', abrirMapaBusca);
+  $('trocarBusca').addEventListener('click', trocarBusca);
+  $('fecharMapaBusca').addEventListener('click', trocarBusca);
   $('confirmarBusca').addEventListener('click', () => {
     if (!viagem.busca) return;
     guardar('vai-manu-referencia', $('referencia').value.trim());
@@ -406,6 +444,7 @@
     clearTimeout(timerCorrida); rodadaCorrida++;
     viagem.destino = null;
     $('digitarDestino').value = ''; $('destinoNoMapa').hidden = true;
+    mapaBuscaAberto = false;
     mostrarEndereco('busca');
     try { history.replaceState({ etapa: 'busca' }, ''); } catch {}
     irPara('busca', { historico: false });

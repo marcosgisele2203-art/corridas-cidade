@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="/passageiro.css?v=20261118-simples">
+  <link rel="stylesheet" href="/passageiro.css?v=20261119-mapa-opcional">
 </head>
 <body>
 <!-- Pedido em 3 telas, com letra grande, pensado para quem tem pouca prática com celular:
@@ -45,23 +45,34 @@
     <p class="mapa-erro" id="mapaErro" hidden>O mapa não carregou. Use o botão “Usar onde estou” ou digite o endereço.</p>
   </div>
 
-  <!-- 1 · onde te buscar -->
+  <!-- 1 · onde te buscar: dois botões grandes; o mapa só aparece se a pessoa pedir -->
   <section class="tela" id="tela-busca" aria-labelledby="t1">
     <p class="passo">Passo 1 de 3</p>
     <h1 id="t1">Onde te buscar?</h1>
-    <p class="explica">Arraste o mapa até o pino ficar no lugar certo.</p>
-    <button type="button" class="botao grande claro" id="usarGps"><svg class="ic"><use href="#i-mira"/></svg>Usar onde estou agora</button>
-    <div class="endereco-cartao" id="enderecoBusca" aria-live="polite"><svg class="ic"><use href="#i-pino"/></svg><span>Escolha o ponto no mapa</span></div>
-    <details class="digitar">
-      <summary>Prefiro digitar o endereço</summary>
-      <div class="campo-busca"><svg class="ic"><use href="#i-busca"/></svg><input id="digitarBusca" type="text" autocomplete="off" placeholder="Rua, número ou lugar" aria-label="Endereço onde te buscar"></div>
-      <div class="sugestoes" id="sugestoesBusca" role="listbox" hidden></div>
-    </details>
-    <label class="campo">Ponto de referência <small>(se quiser)</small>
-      <input id="referencia" type="text" maxlength="80" placeholder="Ex.: portão azul, perto da padaria">
-    </label>
+    <div id="opcoesBusca">
+      <button type="button" class="botao grande" id="usarGps"><svg class="ic"><use href="#i-mira"/></svg>Usar onde estou agora</button>
+      <button type="button" class="botao grande claro" id="abrirDigitar"><svg class="ic"><use href="#i-busca"/></svg>Escrever o endereço</button>
+      <div id="digitarBox" hidden>
+        <div class="campo-busca grande"><svg class="ic"><use href="#i-busca"/></svg><input id="digitarBusca" type="text" autocomplete="off" placeholder="Rua, número ou lugar" aria-label="Endereço onde te buscar"></div>
+        <div class="sugestoes" id="sugestoesBusca" role="listbox" hidden></div>
+      </div>
+      <button type="button" class="link-grande" id="mapaBusca"><svg class="ic"><use href="#i-mapa"/></svg>Marcar no mapa</button>
+    </div>
+    <p class="dica-mapa" id="dicaMapaBusca" hidden>Arraste o mapa até o pino ficar em cima do lugar certo.</p>
+    <button type="button" class="link-grande" id="fecharMapaBusca" hidden>Fechar o mapa</button>
+    <div id="buscaEscolhida" hidden>
+      <p class="explica">Vamos te buscar em:</p>
+      <div class="endereco-cartao" id="enderecoBusca" aria-live="polite"><svg class="ic"><use href="#i-pino"/></svg><span></span></div>
+      <div class="links-endereco">
+        <button type="button" class="link-grande" id="ajustarBusca"><svg class="ic"><use href="#i-mapa"/></svg>Ajustar no mapa</button>
+        <button type="button" class="link-grande" id="trocarBusca">Trocar endereço</button>
+      </div>
+      <label class="campo">Ponto de referência <small>(se quiser)</small>
+        <input id="referencia" type="text" maxlength="80" placeholder="Ex.: portão azul, perto da padaria">
+      </label>
+    </div>
     <p class="erro" id="erroBusca" role="alert"></p>
-    <button type="button" class="botao grande fixo" id="confirmarBusca" disabled>É aqui<svg class="ic"><use href="#i-seta"/></svg></button>
+    <button type="button" class="botao grande fixo" id="confirmarBusca" hidden>É aqui<svg class="ic"><use href="#i-seta"/></svg></button>
   </section>
 
   <!-- 2 · para onde vai -->
@@ -140,7 +151,7 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/mapa-fundo.js"></script>
-<script src="/passageiro.js?v=20261118-simples"></script>
+<script src="/passageiro.js?v=20261119-mapa-opcional"></script>
 <script>
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     window.addEventListener('load', () => {
