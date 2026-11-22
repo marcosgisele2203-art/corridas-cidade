@@ -31,3 +31,19 @@ test('o script cria a camada com referrerPolicy origin e a atribuição', () => 
   assert.match(chamadas[0].op.attribution, /CARTO/);
   assert.strictEqual(chamadas[1].addTo, mapa);
 });
+
+test('chave do Google para o site: só aceita formato de chave, senão fica sem Google', () => {
+  assert.strictEqual(mapaFundo.chaveGoogle(' AIzaSyAbcdefghijklmnopqrstuvwxyz012345 '), 'AIzaSyAbcdefghijklmnopqrstuvwxyz012345');
+  for (const ruim of [undefined, '', '   ', 'curta', 'AIza"; alert(1); "abcdefghijklmnopqrst']) {
+    assert.strictEqual(mapaFundo.chaveGoogle(ruim), '');
+  }
+});
+
+test('o script entrega a chave do Google ao navegador (ou vazio)', () => {
+  const janela = {}; janela.window = janela;
+  vm.runInNewContext(mapaFundo.script('', 'AIzaSyAbcdefghijklmnopqrstuvwxyz012345'), janela);
+  assert.strictEqual(janela.MAPA_GOOGLE, 'AIzaSyAbcdefghijklmnopqrstuvwxyz012345');
+  const sem = {}; sem.window = sem;
+  vm.runInNewContext(mapaFundo.script(''), sem);
+  assert.strictEqual(sem.MAPA_GOOGLE, '');
+});
