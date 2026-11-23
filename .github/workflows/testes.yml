@@ -1,0 +1,22 @@
+# Roda os testes a cada Pull Request e a cada envio para a main.
+name: Testes
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Conferir a sintaxe de todos os arquivos
+        run: for f in server.js lib/*.js public/*.js; do node --check "$f"; done
+      - run: npm test
